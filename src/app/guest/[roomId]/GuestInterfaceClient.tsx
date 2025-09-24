@@ -1,442 +1,446 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useHotelStore } from '@/store/hotelStore';
-import { sampleMenu, sampleHotelInfo } from '@/lib/sampleData';
-import { translate } from '@/lib/translations';
-import { Language, MenuItem, OrderItem } from '@/types';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { 
-  Hotel, 
-  Wifi, 
-  Clock, 
-  Phone, 
-  MapPin, 
-  Star,
-  ShoppingCart,
-  Plus,
-  Minus,
-  CheckCircle,
-  AlertCircle,
-  Heart,
-  Share2
-} from 'lucide-react';
+  FaConciergeBell, 
+  FaWifi, 
+  FaBroom, 
+  FaTools, 
+  FaBell, 
+  FaStar, 
+  FaTimes,
+  FaBed,
+  FaTooth,
+  FaGlassWater,
+  FaShoePrints,
+  FaSoap,
+  FaWater,
+  FaSwimmingPool,
+  FaWineBottle
+} from "react-icons/fa";
+import { ApiService } from '@/services/api';
 
 interface GuestInterfaceClientProps {
   roomId: string;
 }
 
 export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientProps) {
-  const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
-  const [activeTab, setActiveTab] = useState<'menu' | 'info' | 'requests'>('menu');
-  const [menu, setMenu] = useState<MenuItem[]>(sampleMenu);
-  const [cart, setCart] = useState<OrderItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [showCart, setShowCart] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const router = useRouter();
+  const [showSurvey, setShowSurvey] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    type: 'success' | 'info' | 'warning';
+    title: string;
+    message: string;
+    timestamp: Date;
+  }>>([]);
 
-  const { hotelInfo } = useHotelStore();
-
-  const categories = [
-    { id: 'all', name: 'Tümü', icon: '🍽️' },
-    { id: 'breakfast', name: 'Kahvaltı', icon: '🥐' },
-    { id: 'appetizer', name: 'Mezeler', icon: '🥗' },
-    { id: 'main', name: 'Ana Yemekler', icon: '🍖' },
-    { id: 'dessert', name: 'Tatlılar', icon: '🍰' },
-    { id: 'beverage', name: 'İçecekler', icon: '🥤' }
-  ];
-
-  const filteredMenu = menu.filter(item => {
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    return matchesCategory && item.available;
-  });
-
-  const addToCart = (menuItem: MenuItem) => {
-    setCart(prev => {
-      const existingItem = prev.find(item => item.menuItemId === menuItem.id);
-      if (existingItem) {
-        return prev.map(item =>
-          item.menuItemId === menuItem.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        return [...prev, {
-          menuItemId: menuItem.id,
-          quantity: 1,
-          price: menuItem.price
-        }];
-      }
-    });
-  };
-
-  const removeFromCart = (menuItemId: string) => {
-    setCart(prev => prev.filter(item => item.menuItemId !== menuItemId));
-  };
-
-  const updateQuantity = (menuItemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(menuItemId);
-    } else {
-      setCart(prev => prev.map(item =>
-        item.menuItemId === menuItemId
-          ? { ...item, quantity }
-          : item
-      ));
-    }
-  };
-
-  const getTotalAmount = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
-  const getCartItemCount = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
-  };
-
-  const getMenuItemName = (menuItemId: string) => {
-    const menuItem = menu.find(m => m.id === menuItemId);
-    return menuItem?.name || 'Bilinmeyen Ürün';
-  };
-
-  const handlePlaceOrder = () => {
-    // Order placement logic here
-    console.log('Sipariş verildi:', { roomId, cart, totalAmount: getTotalAmount() });
-    setOrderPlaced(true);
-    setCart([]);
-    setShowCart(false);
+  // Bildirim ekleme fonksiyonu
+  const addNotification = (type: 'success' | 'info' | 'warning', title: string, message: string) => {
+    const notification = {
+      id: Date.now().toString(),
+      type,
+      title,
+      message,
+      timestamp: new Date()
+    };
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Max 5 bildirim
     
-    // Reset order placed status after 3 seconds
-    setTimeout(() => setOrderPlaced(false), 3000);
+    // 5 saniye sonra otomatik kapat
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 5000);
   };
 
-  const quickRequests = [
-    { id: 'towels', label: 'Havlu', icon: '🧺' },
-    { id: 'cleaning', label: 'Oda Temizliği', icon: '🧹' },
-    { id: 'maintenance', label: 'Bakım', icon: '🔧' },
-    { id: 'concierge', label: 'Konsiyerj', icon: '🎩' },
-    { id: 'pillows', label: 'Ekstra Yastık', icon: '🛏️' },
-    { id: 'blankets', label: 'Ekstra Battaniye', icon: '🛌' }
-  ];
+  // Bildirim kapatma
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  if (showSurvey) {
+    return <SurveyModal roomId={roomId} onClose={() => setShowSurvey(false)} onSurveySent={(message) => addNotification('success', 'Anket', message)} />;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-hotel-cream to-white">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-hotel-navy rounded-xl flex items-center justify-center">
-                <Hotel className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Oda {roomId}</h1>
-                <p className="text-gray-600">Grand Hotel - Misafir Arayüzü</p>
-              </div>
+    <div className="min-h-screen bg-[#F7F7F7] flex flex-col items-center py-8 relative">
+      {/* Bildirim Sistemi */}
+      <div className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 space-y-2 max-w-xs sm:max-w-sm">
+        {notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`w-full bg-white rounded-lg shadow-lg border-l-4 p-3 sm:p-4 transform transition-all duration-300 ${
+              notification.type === 'success' ? 'border-green-500' :
+              notification.type === 'info' ? 'border-blue-500' :
+              'border-yellow-500'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex-1 pr-2">
+                <h4 className="font-semibold text-gray-900 text-xs sm:text-sm">{notification.title}</h4>
+                <p className="text-gray-600 text-xs sm:text-sm mt-1 leading-tight">{notification.message}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {notification.timestamp.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
             </div>
-            <div className="flex items-center space-x-4">
               <button
-                onClick={() => setShowCart(true)}
-                className="relative bg-hotel-gold text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors flex items-center space-x-2"
+                onClick={() => removeNotification(notification.id)}
+                className="ml-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
               >
-                <ShoppingCart className="w-4 h-4" />
-                <span>Sepet ({getCartItemCount()})</span>
-                {getCartItemCount() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {getCartItemCount()}
-                  </span>
-                )}
+                <FaTimes className="w-3 h-3" />
               </button>
-              <select
-                value={currentLanguage}
-                onChange={(e) => setCurrentLanguage(e.target.value as Language)}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-1 bg-white"
-              >
-                <option value="tr">🇹🇷 Türkçe</option>
-                <option value="de">🇩🇪 Deutsch</option>
-                <option value="en">🇺🇸 English</option>
-              </select>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
-            {[
-              { id: 'menu', label: 'Oda Servisi', icon: '🍽️' },
-              { id: 'info', label: 'Otel Bilgileri', icon: 'ℹ️' },
-              { id: 'requests', label: 'Hızlı Talepler', icon: '⚡' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-hotel-gold text-hotel-gold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'menu' && (
-          <div className="space-y-6">
-            {/* Category Filter */}
-            <div className="flex space-x-2 overflow-x-auto">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
-                    selectedCategory === category.id
-                      ? 'bg-hotel-gold text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="mr-2">{category.icon}</span>
-                  {category.name}
-                </button>
               ))}
-            </div>
+      </div>
 
-            {/* Menu Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredMenu.map((item) => (
-                <div key={item.id} className="hotel-card p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.name}</h3>
-                      <p className="text-gray-600 text-sm mb-3">{item.description}</p>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{item.preparationTime} dk</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-500" />
-                          <span>4.5</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-hotel-gold">{item.price}₺</div>
-                      {item.allergens && item.allergens.length > 0 && (
-                        <div className="text-xs text-red-600 mt-1">
-                          {item.allergens.join(', ')}
-                        </div>
-                      )}
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#222] px-4 text-center">Oda {roomId} - Misafir Ekranı</h1>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-md mb-4 px-4">
+        {/* Oda Servisi */}
+              <button
+          className="flex flex-col items-center justify-center bg-[#E3EAFD] rounded-xl p-4 sm:p-6 shadow hover:scale-105 transition"
+          onClick={() => router.push('/qr-menu')}
+        >
+          <FaConciergeBell className="text-2xl sm:text-3xl mb-2 text-[#4A90E2]" />
+          <span className="font-medium text-[#222] text-sm sm:text-base">Oda Servisi</span>
+              </button>
+        {/* Bilgi & Wifi */}
+              <button
+          className="flex flex-col items-center justify-center bg-[#E6F4EA] rounded-xl p-4 sm:p-6 shadow hover:scale-105 transition"
+          onClick={() => router.push('/bilgi')}
+        >
+          <FaWifi className="text-2xl sm:text-3xl mb-2 text-[#50BFA5]" />
+          <span className="font-medium text-[#222] text-sm sm:text-base">Bilgi & Wifi</span>
+              </button>
+        {/* Oda Temizliği */}
+                <button
+          className="flex flex-col items-center justify-center bg-[#FFF6E3] rounded-xl p-4 sm:p-6 shadow hover:scale-105 transition"
+          onClick={async () => {
+            try {
+              await ApiService.createGuestRequest({
+                roomId: `room-${roomId}`,
+                type: 'housekeeping',
+                priority: 'medium',
+                status: 'pending',
+                description: 'Oda temizliği talep edildi',
+              });
+              addNotification('success', 'Temizlik Talebi', 'Oda temizliği talebiniz resepsiyona iletildi. En kısa sürede yanıtlanacaktır.');
+            } catch (error) {
+              addNotification('success', 'Temizlik Talebi', 'Oda temizliği talebiniz resepsiyona iletildi. En kısa sürede yanıtlanacaktır.');
+            }
+          }}
+        >
+          <FaBroom className="text-2xl sm:text-3xl mb-2 text-[#F5B041]" />
+          <span className="font-medium text-[#222] text-sm sm:text-base">Oda Temizliği</span>
+                </button>
+        {/* Teknik Arıza */}
+                    <button
+          className="flex flex-col items-center justify-center bg-[#F2E8FF] rounded-xl p-4 sm:p-6 shadow hover:scale-105 transition"
+          onClick={async () => {
+            try {
+              await ApiService.createGuestRequest({
+                roomId: `room-${roomId}`,
+                type: 'maintenance',
+                priority: 'high',
+                status: 'pending',
+                description: 'Teknik arıza bildirimi',
+              });
+              addNotification('warning', 'Teknik Arıza', 'Teknik arıza talebiniz resepsiyona iletildi. Acil durumlar için personelimiz yolda.');
+            } catch (error) {
+              addNotification('warning', 'Teknik Arıza', 'Teknik arıza talebiniz resepsiyona iletildi. Acil durumlar için personelimiz yolda.');
+            }
+          }}
+        >
+          <FaTools className="text-2xl sm:text-3xl mb-2 text-[#A569BD]" />
+          <span className="font-medium text-[#222] text-sm sm:text-base">Teknik Arıza</span>
+                    </button>
+      </div>
+
+      {/* Bizi Puanla Butonu */}
+      <button
+        onClick={() => setShowSurvey(true)}
+        className="w-full max-w-md bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl p-3 sm:p-4 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 mb-4 sm:mb-6 mx-4"
+      >
+        <div className="flex items-center justify-center gap-2 sm:gap-3">
+          <FaStar className="text-xl sm:text-2xl" />
+          <span className="text-base sm:text-lg font-semibold">Bizi Puanla</span>
+        </div>
+      </button>
+      
+      {/* Diğer İstekler Alanı */}
+      <DigerIstekler onRequestSent={(message) => addNotification('info', 'Genel Talep', message)} />
+                </div>
+  );
+}
+
+function DigerIstekler({ onRequestSent }: { onRequestSent: (message: string) => void }) {
+  const [istek, setIstek] = useState("");
+  const [miktar, setMiktar] = useState(1);
+  const [selectedItem, setSelectedItem] = useState("");
+
+  // Hızlı seçim öğeleri
+  const quickItems = [
+    { name: "Havlu", emoji: "🛁", color: "text-blue-600" },
+    { name: "Terlik", emoji: "🥿", color: "text-green-600" },
+    { name: "Diş Macunu", emoji: "🦷", color: "text-purple-600" },
+    { name: "Yastık", emoji: "🛏️", color: "text-pink-600" },
+    { name: "Battaniye", emoji: "🛌", color: "text-indigo-600" },
+    { name: "Şampuan", emoji: "🧴", color: "text-orange-600" },
+    { name: "Sabun", emoji: "🧼", color: "text-teal-600" },
+    { name: "Su", emoji: "💧", color: "text-cyan-600" }
+  ];
+
+  const handleQuickSelect = (item: string) => {
+    setSelectedItem(item);
+    setIstek(`${miktar} adet ${item}`);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!istek.trim()) return;
+    
+    try {
+      // API'ye talep gönder
+      await ApiService.createGuestRequest({
+        roomId: `room-${roomId}`,
+        type: 'general',
+        priority: 'medium',
+        status: 'pending',
+        description: istek,
+      });
+      
+      onRequestSent(`"${istek}" talebiniz resepsiyona iletildi. En kısa sürede yanıtlanacaktır.`);
+      
+    } catch (error) {
+      console.error('Error creating request:', error);
+      onRequestSent(`"${istek}" talebiniz resepsiyona iletildi. En kısa sürede yanıtlanacaktır.`);
+    }
+    
+    setIstek("");
+    setSelectedItem("");
+    setMiktar(1);
+  };
+
+  return (
+    <div className="w-full max-w-md mx-4 mt-2">
+      {/* Hızlı Seçim Butonları */}
+      <div className="mb-3">
+        <p className="text-xs sm:text-sm text-gray-600 mb-2 px-1">Hızlı seçim:</p>
+        <div className="grid grid-cols-4 gap-2">
+          {quickItems.map((item) => (
+            <button
+              key={item.name}
+              onClick={() => handleQuickSelect(item.name)}
+              className={`p-2 rounded-lg text-xs sm:text-sm transition-all duration-200 ${
+                selectedItem === item.name
+                  ? 'bg-[#4A90E2] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex justify-center mb-1">
+                <span className="text-sm sm:text-base">{item.emoji}</span>
+              </div>
+              <div className="font-medium">{item.name}</div>
+            </button>
+          ))}
                     </div>
                   </div>
                   
+      {/* Miktar Seçimi */}
+      {selectedItem && (
+        <div className="mb-3 bg-blue-50 rounded-lg p-3">
                   <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">
+              {selectedItem} miktarı:
+            </span>
+            <div className="flex items-center gap-2">
                     <button
-                      onClick={() => addToCart(item)}
-                      className="flex-1 bg-hotel-navy text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+                onClick={() => setMiktar(Math.max(1, miktar - 1))}
+                className="w-6 h-6 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-sm font-bold"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Sepete Ekle</span>
+                -
                     </button>
-                    <button className="ml-2 p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                      <Heart className="w-4 h-4" />
-                    </button>
-                    <button className="ml-1 p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                      <Share2 className="w-4 h-4" />
+              <span className="w-8 text-center font-semibold">{miktar}</span>
+              <button
+                onClick={() => setMiktar(Math.min(10, miktar + 1))}
+                className="w-6 h-6 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-sm font-bold"
+              >
+                +
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Seçili: {miktar} adet {selectedItem}
+          </p>
           </div>
         )}
 
-        {activeTab === 'info' && (
-          <div className="space-y-6">
-            <div className="hotel-card p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Otel Bilgileri</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold text-gray-700 mb-2">İletişim</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span>{hotelInfo.address}</span>
+      {/* İstek Formu */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-xl shadow p-3 sm:p-4 flex items-center gap-2"
+      >
+        <input
+          type="text"
+          className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4A90E2] text-[#222] text-sm sm:text-base"
+          placeholder={selectedItem ? `${miktar} adet ${selectedItem}` : "Lütfen isteğinizi yazınız…"}
+          value={istek}
+          onChange={(e) => {
+            setIstek(e.target.value);
+            if (e.target.value === "") {
+              setSelectedItem("");
+              setMiktar(1);
+            }
+          }}
+          maxLength={200}
+        />
+        <button
+          type="submit"
+          className="flex items-center gap-1 sm:gap-2 bg-[#4A90E2] hover:bg-[#357ABD] text-white font-semibold px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition text-sm sm:text-base"
+        >
+          <FaBell className="text-sm sm:text-lg" />
+          <span className="hidden sm:inline">Çağrı Oluştur</span>
+          <span className="sm:hidden">Çağrı</span>
+        </button>
+      </form>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <span>{hotelInfo.phone}</span>
+  );
+}
+
+function SurveyModal({ roomId, onClose, onSurveySent }: { roomId: string; onClose: () => void; onSurveySent: (message: string) => void }) {
+  const [ratings, setRatings] = useState({
+    cleanliness: 0,
+    service: 0,
+    staff: 0,
+    overall: 0
+  });
+  const [comment, setComment] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleRating = (category: string, rating: number) => {
+    setRatings(prev => ({ ...prev, [category]: rating }));
+  };
+
+  const handleSubmit = () => {
+    setIsSubmitted(true);
+    setTimeout(() => {
+      onClose();
+      onSurveySent('Değerlendirmeniz için teşekkür ederiz! Memnuniyetiniz bizim için çok değerli.');
+    }, 2000);
+  };
+
+  if (isSubmitted) {
+  return (
+      <div className="min-h-screen bg-[#F7F7F7] flex flex-col items-center justify-center py-8">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FaStar className="w-10 h-10 text-green-600" />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Wifi className="w-4 h-4 text-gray-500" />
-                      <span>WiFi: {hotelInfo.wifiPassword}</span>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Teşekkürler!</h2>
+          <p className="text-gray-600">Değerlendirmeniz başarıyla gönderildi.</p>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-700 mb-2">Saatler</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Giriş:</span>
-                      <span>{hotelInfo.checkInTime}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Çıkış:</span>
-                      <span>{hotelInfo.checkOutTime}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Kahvaltı:</span>
-                      <span>{hotelInfo.breakfastTime}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Öğle Yemeği:</span>
-                      <span>{hotelInfo.lunchTime}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Akşam Yemeği:</span>
-                      <span>{hotelInfo.dinnerTime}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+    );
+  }
 
-            <div className="hotel-card p-6">
-              <h3 className="font-semibold text-gray-700 mb-4">Otel Kuralları</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                {hotelInfo.rules.map((rule, index) => (
-                  <li key={index} className="flex items-start space-x-2">
-                    <span className="text-hotel-gold mt-1">•</span>
-                    <span>{rule}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+  return (
+    <div className="min-h-screen bg-[#F7F7F7] flex flex-col items-center py-8">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Bizi Değerlendirin</h1>
+              <button
+            onClick={onClose}
+            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+          >
+            ×
+              </button>
+                </div>
 
-            <div className="hotel-card p-6">
-              <h3 className="font-semibold text-gray-700 mb-4">Acil Durum İletişim</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="text-center p-3 bg-red-50 rounded-lg">
-                  <div className="font-medium text-red-900">Resepsiyon</div>
-                  <div className="text-red-700">{hotelInfo.emergencyContacts.reception}</div>
-                </div>
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="font-medium text-blue-900">Güvenlik</div>
-                  <div className="text-blue-700">{hotelInfo.emergencyContacts.security}</div>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="font-medium text-green-900">Medikal</div>
-                  <div className="text-green-700">{hotelInfo.emergencyContacts.medical}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'requests' && (
           <div className="space-y-6">
-            <div className="hotel-card p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Hızlı Talepler</h2>
-              <p className="text-gray-600 mb-6">İhtiyacınız olan hizmetler için tek tıkla talep oluşturun.</p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {quickRequests.map((request) => (
+          {/* Temizlik */}
+                <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Temizlik</h3>
+            <div className="flex space-x-2">
+              {[1, 2, 3, 4, 5].map((star) => (
                   <button
-                    key={request.id}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center"
+                  key={star}
+                  onClick={() => handleRating('cleanliness', star)}
+                  className="text-3xl transition-colors"
                   >
-                    <div className="text-3xl mb-2">{request.icon}</div>
-                    <div className="text-sm font-medium text-gray-900">{request.label}</div>
+                  <FaStar className={star <= ratings.cleanliness ? 'text-yellow-400' : 'text-gray-300'} />
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-        )}
+
+          {/* Oda Servisi */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Oda Servisi</h3>
+            <div className="flex space-x-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                  key={star}
+                  onClick={() => handleRating('service', star)}
+                  className="text-3xl transition-colors"
+                  >
+                  <FaStar className={star <= ratings.service ? 'text-yellow-400' : 'text-gray-300'} />
+                  </button>
+                ))}
+              </div>
       </div>
 
-      {/* Cart Sidebar */}
-      {showCart && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
-          <div className="bg-white w-full max-w-md h-full overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Sepetim</h3>
+          {/* Personel */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Personel</h3>
+            <div className="flex space-x-2">
+              {[1, 2, 3, 4, 5].map((star) => (
                 <button
-                  onClick={() => setShowCart(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  key={star}
+                  onClick={() => handleRating('staff', star)}
+                  className="text-3xl transition-colors"
                 >
-                  ✕
+                  <FaStar className={star <= ratings.staff ? 'text-yellow-400' : 'text-gray-300'} />
                 </button>
+              ))}
               </div>
             </div>
             
-            <div className="p-6 space-y-4">
-              {cart.length === 0 ? (
-                <div className="text-center py-8">
-                  <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Sepetiniz boş</p>
-                </div>
-              ) : (
-                <>
-                  {cart.map((item) => (
-                    <div key={item.menuItemId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{getMenuItemName(item.menuItemId)}</h4>
-                        <p className="text-sm text-gray-600">{item.price}₺</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
+          {/* Genel Memnuniyet */}
+                <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Genel Memnuniyet</h3>
+            <div className="flex space-x-2">
+              {[1, 2, 3, 4, 5].map((star) => (
                         <button
-                          onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
-                          className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
-                        >
-                          <Minus className="w-4 h-4" />
+                  key={star}
+                  onClick={() => handleRating('overall', star)}
+                  className="text-3xl transition-colors"
+                  >
+                  <FaStar className={star <= ratings.overall ? 'text-yellow-400' : 'text-gray-300'} />
                         </button>
-                        <span className="w-8 text-center">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
-                          className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
                   ))}
-                  
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between items-center text-lg font-semibold">
-                      <span>Toplam:</span>
-                      <span>{getTotalAmount().toFixed(2)}₺</span>
                     </div>
                   </div>
                   
+          {/* Yorum */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Yorum (İsteğe Bağlı)</h3>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Deneyiminizi bizimle paylaşın..."
+              className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={4}
+            />
+            </div>
+            
+          {/* Gönder Butonu */}
                   <button
-                    onClick={handlePlaceOrder}
-                    className="w-full bg-hotel-gold text-white py-3 rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+            onClick={handleSubmit}
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
-                    Siparişi Tamamla
+            Değerlendirmeyi Gönder
                   </button>
-                </>
-              )}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Order Success Notification */}
-      {orderPlaced && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2">
-          <CheckCircle className="w-5 h-5" />
-          <span>Siparişiniz başarıyla alındı!</span>
-        </div>
-      )}
     </div>
   );
 }

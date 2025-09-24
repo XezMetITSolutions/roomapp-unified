@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <DataInitializer />
-        <div className="min-h-screen bg-gradient-to-br from-hotel-cream to-white">
+        <div className="min-h-screen bg-gradient-to-br from-hotel-cream to-white max-w-screen-lg mx-auto px-2 sm:px-4 md:px-8">
           {children}
         </div>
       </body>

@@ -72,6 +72,19 @@ const withPWA = require('next-pwa')({
         },
         networkTimeoutSeconds: 10
       }
+    },
+    {
+      urlPattern: /^https:\/\/(www\.)?roomapp(-backend)?\.onrender\.com\/api\/menu/i,
+      handler: 'NetworkFirst',
+      method: 'GET',
+      options: {
+        cacheName: 'menu-api',
+        expiration: {
+          maxEntries: 1,
+          maxAgeSeconds: 24 * 60 * 60 // 24 saat
+        },
+        networkTimeoutSeconds: 10
+      }
     }
   ]
 })

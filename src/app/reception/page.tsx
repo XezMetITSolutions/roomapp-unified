@@ -5,6 +5,8 @@ import { useHotelStore } from '@/store/hotelStore';
 import { sampleRequests } from '@/lib/sampleData';
 import { translate } from '@/lib/translations';
 import { Language, Request } from '@/types';
+import { ApiService, GuestRequest } from '@/services/api';
+import { useNotifications } from '@/hooks/useNotifications';
 import { 
   Hotel, 
   Clock, 
@@ -21,10 +23,54 @@ import {
 
 export default function ReceptionPanel() {
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
-  const [requests, setRequests] = useState<any[]>(sampleRequests);
+  const [requests, setRequests] = useState<GuestRequest[]>([]);
   const [filter, setFilter] = useState<'all' | 'urgent' | 'pending' | 'in_progress'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<GuestRequest | null>(null);
+  const [newRequests, setNewRequests] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [statistics, setStatistics] = useState({
+    totalRequests: 0,
+    pendingRequests: 0,
+    completedToday: 0,
+    averageResponseTime: 0,
+  });
+
+  // Bildirim sistemi
+  const { addNotification } = useNotifications();
+
+  // Veri yükleme
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 30000); // 30 saniyede bir güncelle
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [requestsData, statsData] = await Promise.all([
+        ApiService.getGuestRequests(),
+        ApiService.getStatistics(),
+      ]);
+      
+      setRequests(requestsData);
+      setStatistics(statsData);
+      
+      // Yeni talepleri kontrol et
+      const newCount = requestsData.filter(r => 
+        new Date(r.createdAt).getTime() > Date.now() - 300000 // Son 5 dakika
+      ).length;
+      setNewRequests(newCount);
+      
+    } catch (error) {
+      console.error('Error loading data:', error);
+      // Fallback: Mock data kullan
+      setRequests(sampleRequests as any[]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Quick response templates
   const quickResponses = [
@@ -46,20 +92,45 @@ export default function ReceptionPanel() {
     return matchesFilter && matchesSearch;
   });
 
-  const handleQuickResponse = (requestId: string, responseType: string) => {
+  const handleQuickResponse = async (requestId: string, responseType: string) => {
     const response = quickResponses.find(r => r.id === responseType);
     if (!response) return;
 
-    setRequests(prev => prev.map(req => 
-      req.id === requestId 
-        ? { 
-            ...req, 
-            status: responseType === 'completed' ? 'completed' : 
-                   responseType === 'in_progress' ? 'in_progress' : req.status,
-            notes: response.text
-          }
-        : req
-    ));
+    try {
+      // API'ye güncelleme gönder
+      const newStatus = responseType === 'completed' ? 'completed' : 
+                       responseType === 'in_progress' ? 'in_progress' : 
+                       'pending';
+      
+      await ApiService.updateRequestStatus(requestId, newStatus as any, response.text);
+      
+      // Local state'i güncelle
+      setRequests(prev => prev.map(req => 
+        req.id === requestId 
+          ? { 
+              ...req, 
+              status: newStatus,
+              notes: response.text,
+              updatedAt: new Date().toISOString()
+            }
+          : req
+      ));
+
+      // Bildirim gönder
+      addNotification({
+        type: 'success',
+        title: 'Yanıt Gönderildi',
+        message: `Talep başarıyla güncellendi.`,
+      });
+      
+    } catch (error) {
+      console.error('Error updating request:', error);
+      addNotification({
+        type: 'error',
+        title: 'Hata',
+        message: 'Yanıt gönderilirken bir hata oluştu.',
+      });
+    }
 
     // Close modal if open
     setSelectedRequest(null);
@@ -94,29 +165,39 @@ export default function ReceptionPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-hotel-cream to-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-hotel-gold rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                 <Hotel className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
-                  {translate('reception_panel_title', currentLanguage)}
+                  Resepsiyon Paneli
                 </h1>
                 <p className="text-gray-600">
-                  {translate('reception_panel_desc', currentLanguage)}
+                  Misafir taleplerini yönetin ve takip edin
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {newRequests > 0 && (
+                <div className="relative">
+                  <button className="w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors">
+                    <AlertTriangle className="w-5 h-5" />
+                  </button>
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                    {newRequests}
+                  </span>
+                </div>
+              )}
               <select
                 value={currentLanguage}
                 onChange={(e) => setCurrentLanguage(e.target.value as Language)}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-1 bg-white"
+                className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="tr">🇹🇷 Türkçe</option>
                 <option value="de">🇩🇪 Deutsch</option>
@@ -126,49 +207,9 @@ export default function ReceptionPanel() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Filters and Search */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="hotel-card p-6 text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {requests.filter(r => r.priority === 'urgent').length}
-            </h3>
-            <p className="text-gray-600">Acil İstekler</p>
-                      </div>
-          <div className="hotel-card p-6 text-center">
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Clock className="w-6 h-6 text-yellow-600" />
-                                </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {requests.filter(r => r.status === 'pending').length}
-                                </h3>
-            <p className="text-gray-600">Bekleyen İstekler</p>
-                                </div>
-          <div className="hotel-card p-6 text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Clock className="w-6 h-6 text-blue-600" />
-                              </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {requests.filter(r => r.status === 'in_progress').length}
-            </h3>
-            <p className="text-gray-600">İşlemde</p>
-                            </div>
-          <div className="hotel-card p-6 text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-                          </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {requests.filter(r => r.status === 'completed').length}
-            </h3>
-            <p className="text-gray-600">Tamamlanan</p>
-                          </div>
-                        </div>
-
-        {/* Filters and Search */}
-        <div className="hotel-card p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -178,11 +219,11 @@ export default function ReceptionPanel() {
                   placeholder="Oda numarası veya açıklama ara..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               {[
                 { id: 'all', label: 'Tümü', count: requests.length },
                 { id: 'urgent', label: 'Acil', count: requests.filter(r => r.priority === 'urgent').length },
@@ -192,10 +233,10 @@ export default function ReceptionPanel() {
                 <button
                   key={filterOption.id}
                   onClick={() => setFilter(filterOption.id as any)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
                     filter === filterOption.id
-                      ? 'bg-hotel-gold text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
                   }`}
                 >
                   {filterOption.label} ({filterOption.count})
@@ -203,25 +244,28 @@ export default function ReceptionPanel() {
               ))}
             </div>
           </div>
-                  </div>
+        </div>
                   
         {/* Requests List */}
         <div className="space-y-4">
           {filteredRequests.map((request) => (
-            <div key={request.id} className="hotel-card p-6 hover:shadow-lg transition-shadow">
+            <div key={request.id} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 border border-gray-100">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-lg font-semibold text-gray-900">
-                      Oda {request.roomId}
+                  <div className="flex items-center space-x-3 mb-3">
+                    <span className="text-xl font-bold text-gray-900">
+                      Oda {request.roomId.replace('room-', '')}
                     </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(request.priority)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(request.priority)}`}>
                       <div className="flex items-center space-x-1">
                         {getPriorityIcon(request.priority)}
-                        <span>{request.priority.toUpperCase()}</span>
-                  </div>
+                        <span>{request.priority === 'urgent' ? 'ACİL' :
+                               request.priority === 'high' ? 'YÜKSEK' :
+                               request.priority === 'medium' ? 'ORTA' :
+                               request.priority === 'low' ? 'DÜŞÜK' : request.priority.toUpperCase()}</span>
+                      </div>
                     </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
                       {request.status === 'pending' ? 'BEKLEMEDE' :
                        request.status === 'in_progress' ? 'İŞLEMDE' :
                        request.status === 'completed' ? 'TAMAMLANDI' : 'İPTAL'}
@@ -231,7 +275,9 @@ export default function ReceptionPanel() {
                   <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                     <div className="flex items-center space-x-1">
                       <User className="w-4 h-4" />
-                      <span>{request.type}</span>
+                      <span>{request.type === 'housekeeping' ? 'Temizlik' : 
+                             request.type === 'maintenance' ? 'Bakım' :
+                             request.type === 'concierge' ? 'Konsiyerj' : request.type}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Calendar className="w-4 h-4" />
@@ -255,15 +301,20 @@ export default function ReceptionPanel() {
                 </div>
 
                 <div className="flex flex-col space-y-2 ml-4">
-                        <button
+                  <button
                     onClick={() => setSelectedRequest(request)}
-                    className="bg-hotel-navy text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors text-sm"
-                        >
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+                  >
                     Yanıt Ver
-                        </button>
-                  <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm">
+                  </button>
+                  <button 
+                    onClick={() => {
+                      alert(`Oda ${request.roomId.replace('room-', '')} Detayları:\n\nİstek: ${request.description}\nÖncelik: ${request.priority}\nDurum: ${request.status}\nOluşturulma: ${new Date(request.createdAt).toLocaleString('tr-TR')}`);
+                    }}
+                    className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-200 transition-all duration-200 font-semibold"
+                  >
                     Detaylar
-                      </button>
+                  </button>
                 </div>
               </div>
             </div>
@@ -271,41 +322,41 @@ export default function ReceptionPanel() {
         </div>
 
         {filteredRequests.length === 0 && (
-          <div className="hotel-card p-12 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">İstek Bulunamadı</h3>
             <p className="text-gray-600">
               {searchTerm ? 'Arama kriterlerinize uygun istek bulunamadı.' : 'Henüz hiç istek bulunmuyor.'}
             </p>
-              </div>
-            )}
+          </div>
+        )}
       </div>
 
       {/* Quick Response Modal */}
       {selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Oda {selectedRequest.roomId} - Hızlı Yanıt
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Oda {selectedRequest.roomId.replace('room-', '')} - Hızlı Yanıt
             </h3>
             
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">İstek:</p>
-              <p className="text-gray-900">{selectedRequest.description}</p>
+            <div className="mb-6">
+              <p className="text-sm font-semibold text-gray-700 mb-2">İstek:</p>
+              <p className="text-gray-900 bg-gray-50 p-3 rounded-xl">{selectedRequest.description}</p>
             </div>
             
             <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">Hızlı Yanıtlar:</p>
+              <p className="text-sm font-semibold text-gray-700">Hızlı Yanıtlar:</p>
               {quickResponses.map((response) => {
                 const IconComponent = response.icon;
                 return (
                   <button
                     key={response.id}
                     onClick={() => handleQuickResponse(selectedRequest.id, response.id)}
-                    className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="w-full text-left p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-blue-300 transition-all duration-200"
                   >
                     <div className="flex items-center space-x-3">
-                      <IconComponent className="w-4 h-4 text-gray-600" />
+                      <IconComponent className="w-5 h-5 text-gray-600" />
                       <span className="text-sm text-gray-900">{response.text}</span>
                     </div>
                   </button>
@@ -316,7 +367,7 @@ export default function ReceptionPanel() {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => setSelectedRequest(null)}
-                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-200 transition-all duration-200 font-semibold"
               >
                 İptal
               </button>
