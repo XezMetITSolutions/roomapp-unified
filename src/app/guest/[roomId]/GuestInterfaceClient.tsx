@@ -11,7 +11,6 @@ import {
   FaTimes,
   FaBed,
   FaTooth,
-  FaGlassWater,
   FaShoePrints,
   FaSoap,
   FaWater,
@@ -167,12 +166,12 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
       </button>
       
       {/* Diğer İstekler Alanı */}
-      <DigerIstekler onRequestSent={(message) => addNotification('info', 'Genel Talep', message)} />
+      <DigerIstekler onRequestSent={(message) => addNotification('info', 'Genel Talep', message)} roomId={roomId} />
                 </div>
   );
 }
 
-function DigerIstekler({ onRequestSent }: { onRequestSent: (message: string) => void }) {
+function DigerIstekler({ onRequestSent, roomId }: { onRequestSent: (message: string) => void; roomId: string }) {
   const [istek, setIstek] = useState("");
   const [miktar, setMiktar] = useState(1);
   const [selectedItem, setSelectedItem] = useState("");
