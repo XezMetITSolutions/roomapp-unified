@@ -17,11 +17,13 @@ export default function MenuItemDetailPage() {
   const [activeTab, setActiveTab] = useState<'home' | 'cart' | 'waiter' | 'favorites'>('home');
 
   useEffect(() => {
-    const menuItem = menu.find(item => item.id === params.id);
-    if (menuItem) {
-      setItem(menuItem);
+    if (params?.id) {
+      const menuItem = menu.find(item => item.id === params.id);
+      if (menuItem) {
+        setItem(menuItem);
+      }
     }
-  }, [params.id, menu]);
+  }, [params?.id, menu]);
 
   if (!item) {
     return (

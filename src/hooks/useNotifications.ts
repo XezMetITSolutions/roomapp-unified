@@ -32,7 +32,7 @@ export function useNotifications(roomId?: string) {
     setTimeout(() => {
       removeNotification(newNotification.id);
     }, 5000);
-  }, []);
+  }, [removeNotification]);
 
   // Bildirim kaldırma
   const removeNotification = useCallback((id: string) => {

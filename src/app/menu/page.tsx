@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, Heart, Plus, Star, Wheat, Egg, Milk, Nut, ChevronDown, ChevronRight, Sun, Leaf, Utensils, ChefHat, Cake, Coffee } from 'lucide-react';
 import { useHotelStore } from '@/store/hotelStore';
 import { translate } from '@/lib/translations';
-import { MenuItem, MenuCategory } from '@/types';
-import { menuCategories } from '@/lib/sampleData';
+import { MenuItem } from '@/types';
+// import { menuCategories } from '@/lib/sampleData';
 import BottomNavigation from '@/components/BottomNavigation';
 import MenuUploadPanel from './MenuUploadPanel';
 
@@ -41,10 +41,20 @@ export default function MenuPage() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(menu.map(item => item.category)));
+    return uniqueCategories.map(category => ({
+      id: category,
+      name: category,
+      icon: getCategoryIcon(category),
+      color: 'blue'
+    }));
+  }, [menu]);
+
   const filteredMenu = useMemo(() => {
     return menu.filter(item => {
       const matchesCategory = activeCategory === 'popular' ? item.isPopular : item.category === activeCategory;
-      const matchesSubCategory = !activeSubCategory || item.subCategory === activeSubCategory;
+      const matchesSubCategory = !activeSubCategory || item.category === activeSubCategory;
       const q = debouncedQuery.toLowerCase();
       const matchesSearch = !q || item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
       return matchesCategory && matchesSubCategory && matchesSearch && item.available;
@@ -152,10 +162,10 @@ export default function MenuPage() {
       {/* Category Tabs - Horizontal */}
       <div className="bg-white px-2 sm:px-4 py-3 border-b border-gray-200">
         <div className="flex space-x-2 sm:space-x-3 overflow-x-auto pb-2 scrollbar-hide">
-          {menuCategories.map((category) => {
-            const IconComponent = getCategoryIcon(category.icon);
+          {categories.map((category) => {
+            const IconComponent = getCategoryIcon(category.name);
             const isActive = activeCategory === category.id;
-            const hasSubCategories = category.subCategories && category.subCategories.length > 0;
+            const hasSubCategories = false;
             
             return (
               <div key={category.id} className="flex-shrink-0">
@@ -180,11 +190,10 @@ export default function MenuPage() {
         </div>
         
         {/* Alt Kategoriler - Horizontal */}
-        {activeCategory && menuCategories.find(c => c.id === activeCategory)?.subCategories && 
-         menuCategories.find(c => c.id === activeCategory)!.subCategories!.length > 0 && (
+        {false && (
           <div className="mt-3 pt-3 border-t border-gray-100">
             <div className="flex space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide">
-              {menuCategories.find(c => c.id === activeCategory)!.subCategories!.map((subCategory) => (
+              {[].map((subCategory) => (
                 <button
                   key={subCategory.id}
                   onClick={() => handleSubCategoryClick(subCategory.id)}
