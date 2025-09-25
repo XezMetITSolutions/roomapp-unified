@@ -144,6 +144,8 @@ const subCategories = {
   ],
 };
 
+import Image from 'next/image';
+
 export default function QRMenuPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
@@ -165,7 +167,7 @@ export default function QRMenuPage() {
   });
 
   // Alt kategori gösterimi
-  const showSubCategories = selectedCategory !== 'all' && subCategories[selectedCategory]?.length > 0;
+  const showSubCategories = selectedCategory !== 'all' && (subCategories as any)[selectedCategory]?.length > 0;
 
   // Sepete ekle
   const addToCart = (id: string) => {
@@ -280,7 +282,7 @@ export default function QRMenuPage() {
               >
                 Tümü
               </button>
-              {subCategories[selectedCategory].map((sub) => (
+              {(subCategories as any)[selectedCategory].map((sub: any) => (
                 <button
                   key={sub.id}
                   onClick={() => setSelectedSubCategory(sub.id)}
@@ -398,11 +400,12 @@ function MenuCard({ name, description, price, preparationTime, rating, image, al
     <div className="bg-white rounded-3xl shadow-lg flex flex-col overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
       {/* Görsel - Responsive ve optimize edilmiş */}
       {image ? (
-        <img 
+        <Image 
           src={image} 
           alt={name} 
+          width={800}
+          height={320}
           className="w-full h-48 sm:h-56 md:h-52 lg:h-56 object-cover object-center" 
-          loading="lazy"
         />
       ) : (
         <div className="w-full h-48 sm:h-56 md:h-52 lg:h-56 bg-gradient-to-br from-orange-100 to-red-100 flex flex-col items-center justify-center">
@@ -494,7 +497,7 @@ function CartModal({ items, note, setNote, onClose, onOrder, setCartQuantity, re
                     {/* Ürün Görseli - Daha küçük */}
                     <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
                       {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
                           <span className="text-sm font-bold text-orange-500">{item.name.charAt(0)}</span>
@@ -597,7 +600,7 @@ function PaymentModal({ items, note, total, onPaymentSuccess, onBack }: {
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-lg overflow-hidden">
                       {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        <Image src={item.image} alt={item.name} fill sizes="40px" className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
                           <span className="text-xs font-bold text-orange-500">{item.name.charAt(0)}</span>

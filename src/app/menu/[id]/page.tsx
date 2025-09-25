@@ -6,6 +6,7 @@ import { ArrowLeft, Share, Heart, Plus, Minus, Wheat, Egg, Milk, Nut } from 'luc
 import { useHotelStore } from '@/store/hotelStore';
 import { MenuItem } from '@/types';
 import BottomNavigation from '@/components/BottomNavigation';
+import Image from 'next/image';
 
 export default function MenuItemDetailPage() {
   const params = useParams();
@@ -83,10 +84,13 @@ export default function MenuItemDetailPage() {
       {/* Item Image */}
       <div className="relative">
         {item.image ? (
-          <img
+          <Image
             src={item.image}
             alt={item.name}
+            width={1200}
+            height={480}
             className="w-full h-80 object-cover"
+            priority
           />
         ) : (
           <div className="w-full h-80 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">

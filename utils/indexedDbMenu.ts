@@ -1,8 +1,13 @@
 // IndexedDB ile menü verisini saklamak ve okumak için yardımcı fonksiyonlar
-export async function saveMenuToIndexedDB(menu) {
+type MenuItem = {
+  id: string | number;
+  [key: string]: unknown;
+};
+
+export async function saveMenuToIndexedDB(menu: MenuItem[]): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const request = window.indexedDB.open('RoomAppDB', 1);
-    request.onupgradeneeded = (event) => {
+    request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains('menu')) {
         db.createObjectStore('menu', { keyPath: 'id' });
@@ -12,37 +17,40 @@ export async function saveMenuToIndexedDB(menu) {
       const db = request.result;
       const tx = db.transaction('menu', 'readwrite');
       const store = tx.objectStore('menu');
-      menu.forEach(item => store.put(item));
+      menu.forEach((item: MenuItem) => store.put(item));
       tx.oncomplete = () => {
         db.close();
         resolve(true);
       };
-      tx.onerror = (e) => reject(e);
+      tx.onerror = () => reject(tx.error);
     };
-    request.onerror = (e) => reject(e);
+    request.onerror = () => reject(request.error);
   });
 }
 
-export async function getMenuFromIndexedDB() {
+export async function getMenuFromIndexedDB(): Promise<MenuItem[]> {
   return new Promise((resolve, reject) => {
     const request = window.indexedDB.open('RoomAppDB', 1);
     request.onsuccess = () => {
       const db = request.result;
       const tx = db.transaction('menu', 'readonly');
       const store = tx.objectStore('menu');
-      const items = [];
-      store.openCursor().onsuccess = (event) => {
-        const cursor = event.target.result;
+      const items: MenuItem[] = [];
+      const cursorReq = store.openCursor();
+      cursorReq.onsuccess = (event: Event) => {
+        const target = event.target as IDBRequest<IDBCursorWithValue | null>;
+        const cursor = target.result;
         if (cursor) {
-          items.push(cursor.value);
+          items.push(cursor.value as MenuItem);
           cursor.continue();
         } else {
           db.close();
           resolve(items);
         }
       };
-      tx.onerror = (e) => reject(e);
+      cursorReq.onerror = () => reject(cursorReq.error);
+      tx.onerror = () => reject(tx.error);
     };
-    request.onerror = (e) => reject(e);
+    request.onerror = () => reject(request.error);
   });
 }

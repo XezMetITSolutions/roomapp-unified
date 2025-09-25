@@ -6,6 +6,7 @@ import { Plus, Minus, Trash2, Edit3, ShoppingBag } from 'lucide-react';
 import { useHotelStore } from '@/store/hotelStore';
 import { translate } from '@/lib/translations';
 import BottomNavigation from '@/components/BottomNavigation';
+import Image from 'next/image';
 
 export default function CartPage() {
   const router = useRouter();
@@ -83,12 +84,14 @@ export default function CartPage() {
           <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <div className="flex items-start space-x-4">
               {/* Item Image */}
-              <div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
+              <div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                 {item.menuItem.image ? (
-                  <img
+                  <Image
                     src={item.menuItem.image}
                     alt={item.menuItem.name}
-                    className="w-full h-full object-cover rounded-xl"
+                    fill
+                    sizes="64px"
+                    className="object-cover rounded-xl"
                   />
                 ) : (
                   <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">

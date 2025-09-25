@@ -262,7 +262,7 @@ export default function ReceptionPanel() {
                         <span>{request.priority === 'urgent' ? 'ACİL' :
                                request.priority === 'high' ? 'YÜKSEK' :
                                request.priority === 'medium' ? 'ORTA' :
-                               request.priority === 'low' ? 'DÜŞÜK' : request.priority.toUpperCase()}</span>
+                               request.priority === 'low' ? 'DÜŞÜK' : String(request.priority || '').toUpperCase()}</span>
                       </div>
                     </span>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>

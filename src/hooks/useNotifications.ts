@@ -16,6 +16,17 @@ export function useNotifications(roomId?: string) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Bildirim kaldırma (önce tanımla, sonra kullan)
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => {
+      const notification = prev.find(n => n.id === id);
+      if (notification && !notification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      return prev.filter(n => n.id !== id);
+    });
+  }, []);
+
   // Bildirim ekleme
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
     const newNotification: Notification = {
@@ -33,17 +44,6 @@ export function useNotifications(roomId?: string) {
       removeNotification(newNotification.id);
     }, 5000);
   }, [removeNotification]);
-
-  // Bildirim kaldırma
-  const removeNotification = useCallback((id: string) => {
-    setNotifications(prev => {
-      const notification = prev.find(n => n.id === id);
-      if (notification && !notification.read) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-      return prev.filter(n => n.id !== id);
-    });
-  }, []);
 
   // Bildirim okundu olarak işaretle
   const markAsRead = useCallback(async (id: string) => {

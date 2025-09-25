@@ -15,7 +15,7 @@ export default function MenuPage() {
   const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'home' | 'cart' | 'waiter'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'cart' | 'favorites' | 'waiter'>('home');
   const [isLowData, setIsLowData] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +41,19 @@ export default function MenuPage() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
+  function getCategoryIcon(iconName: string) {
+    switch (iconName) {
+      case 'heart': return Heart;
+      case 'sun': return Sun;
+      case 'leaf': return Leaf;
+      case 'utensils': return Utensils;
+      case 'chef-hat': return ChefHat;
+      case 'cake': return Cake;
+      case 'coffee': return Coffee;
+      default: return Star;
+    }
+  }
+
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(menu.map(item => item.category)));
     return uniqueCategories.map(category => ({
@@ -61,18 +74,7 @@ export default function MenuPage() {
     });
   }, [menu, activeCategory, activeSubCategory, debouncedQuery]);
 
-  const getCategoryIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'heart': return Heart;
-      case 'sun': return Sun;
-      case 'leaf': return Leaf;
-      case 'utensils': return Utensils;
-      case 'chef-hat': return ChefHat;
-      case 'cake': return Cake;
-      case 'coffee': return Coffee;
-      default: return Star;
-    }
-  };
+  
 
   const handleCategoryClick = (categoryId: string) => {
     setActiveCategory(categoryId);
@@ -189,26 +191,6 @@ export default function MenuPage() {
           })}
         </div>
         
-        {/* Alt Kategoriler - Horizontal */}
-        {false && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide">
-              {[].map((subCategory) => (
-                <button
-                  key={subCategory.id}
-                  onClick={() => handleSubCategoryClick(subCategory.id)}
-                  className={`flex-shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm transition-all ${
-                    activeSubCategory === subCategory.id
-                      ? 'bg-orange-100 text-orange-700 font-medium'
-                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  {subCategory.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Menu Items */}
