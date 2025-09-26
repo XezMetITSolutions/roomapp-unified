@@ -1,6 +1,9 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Clock, Star, Image as ImageIcon, Minus, Plus, X } from 'lucide-react';
+import { Clock, Star, Image as ImageIcon, Minus, Plus, X, ArrowLeft } from 'lucide-react';
+import NextImage from 'next/image';
+import { FaBell, FaTimes } from 'react-icons/fa';
+import { ApiService } from '@/services/api';
 
 // Gerçekçi ve içerikle %100 uyumlu menü datası - Tüm görseller test edildi ve çalışıyor
 const menuData = [
@@ -152,10 +155,61 @@ export default function QRMenuPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<{ id: string; quantity: number }[]>([]);
   const [showCart, setShowCart] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [cartNote, setCartNote] = useState('');
-  const [orderStatus, setOrderStatus] = useState<'idle' | 'payment' | 'pending' | 'finalized'>('idle');
-  const [orderTimer, setOrderTimer] = useState(60);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [orderStatus, setOrderStatus] = useState<'idle' | 'payment' | 'finalized'>('idle');
+  
+  // Bildirim sistemi
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    type: 'success' | 'info' | 'warning';
+    title: string;
+    message: string;
+    timestamp: Date;
+  }>>([]);
+
+  // Bildirim ekleme fonksiyonu
+  const addNotification = (type: 'success' | 'info' | 'warning', title: string, message: string) => {
+    const notification = {
+      id: Date.now().toString(),
+      type,
+      title,
+      message,
+      timestamp: new Date()
+    };
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Max 5 bildirim
+    
+    // 8 saniye sonra otomatik kapat
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 8000);
+  };
+
+  // Bildirim kapatma
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  // WebSocket bağlantısı - resepsiyondan gelen bildirimleri dinle
+  useEffect(() => {
+    // URL'den oda numarasını al (örnek: /qr-menu?roomId=101)
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('roomId') || '101';
+    
+    const ws = ApiService.connectWebSocket(roomId, (data) => {
+      console.log('QR Menü bildirimi alındı:', data);
+      
+      if (data.type === 'guest_notification') {
+        addNotification('info', 'Resepsiyon Yanıtı', data.message);
+      }
+    });
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, []);
 
   // Kategori ve alt kategoriye göre filtrele
   let filteredMenu = menuData.filter(item => {
@@ -201,43 +255,76 @@ export default function QRMenuPage() {
   const getCartTotal = () => getCartItems().reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   // Sipariş onay akışı
-  useEffect(() => {
-    if (orderStatus === 'pending') {
-      timerRef.current = setInterval(() => {
-        setOrderTimer(prev => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            setOrderStatus('finalized');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-      setOrderTimer(60);
-    }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [orderStatus]);
 
-  // Siparişi onayla - önce ödeme ekranına git
+  // Siparişi onayla - önce onay modalına git
   const handleOrder = () => {
-    setOrderStatus('payment');
+    setShowConfirmation(true);
+    setShowCart(false);
   };
-  // Siparişi değiştir - ödeme ekranına geri dön
-  const handleEditOrder = () => {
+  // Onay modalından ödemeye geç
+  const handleProceedToPayment = () => {
+    setShowConfirmation(false);
     setOrderStatus('payment');
+    addNotification('info', 'Sipariş Onaylandı', 'Siparişiniz onaylandı, ödeme aşamasına geçiliyor.');
   };
-  // Siparişi iptal et
-  const handleCancelOrder = () => {
-    setOrderStatus('idle');
-    setCart([]);
-    setCartNote('');
+  // Onay modalından sepete geri dön
+  const handleBackToCart = () => {
+    setShowConfirmation(false);
+    setShowCart(true);
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7] py-8">
+    <div className="min-h-screen bg-[#F7F7F7] py-8 relative">
+      {/* Bildirim Sistemi */}
+      <div className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 space-y-2 max-w-xs sm:max-w-sm">
+        {notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`w-full bg-white rounded-xl shadow-2xl border-l-4 p-4 sm:p-5 transform transition-all duration-500 notification-slide-in notification-gentle-pulse ${
+              notification.type === 'success' ? 'border-green-500 bg-green-50' :
+              notification.type === 'info' ? 'border-blue-500 bg-blue-50' :
+              'border-yellow-500 bg-yellow-50'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex-1 pr-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <FaBell className={`w-4 h-4 ${
+                    notification.type === 'success' ? 'text-green-600' :
+                    notification.type === 'info' ? 'text-blue-600' :
+                    'text-yellow-600'
+                  }`} />
+                  <h4 className="font-bold text-gray-900 text-sm sm:text-base">{notification.title}</h4>
+                </div>
+                <p className="text-gray-700 text-sm sm:text-base mt-1 leading-relaxed font-medium">{notification.message}</p>
+                <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                  <span>🕐</span>
+                  {notification.timestamp.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+              <button
+                onClick={() => removeNotification(notification.id)}
+                className="ml-2 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 p-1 hover:bg-gray-200 rounded-full"
+              >
+                <FaTimes className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="max-w-4xl mx-auto px-4">
+        {/* Geri Dönüş Butonu */}
+        <div className="mb-6">
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors group"
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium">Geri Dön</span>
+          </button>
+        </div>
+        
         <h1 className="text-3xl font-extrabold text-[#223] mb-8 text-center tracking-tight">Oda Servisi Menüsü</h1>
         {/* Kategori ve Arama */}
         <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
@@ -341,28 +428,27 @@ export default function QRMenuPage() {
             total={getCartTotal()}
           />
         )}
+        {/* Onay Modalı */}
+        {showConfirmation && (
+          <ConfirmationModal
+            items={getCartItems()}
+            note={cartNote}
+            total={getCartTotal()}
+            onProceed={handleProceedToPayment}
+            onBack={handleBackToCart}
+          />
+        )}
         {/* Ödeme Modalı */}
         {orderStatus === 'payment' && (
           <PaymentModal
             items={getCartItems()}
             note={cartNote}
             total={getCartTotal()}
-            onPaymentSuccess={() => setOrderStatus('pending')}
+            onPaymentSuccess={() => setOrderStatus('finalized')}
             onBack={() => setOrderStatus('idle')}
           />
         )}
         
-        {/* Sipariş Onay ve 1 dk Değişiklik Hakkı */}
-        {orderStatus === 'pending' && (
-          <OrderPendingModal
-            items={getCartItems()}
-            note={cartNote}
-            timer={orderTimer}
-            onEdit={handleEditOrder}
-            onCancel={handleCancelOrder}
-            total={getCartTotal()}
-          />
-        )}
         {/* Sipariş Finalize */}
         {orderStatus === 'finalized' && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
@@ -374,6 +460,7 @@ export default function QRMenuPage() {
                   setOrderStatus('idle');
                   setCart([]);
                   setCartNote('');
+                  addNotification('success', 'Sipariş Tamamlandı', 'Siparişiniz başarıyla mutfağa iletildi. Hazırlanma süresi yaklaşık 20-30 dakikadır.');
                 }}
                 className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
               >Yeni Sipariş Ver</button>
@@ -396,30 +483,47 @@ function MenuCard({ name, description, price, preparationTime, rating, image, al
   service?: string;
   onAdd: () => void;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
+  const isLongDescription = description.length > 80;
+  const isLongAllergens = allergens && allergens.length > 2;
   return (
     <div className="bg-white rounded-3xl shadow-lg flex flex-col overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
       {/* Görsel - Responsive ve optimize edilmiş */}
-      {image ? (
-        <Image 
-          src={image} 
-          alt={name} 
-          width={800}
-          height={320}
-          className="w-full h-48 sm:h-56 md:h-52 lg:h-56 object-cover object-center" 
-        />
-      ) : (
-        <div className="w-full h-48 sm:h-56 md:h-52 lg:h-56 bg-gradient-to-br from-orange-100 to-red-100 flex flex-col items-center justify-center">
-          <ImageIcon className="w-10 h-10 sm:w-12 sm:h-12 text-orange-400 mb-2 sm:mb-3" />
-          <span className="text-3xl sm:text-4xl font-bold text-orange-500">{name.charAt(0)}</span>
-        </div>
-      )}
+      <div className="relative w-full h-48 sm:h-56 md:h-52 lg:h-56">
+        {image ? (
+          <NextImage 
+            src={image} 
+            alt={name} 
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover object-center" 
+          />
+        ) : (
+          <div className="w-full h-48 sm:h-56 md:h-52 lg:h-56 bg-gradient-to-br from-orange-100 to-red-100 flex flex-col items-center justify-center">
+            <ImageIcon className="w-10 h-10 sm:w-12 sm:h-12 text-orange-400 mb-2 sm:mb-3" />
+            <span className="text-3xl sm:text-4xl font-bold text-orange-500">{name.charAt(0)}</span>
+          </div>
+        )}
+      </div>
       <div className="flex-1 flex flex-col p-6">
         <div className="flex justify-between items-start mb-3">
           <h3 className="font-bold text-xl text-gray-900 leading-tight flex-1">{name}</h3>
           <div className="text-2xl font-extrabold text-orange-600 ml-3">{price}₺</div>
         </div>
         
-        <p className="text-gray-600 text-sm mb-3 leading-relaxed">{description}</p>
+        <div className="mb-3">
+          <p className="text-gray-600 text-sm leading-relaxed">
+            {showDetails ? description : (isLongDescription ? description.substring(0, 80) + '...' : description)}
+          </p>
+          {isLongDescription && (
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className="text-xs text-blue-600 hover:text-blue-800 mt-1 font-medium transition-colors"
+            >
+              {showDetails ? 'Daha az göster' : 'Detay'}
+            </button>
+          )}
+        </div>
         
         {service && (
           <p className="text-xs text-orange-700 mb-4 italic bg-orange-50 px-3 py-2 rounded-lg">
@@ -442,7 +546,15 @@ function MenuCard({ name, description, price, preparationTime, rating, image, al
         
         {allergens && allergens.length > 0 && (
           <div className="text-xs text-red-600 mb-4 bg-red-50 px-3 py-2 rounded-lg">
-            Alerjenler: {allergens.join(', ')}
+            Alerjenler: {showDetails ? allergens.join(', ') : (isLongAllergens ? allergens.slice(0, 2).join(', ') + '...' : allergens.join(', '))}
+            {isLongAllergens && (
+              <button
+                onClick={() => setShowDetails(!showDetails)}
+                className="text-xs text-blue-600 hover:text-blue-800 ml-2 font-medium transition-colors"
+              >
+                {showDetails ? 'Daha az göster' : 'Detay'}
+              </button>
+            )}
           </div>
         )}
         
@@ -495,9 +607,9 @@ function CartModal({ items, note, setNote, onClose, onOrder, setCartQuantity, re
                 {items.map(item => (
                   <div key={item.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
                     {/* Ürün Görseli - Daha küçük */}
-                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
                       {item.image ? (
-                        <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
+                        <NextImage src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
                           <span className="text-sm font-bold text-orange-500">{item.name.charAt(0)}</span>
@@ -567,6 +679,113 @@ function CartModal({ items, note, setNote, onClose, onOrder, setCartQuantity, re
   );
 }
 
+function ConfirmationModal({ items, note, total, onProceed, onBack }: {
+  items: any[];
+  note: string;
+  total: number;
+  onProceed: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onBack();
+        }
+      }}
+    >
+      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl max-h-[95vh] overflow-hidden mx-2 sm:mx-0">
+        <div className="flex justify-between items-center p-6 border-b border-gray-100">
+          <h2 className="text-2xl font-bold text-gray-800">Siparişinizi Onaylayın</h2>
+          <button
+            onClick={onBack} 
+            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+        
+        <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
+          <div className="p-6">
+          {/* Uyarı Mesajı */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-sm font-bold">!</span>
+              </div>
+              <div>
+                <h3 className="font-semibold text-yellow-800 mb-1">Önemli Uyarı</h3>
+                <p className="text-sm text-yellow-700">
+                  Siparişinizden emin misiniz? Ödeme yaptıktan sonra değişiklik yapamazsınız.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Sipariş Özeti */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Sipariş Özeti</h3>
+            <div className="space-y-2">
+              {items.map(item => (
+                <div key={item.id} className="flex justify-between items-center">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden">
+                      {item.image ? (
+                        <NextImage src={item.image} alt={item.name} fill sizes="40px" className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
+                          <span className="text-xs font-bold text-orange-500">{item.name.charAt(0)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">{item.name}</div>
+                      <div className="text-sm text-gray-500">x {item.quantity}</div>
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900">{item.price * item.quantity}₺</div>
+                </div>
+              ))}
+            </div>
+            {note && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                <div className="text-sm font-medium text-gray-700 mb-1">Özel İstek:</div>
+                <div className="text-sm text-gray-600">{note}</div>
+              </div>
+            )}
+          </div>
+          
+          {/* Toplam */}
+          <div className="border-t border-gray-200 pt-4 mb-6">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold text-gray-700">Toplam</span>
+              <span className="text-2xl font-bold text-orange-600">{total}₺</span>
+            </div>
+          </div>
+          
+          {/* Butonlar */}
+          <div className="flex gap-3">
+            <button
+              onClick={onBack}
+              className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+            >
+              Değiştir
+            </button>
+            <button
+              onClick={onProceed}
+              className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              Ödemeye Geç
+            </button>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PaymentModal({ items, note, total, onPaymentSuccess, onBack }: {
   items: any[];
   note: string;
@@ -598,9 +817,9 @@ function PaymentModal({ items, note, total, onPaymentSuccess, onBack }: {
               {items.map(item => (
                 <div key={item.id} className="flex justify-between items-center">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden">
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden">
                       {item.image ? (
-                        <Image src={item.image} alt={item.name} fill sizes="40px" className="object-cover" />
+                        <NextImage src={item.image} alt={item.name} fill sizes="40px" className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
                           <span className="text-xs font-bold text-orange-500">{item.name.charAt(0)}</span>
@@ -711,46 +930,3 @@ function PaymentModal({ items, note, total, onPaymentSuccess, onBack }: {
   );
 }
 
-function OrderPendingModal({ items, note, timer, onEdit, onCancel, total }: {
-  items: any[];
-  note: string;
-  timer: number;
-  onEdit: () => void;
-  onCancel: () => void;
-  total: number;
-}) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl text-center">
-        <h2 className="text-2xl font-bold mb-2 text-blue-700">Siparişiniz alındı!</h2>
-        <p className="text-gray-700 mb-4">Siparişiniz mutfağa iletilmeden önce <span className="font-bold">{timer} sn</span> boyunca değişiklik yapabilirsiniz.</p>
-        <div className="mb-4 text-left">
-          <div className="font-semibold text-gray-900 mb-2">Sipariş Özeti</div>
-          <ul className="space-y-1">
-            {items.map(item => (
-              <li key={item.id} className="flex justify-between text-sm">
-                <span>{item.name} x {item.quantity}</span>
-                <span>{item.price * item.quantity}₺</span>
-              </li>
-            ))}
-            {note && <li className="text-xs text-blue-700 mt-2">Not: {note}</li>}
-          </ul>
-        </div>
-        <div className="flex justify-between items-center mb-4">
-          <span className="font-semibold text-gray-700">Toplam</span>
-          <span className="text-xl font-bold text-blue-700">{total}₺</span>
-                </div>
-        <div className="flex gap-3">
-              <button
-            onClick={onEdit}
-            className="flex-1 py-3 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-500 transition"
-          >Siparişi Değiştir</button>
-              <button
-            onClick={onCancel}
-            className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
-          >İptal Et</button>
-        </div>
-      </div>
-    </div>
-  );
-}

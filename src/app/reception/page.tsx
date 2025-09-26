@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useHotelStore } from '@/store/hotelStore';
 import { sampleRequests } from '@/lib/sampleData';
 import { translate } from '@/lib/translations';
@@ -18,7 +18,12 @@ import {
   User,
   Calendar,
   Filter,
-  Search
+  Search,
+  Volume2,
+  VolumeX,
+  Zap,
+  Bell,
+  X
 } from 'lucide-react';
 
 export default function ReceptionPanel() {
@@ -27,6 +32,13 @@ export default function ReceptionPanel() {
   const [filter, setFilter] = useState<'all' | 'urgent' | 'pending' | 'in_progress'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<GuestRequest | null>(null);
+  const [selectedRoomInfo, setSelectedRoomInfo] = useState<GuestRequest | null>(null);
+  const [customMessage, setCustomMessage] = useState('');
+  const [checkoutConfirm, setCheckoutConfirm] = useState<{roomId: string, pendingPayments: any[], totalAmount: number} | null>(null);
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showRoomChange, setShowRoomChange] = useState(false);
+  const [selectedNewRoom, setSelectedNewRoom] = useState('');
   const [newRequests, setNewRequests] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [statistics, setStatistics] = useState({
@@ -35,24 +47,126 @@ export default function ReceptionPanel() {
     completedToday: 0,
     averageResponseTime: 0,
   });
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [lastRequestCount, setLastRequestCount] = useState(0);
 
   // Bildirim sistemi
-  const { addNotification } = useNotifications();
+  const { addNotification, notifications } = useNotifications();
 
-  // Veri yükleme
-  useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 30000); // 30 saniyede bir güncelle
-    return () => clearInterval(interval);
-  }, []);
+  // Oda bilgilerini getir
+  const getRoomInfo = (roomId: string) => {
+    const roomNumber = roomId.replace('room-', '');
+    const mockRoomData = {
+      '101': {
+        floor: 'Kat 1',
+        type: 'Standard',
+        guestName: 'Ahmet Yılmaz',
+        checkOut: '28.09.2024',
+        phone: '+90 532 123 4567',
+        email: 'ahmet.yilmaz@email.com',
+        payments: [
+          { id: '1', item: 'Kahve', amount: 25, date: '26.09.2024 14:30', status: 'pending' },
+          { id: '2', item: 'Sandwich', amount: 45, date: '26.09.2024 15:45', status: 'pending' },
+          { id: '3', item: 'Su', amount: 15, date: '26.09.2024 16:20', status: 'paid' }
+        ]
+      },
+      '102': {
+        floor: 'Kat 1',
+        type: 'Deluxe',
+        guestName: 'Maria Garcia',
+        checkOut: '14.09.2024',
+        phone: '+34 123 456 789',
+        email: 'maria.garcia@email.com',
+        payments: [
+          { id: '1', item: 'Kahvaltı', amount: 45, date: '25.09.2024 08:30', status: 'paid' },
+          { id: '2', item: 'Öğle Yemeği', amount: 85, date: '25.09.2024 13:15', status: 'paid' },
+          { id: '3', item: 'İçecek', amount: 25, date: '25.09.2024 16:45', status: 'paid' },
+          { id: '4', item: 'Çay', amount: 20, date: '26.09.2024 10:15', status: 'pending' },
+          { id: '5', item: 'Pasta', amount: 35, date: '26.09.2024 11:30', status: 'pending' },
+          { id: '6', item: 'Sandwich', amount: 40, date: '26.09.2024 14:30', status: 'pending' }
+        ]
+      },
+      '201': {
+        floor: 'Kat 2',
+        type: 'Suite',
+        guestName: 'John Smith',
+        checkOut: '30.09.2024',
+        phone: '+1 555 123 4567',
+        email: 'john.smith@email.com',
+        payments: [
+          { id: '6', item: 'Kahve', amount: 25, date: '26.09.2024 09:00', status: 'paid' },
+          { id: '7', item: 'Tost', amount: 40, date: '26.09.2024 12:15', status: 'pending' },
+          { id: '8', item: 'Meyve Suyu', amount: 30, date: '26.09.2024 14:00', status: 'pending' }
+        ]
+      },
+      '301': {
+        floor: 'Kat 3',
+        type: 'Standard',
+        guestName: 'Ayşe Demir',
+        checkOut: '25.09.2024',
+        phone: '+90 533 987 6543',
+        email: 'ayse.demir@email.com',
+        payments: []
+      }
+    };
+    
+    return mockRoomData[roomNumber as keyof typeof mockRoomData] || {
+      floor: 'Kat 1',
+      type: 'Standard',
+      guestName: 'Misafir',
+      checkOut: 'Bilinmiyor',
+      phone: 'Bilinmiyor',
+      email: 'Bilinmiyor',
+      payments: []
+    };
+  };
 
-  const loadData = async () => {
+  // Ses bildirimi fonksiyonu
+  const playNotificationSound = useCallback(() => {
+    if (!soundEnabled) return;
+    
+    try {
+      // Basit bir bildirim sesi oluştur
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.log('Ses çalma hatası:', error);
+    }
+  }, [soundEnabled]);
+
+  // Veri yükleme fonksiyonu
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [requestsData, statsData] = await Promise.all([
         ApiService.getGuestRequests(),
         ApiService.getStatistics(),
       ]);
+      
+      // Yeni istek kontrolü - ses bildirimi için
+      const currentRequestCount = requestsData.length;
+      if (currentRequestCount > lastRequestCount && lastRequestCount > 0) {
+        playNotificationSound();
+        addNotification({
+          type: 'info',
+          title: 'Yeni İstek',
+          message: `${currentRequestCount - lastRequestCount} yeni istek geldi!`,
+        });
+      }
+      setLastRequestCount(currentRequestCount);
       
       setRequests(requestsData);
       setStatistics(statsData);
@@ -70,17 +184,39 @@ export default function ReceptionPanel() {
     } finally {
       setIsLoading(false);
     }
+  }, [addNotification, lastRequestCount, playNotificationSound]);
+
+  // Veri yükleme
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 30000); // 30 saniyede bir güncelle
+    return () => clearInterval(interval);
+  }, [loadData]);
+
+  // İstek türüne göre otomatik cevaplar
+  const getQuickResponses = (requestType: string) => {
+    // Tüm istek türleri için genel yanıtlar
+    return [
+      { 
+        id: 'in_progress', 
+        text: 'Yetkili ekibimizi yönlendirdik. En kısa sürede yanınızda olacaklar.', 
+        icon: Clock 
+      },
+      { 
+        id: 'follow_up', 
+        text: 'Sorun devam ederse lütfen tekrar çağrı oluşturun. Talebiniz öne çıkarılacaktır.', 
+        icon: MessageSquare 
+      },
+      { 
+        id: 'delayed', 
+        text: 'Yoğunluk nedeniyle biraz daha beklememiz gerekiyor. Özür dileriz.', 
+        icon: Clock 
+      }
+    ];
   };
 
-  // Quick response templates
-  const quickResponses = [
-    { id: 'acknowledge', text: 'Talebiniz alındı, en kısa sürede yanıtlanacaktır.', icon: CheckCircle },
-    { id: 'in_progress', text: 'Talebiniz işleme alındı, personelimiz yolda.', icon: Clock },
-    { id: 'completed', text: 'Talebiniz tamamlandı, memnun kaldıysanız değerlendirebilirsiniz.', icon: CheckCircle },
-    { id: 'escalate', text: 'Talebiniz üst seviyeye çıkarıldı, acil müdahale yapılacaktır.', icon: AlertTriangle }
-  ];
-
-  const filteredRequests = requests.filter(request => {
+  const filteredRequests = requests
+    .filter(request => {
     const matchesFilter = filter === 'all' || 
       (filter === 'urgent' && request.priority === 'urgent') ||
       (filter === 'pending' && request.status === 'pending') ||
@@ -90,19 +226,47 @@ export default function ReceptionPanel() {
       request.roomId.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesFilter && matchesSearch;
-  });
+    })
+    .sort((a, b) => {
+      // Önce öncelik sırasına göre (urgent > high > medium > low)
+      const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+      
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority;
+      }
+      
+      // Sonra durum sırasına göre (pending > in_progress > completed) - yanıt verilenler alta
+      const statusOrder = { pending: 4, in_progress: 3, completed: 1, cancelled: 0 };
+      const aStatus = statusOrder[a.status as keyof typeof statusOrder] || 0;
+      const bStatus = statusOrder[b.status as keyof typeof statusOrder] || 0;
+      
+      if (aStatus !== bStatus) {
+        return bStatus - aStatus;
+      }
+      
+      // Son olarak tarihe göre (en yeni üstte)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
-  const handleQuickResponse = async (requestId: string, responseType: string) => {
+  const handleQuickResponse = async (requestId: string, responseType: string, requestType: string) => {
+    const quickResponses = getQuickResponses(requestType);
     const response = quickResponses.find(r => r.id === responseType);
     if (!response) return;
 
     try {
-      // API'ye güncelleme gönder
-      const newStatus = responseType === 'completed' ? 'completed' : 
-                       responseType === 'in_progress' ? 'in_progress' : 
-                       'pending';
+      // Yanıt verildiğinde otomatik olarak completed durumuna geç
+      const newStatus = 'completed';
       
+      // Önce talep durumunu güncelle
       await ApiService.updateRequestStatus(requestId, newStatus as any, response.text);
+      
+      // Müşteriye bildirim gönder
+      const request = requests.find(req => req.id === requestId);
+      if (request) {
+        await ApiService.sendNotificationToGuest(request.roomId, response.text, 'response');
+      }
       
       // Local state'i güncelle
       setRequests(prev => prev.map(req => 
@@ -116,11 +280,12 @@ export default function ReceptionPanel() {
           : req
       ));
 
-      // Bildirim gönder
+      // Resepsiyon bildirimi gönder
+      console.log('Sending notification for quick response:', response.text);
       addNotification({
         type: 'success',
-        title: 'Yanıt Gönderildi',
-        message: `Talep başarıyla güncellendi.`,
+        title: 'Dönüş Yapıldı',
+        message: `Oda ${requestId.replace('room-', '')} için dönüş yapıldı ve müşteriye bildirim gönderildi.`,
       });
       
     } catch (error) {
@@ -134,6 +299,50 @@ export default function ReceptionPanel() {
 
     // Close modal if open
     setSelectedRequest(null);
+  };
+
+  // Özel mesaj gönderme fonksiyonu
+  const handleCustomMessage = async (requestId: string, message: string) => {
+    if (!message.trim()) return;
+
+    try {
+      // Özel mesaj gönderildiğinde de completed durumuna geç
+      await ApiService.updateRequestStatus(requestId, 'completed', message);
+      
+      // Müşteriye özel mesajı bildirim olarak gönder
+      const request = requests.find(req => req.id === requestId);
+      if (request) {
+        await ApiService.sendNotificationToGuest(request.roomId, message, 'response');
+      }
+      
+      setRequests(prev => prev.map(req => 
+        req.id === requestId 
+          ? { 
+              ...req, 
+              status: 'completed',
+              notes: message,
+              updatedAt: new Date().toISOString()
+            }
+          : req
+      ));
+
+      addNotification({
+        type: 'success',
+        title: 'Dönüş Yapıldı',
+        message: `Oda ${requestId.replace('room-', '')} için özel mesaj gönderildi ve müşteriye bildirim iletildi.`,
+      });
+
+      setCustomMessage('');
+      setSelectedRequest(null);
+      
+    } catch (error) {
+      console.error('Error sending custom message:', error);
+      addNotification({
+        type: 'error',
+        title: 'Hata',
+        message: 'Mesaj gönderilirken bir hata oluştu.',
+      });
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -164,40 +373,157 @@ export default function ReceptionPanel() {
     }
   };
 
+  // Çıkış işlemi fonksiyonu
+  const handleCheckout = async (roomId: string) => {
+    try {
+      // Tüm bekleyen ödemeleri al
+      const roomInfo = getRoomInfo(roomId);
+      const pendingPayments = roomInfo.payments.filter(p => p.status === 'pending');
+      const totalAmount = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
+      
+      // Onay popup'ı göster
+      setCheckoutConfirm({
+        roomId,
+        pendingPayments,
+        totalAmount
+      });
+      
+    } catch (error) {
+      console.error('Error processing checkout:', error);
+      addNotification({
+        type: 'error',
+        title: 'Hata',
+        message: 'Çıkış işlenirken bir hata oluştu.',
+      });
+    }
+  };
+
+  // Mevcut odalar listesi
+  const availableRooms = [
+    { id: 'room-101', number: '101', floor: 'Kat 1', type: 'Standard' },
+    { id: 'room-102', number: '102', floor: 'Kat 1', type: 'Deluxe' },
+    { id: 'room-201', number: '201', floor: 'Kat 2', type: 'Suite' },
+    { id: 'room-301', number: '301', floor: 'Kat 3', type: 'Standard' },
+    { id: 'room-302', number: '302', floor: 'Kat 3', type: 'Deluxe' },
+    { id: 'room-401', number: '401', floor: 'Kat 4', type: 'Suite' },
+  ];
+
+  // Oda değişikliği fonksiyonu
+  const handleRoomChange = async (fromRoomId: string, toRoomId: string) => {
+    try {
+      // Tüm oda bilgilerini yeni odaya taşı
+      const roomInfo = getRoomInfo(fromRoomId);
+      
+      // Mock API çağrısı - gerçek uygulamada backend'e gönderilecek
+      await ApiService.changeRoom(fromRoomId, toRoomId, roomInfo);
+      
+      // Local state'i güncelle
+      setRequests(prev => prev.map(req => 
+        req.roomId === fromRoomId 
+          ? { ...req, roomId: toRoomId }
+          : req
+      ));
+      
+      addNotification({
+        type: 'success',
+        title: 'Oda Değişikliği',
+        message: `Oda ${fromRoomId.replace('room-', '')} → Oda ${toRoomId.replace('room-', '')} değişikliği tamamlandı.`,
+      });
+      
+      setShowRoomChange(false);
+      setSelectedNewRoom('');
+      
+    } catch (error) {
+      console.error('Error changing room:', error);
+      addNotification({
+        type: 'error',
+        title: 'Hata',
+        message: 'Oda değişikliği sırasında bir hata oluştu.',
+      });
+    }
+  };
+
+  // Gerçek çıkış işlemi
+  const processCheckout = async (roomId: string) => {
+    try {
+      const roomInfo = getRoomInfo(roomId);
+      const pendingPayments = roomInfo.payments.filter(p => p.status === 'pending');
+      
+      if (pendingPayments.length > 0) {
+        // Toplu ödeme işlemi
+        for (const payment of pendingPayments) {
+          await ApiService.updatePaymentStatus(payment.id, 'paid');
+        }
+        
+        addNotification({
+          type: 'success',
+          title: 'Ödemeler Alındı',
+          message: `${pendingPayments.length} adet ödeme toplam ${pendingPayments.reduce((sum, p) => sum + p.amount, 0)} TL olarak alındı.`,
+        });
+      }
+      
+      // QR kodu sıfırla ve çıkış işlemini tamamla
+      await ApiService.resetRoomQR(roomId);
+      
+      addNotification({
+        type: 'success',
+        title: 'Çıkış Tamamlandı',
+        message: `Oda ${roomId.replace('room-', '')} için çıkış işlemi tamamlandı ve QR kod sıfırlandı.`,
+      });
+      
+    } catch (error) {
+      console.error('Error processing checkout:', error);
+      addNotification({
+        type: 'error',
+        title: 'Hata',
+        message: 'Çıkış işlenirken bir hata oluştu.',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Hotel className="w-6 h-6 text-white" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <Hotel className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Resepsiyon Paneli
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                  Grand Hotel Resepsiyon
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-sm sm:text-base text-gray-600">
                   Misafir taleplerini yönetin ve takip edin
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              {newRequests > 0 && (
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              {/* Bildirim Butonu */}
                 <div className="relative">
-                  <button className="w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors">
-                    <AlertTriangle className="w-5 h-5" />
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors ${
+                    newRequests > 0
+                      ? 'bg-red-500 text-white hover:bg-red-600' 
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                  title="Bildirimler"
+                >
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                {newRequests > 0 && (
+                  <span className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-bold">
                     {newRequests}
                   </span>
+                )}
                 </div>
-              )}
               <select
                 value={currentLanguage}
                 onChange={(e) => setCurrentLanguage(e.target.value as Language)}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="text-xs sm:text-sm border border-gray-300 rounded-lg px-2 sm:px-3 py-1 sm:py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="tr">🇹🇷 Türkçe</option>
                 <option value="de">🇩🇪 Deutsch</option>
@@ -207,10 +533,66 @@ export default function ReceptionPanel() {
         </div>
       </div>
 
+      {/* Bildirim Dropdown */}
+      {showNotifications && (
+        <div className="absolute top-20 right-4 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 w-80 max-h-96 overflow-y-auto">
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Bildirimler</h3>
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          <div className="p-4">
+            {notifications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>Henüz bildirim yok</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notifications.slice(0, 10).map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-3 rounded-lg border-l-4 ${
+                      notification.type === 'success' 
+                        ? 'bg-green-50 border-green-400' 
+                        : notification.type === 'error'
+                        ? 'bg-red-50 border-red-400'
+                        : notification.type === 'warning'
+                        ? 'bg-yellow-50 border-yellow-400'
+                        : 'bg-blue-50 border-blue-400'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900 text-sm">
+                          {notification.title}
+                        </h4>
+                        <p className="text-gray-600 text-xs mt-1">
+                          {notification.message}
+                        </p>
+                        <p className="text-gray-400 text-xs mt-2">
+                          {notification.timestamp.toLocaleString('tr-TR')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Filters and Search */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -219,7 +601,7 @@ export default function ReceptionPanel() {
                   placeholder="Oda numarası veya açıklama ara..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 />
               </div>
             </div>
@@ -233,7 +615,7 @@ export default function ReceptionPanel() {
                 <button
                   key={filterOption.id}
                   onClick={() => setFilter(filterOption.id as any)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-medium transition-all duration-200 text-xs sm:text-sm ${
                     filter === filterOption.id
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
@@ -247,16 +629,17 @@ export default function ReceptionPanel() {
         </div>
                   
         {/* Requests List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredRequests.map((request) => (
-            <div key={request.id} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 border border-gray-100">
-              <div className="flex items-start justify-between">
+            <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-200 border border-gray-100">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <span className="text-xl font-bold text-gray-900">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                    <span className="text-lg sm:text-xl font-bold text-gray-900">
                       Oda {request.roomId.replace('room-', '')}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(request.priority)}`}>
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(request.priority)}`}>
                       <div className="flex items-center space-x-1">
                         {getPriorityIcon(request.priority)}
                         <span>{request.priority === 'urgent' ? 'ACİL' :
@@ -265,55 +648,55 @@ export default function ReceptionPanel() {
                                request.priority === 'low' ? 'DÜŞÜK' : String(request.priority || '').toUpperCase()}</span>
                       </div>
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
+                      <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
                       {request.status === 'pending' ? 'BEKLEMEDE' :
                        request.status === 'in_progress' ? 'İŞLEMDE' :
                        request.status === 'completed' ? 'TAMAMLANDI' : 'İPTAL'}
                     </span>
+                    </div>
                   </div>
                   
-                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
                     <div className="flex items-center space-x-1">
-                      <User className="w-4 h-4" />
+                      <User className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>{request.type === 'housekeeping' ? 'Temizlik' : 
                              request.type === 'maintenance' ? 'Bakım' :
                              request.type === 'concierge' ? 'Konsiyerj' : request.type}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4" />
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>{new Date(request.createdAt).toLocaleString('tr-TR')}</span>
                     </div>
                   </div>
                   
-                  <p className="text-gray-700 mb-4">{request.description}</p>
+                  <p className="text-sm sm:text-base text-gray-700 mb-4">{request.description}</p>
                   
                   {request.notes && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                       <div className="flex items-start space-x-2">
-                        <MessageSquare className="w-4 h-4 text-blue-600 mt-0.5" />
+                        <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mt-0.5" />
                   <div>
-                          <p className="text-sm font-medium text-blue-900">Yanıt:</p>
-                          <p className="text-sm text-blue-700">{request.notes}</p>
+                          <p className="text-xs sm:text-sm font-medium text-blue-900">Yanıt:</p>
+                          <p className="text-xs sm:text-sm text-blue-700">{request.notes}</p>
                         </div>
                       </div>
                   </div>
                   )}
                 </div>
 
-                <div className="flex flex-col space-y-2 ml-4">
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:gap-2 lg:ml-4">
                   <button
                     onClick={() => setSelectedRequest(request)}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold text-sm sm:text-base"
                   >
-                    Yanıt Ver
+                    Detaylı Yanıt
                   </button>
+                  
                   <button 
-                    onClick={() => {
-                      alert(`Oda ${request.roomId.replace('room-', '')} Detayları:\n\nİstek: ${request.description}\nÖncelik: ${request.priority}\nDurum: ${request.status}\nOluşturulma: ${new Date(request.createdAt).toLocaleString('tr-TR')}`);
-                    }}
-                    className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-200 transition-all duration-200 font-semibold"
+                    onClick={() => setSelectedRoomInfo(request)}
+                    className="bg-gray-100 text-gray-700 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-all duration-200 font-semibold text-sm sm:text-base"
                   >
-                    Detaylar
+                    Oda Bilgisi
                   </button>
                 </div>
               </div>
@@ -332,42 +715,418 @@ export default function ReceptionPanel() {
         )}
       </div>
 
-      {/* Quick Response Modal */}
-      {selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Oda {selectedRequest.roomId.replace('room-', '')} - Hızlı Yanıt
+      {/* Checkout Confirmation Modal */}
+      {checkoutConfirm && (
+        <div 
+          className="fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+          onClick={() => setCheckoutConfirm(null)}
+        >
+          <div 
+            className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl border border-gray-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Çıkış Onayı</h3>
+                <p className="text-sm text-gray-600">Oda {checkoutConfirm.roomId.replace('room-', '')} için çıkış işlemi</p>
+              </div>
+            </div>
+
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start space-x-2">
+                <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                <div className="text-sm text-orange-800">
+                  <p className="font-medium mb-1">İşlemden emin misiniz?</p>
+                  <p className="text-xs">Bu işlem geri alınamaz. Devam etmek istediğinizden emin misiniz?</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bekleyen ödemeler varsa göster */}
+            {checkoutConfirm.pendingPayments.length > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center space-x-2 mb-2">
+                  <MessageSquare className="w-4 h-4 text-yellow-600" />
+                  <span className="font-semibold text-yellow-900 text-sm">Bekleyen Ödemeler</span>
+                </div>
+                <div className="space-y-2">
+                  {checkoutConfirm.pendingPayments.map((payment) => (
+                    <div key={payment.id} className="flex justify-between items-center text-sm">
+                      <span className="text-gray-700">{payment.item}</span>
+                      <span className="font-semibold text-gray-900">{payment.amount} TL</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-yellow-200 pt-2 mt-2">
+                    <div className="flex justify-between items-center font-semibold">
+                      <span className="text-gray-700">Toplam Tutar:</span>
+                      <span className="text-red-600 text-lg">{checkoutConfirm.totalAmount} TL</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setCheckoutConfirm(null)}
+                className="flex-1 bg-gray-100 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+              >
+                İptal
+              </button>
+              <button
+                onClick={() => {
+                  // Oda değiştirme için selectedRoomInfo'yu set et
+                  const roomInfo = {
+                    id: checkoutConfirm.roomId,
+                    roomId: checkoutConfirm.roomId,
+                    type: 'room_change',
+                    description: 'Oda değişikliği',
+                    priority: 'medium',
+                    status: 'pending',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  };
+                  setSelectedRoomInfo(roomInfo as any);
+                  setCheckoutConfirm(null);
+                  setShowRoomChange(true);
+                }}
+                className="flex-1 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+              >
+                Oda Değiştir
+              </button>
+              <button
+                onClick={async () => {
+                  setCheckoutConfirm(null);
+                  await processCheckout(checkoutConfirm.roomId);
+                }}
+                className="flex-1 bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition-colors font-semibold"
+              >
+                Çıkış Yap
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room Change Modal */}
+      {showRoomChange && selectedRoomInfo && (
+        <div 
+          className="fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+          onClick={() => setShowRoomChange(false)}
+        >
+          <div 
+            className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl border border-gray-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <Hotel className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Oda Değişikliği</h3>
+                <p className="text-sm text-gray-600">Oda {selectedRoomInfo.roomId.replace('room-', '')} için yeni oda seçin</p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start space-x-2">
+                <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium mb-1">Tüm bilgiler yeni odaya taşınacak</p>
+                  <p className="text-xs">Misafir bilgileri, ödemeler ve talepler yeni odaya aktarılacak.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <label className="block text-sm font-medium text-gray-700">
+                Yeni Oda Seçin
+              </label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {availableRooms
+                  .filter(room => room.id !== selectedRoomInfo.roomId)
+                  .map((room) => (
+                  <button
+                    key={room.id}
+                    onClick={() => setSelectedNewRoom(room.id)}
+                    className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                      selectedNewRoom === room.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-semibold text-gray-900">Oda {room.number}</div>
+                    <div className="text-xs text-gray-600">{room.floor} - {room.type}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowRoomChange(false)}
+                className="flex-1 bg-gray-100 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+              >
+                İptal
+              </button>
+              <button
+                onClick={() => handleRoomChange(selectedRoomInfo.roomId, selectedNewRoom)}
+                disabled={!selectedNewRoom}
+                className="flex-1 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Oda Değiştir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room Info Modal */}
+      {selectedRoomInfo && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-[9998] p-2 sm:p-4"
+          onClick={() => setSelectedRoomInfo(null)}
+        >
+          <div 
+            className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 max-w-sm sm:max-w-md w-full shadow-2xl max-h-[95vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3">
+              Oda {selectedRoomInfo.roomId.replace('room-', '')} Bilgileri
             </h3>
             
-            <div className="mb-6">
-              <p className="text-sm font-semibold text-gray-700 mb-2">İstek:</p>
-              <p className="text-gray-900 bg-gray-50 p-3 rounded-xl">{selectedRequest.description}</p>
+            <div className="space-y-3">
+              {(() => {
+                const roomInfo = getRoomInfo(selectedRoomInfo.roomId);
+                return (
+                  <>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Hotel className="w-4 h-4 text-blue-600" />
+                        <span className="font-semibold text-blue-900 text-sm">Oda Detayları</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Kat:</span>
+                          <span className="font-medium">{roomInfo.floor}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tür:</span>
+                          <span className="font-medium">{roomInfo.type}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <User className="w-4 h-4 text-green-600" />
+                        <span className="font-semibold text-green-900 text-sm">Mevcut Misafir</span>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Ad Soyad:</span>
+                          <span className="font-medium">{roomInfo.guestName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Çıkış Saati:</span>
+                          <span className="font-medium">{roomInfo.checkOut}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Telefon:</span>
+                          <span className="font-medium text-xs">{roomInfo.phone}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">E-posta:</span>
+                          <span className="font-medium text-xs">{roomInfo.email}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ödeme Geçmişi */}
+                    {roomInfo.payments.length > 0 && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <MessageSquare className="w-4 h-4 text-yellow-600" />
+                            <span className="font-semibold text-yellow-900 text-sm">Ödeme Geçmişi</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full">
+                              {roomInfo.payments.filter(p => p.status === 'pending').length} Bekleyen
+                            </span>
+                            <button
+                              onClick={() => setShowPaymentDetails(!showPaymentDetails)}
+                              className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full hover:bg-blue-200 transition-colors"
+                            >
+                              {showPaymentDetails ? 'Gizle' : 'Detay'}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {/* Bekleyen Ödemeler - Her zaman göster */}
+                          {roomInfo.payments
+                            .filter(p => p.status === 'pending')
+                            .map((payment) => (
+                            <div key={payment.id} className="flex items-center justify-between p-2 bg-white rounded border text-xs">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 truncate">{payment.item}</div>
+                                <div className="text-gray-500 text-xs">{payment.date}</div>
+                              </div>
+                              <div className="flex items-center space-x-1 ml-2">
+                                <span className="font-semibold text-gray-900">{payment.amount} TL</span>
+                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
+                                  Bekleyen
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {/* Ödenen Ödemeler - Sadece detay açıksa göster */}
+                          {showPaymentDetails && roomInfo.payments
+                            .filter(p => p.status === 'paid')
+                            .map((payment) => (
+                            <div key={payment.id} className="flex items-center justify-between p-2 bg-white rounded border text-xs opacity-75">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-600 truncate">{payment.item}</div>
+                                <div className="text-gray-400 text-xs">{payment.date}</div>
+                              </div>
+                              <div className="flex items-center space-x-1 ml-2">
+                                <span className="font-semibold text-gray-600">{payment.amount} TL</span>
+                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                                  Ödendi
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-yellow-200">
+                          <div className="flex justify-between text-xs font-semibold">
+                            <span>Toplam Bekleyen:</span>
+                            <span className="text-red-600">
+                              {roomInfo.payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0)} TL
+                            </span>
+                          </div>
+                          {showPaymentDetails && (
+                            <div className="flex justify-between text-xs font-semibold mt-1">
+                              <span className="text-gray-600">Toplam Ödenen:</span>
+                              <span className="text-green-600">
+                                {roomInfo.payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0)} TL
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Çıkış Butonu */}
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-red-900 text-sm">Çıkış İşlemi</div>
+                          <div className="text-xs text-red-700">
+                            {roomInfo.payments.filter(p => p.status === 'pending').length > 0 
+                              ? `${roomInfo.payments.filter(p => p.status === 'pending').length} adet bekleyen ödeme var`
+                              : 'Bekleyen ödeme yok'
+                            }
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleCheckout(selectedRoomInfo.roomId)}
+                          className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-xs"
+                        >
+                          Çıkış Yap
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-700">Hızlı Yanıtlar:</p>
-              {quickResponses.map((response) => {
+            <div className="flex space-x-3 mt-3">
+              <button
+                onClick={() => setSelectedRoomInfo(null)}
+                className="flex-1 bg-gray-100 text-gray-700 px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-200 transition-all duration-200 font-semibold text-xs sm:text-sm"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Response Modal */}
+      {selectedRequest && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-[9997] p-4"
+          onClick={() => setSelectedRequest(null)}
+        >
+          <div 
+            className="bg-white rounded-xl sm:rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">
+              Oda {selectedRequest.roomId.replace('room-', '')} - Otomatik Yanıt
+            </h3>
+            
+            <div className="mb-4 sm:mb-6">
+              <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-2">İstek:</p>
+              <p className="text-sm sm:text-base text-gray-900 bg-gray-50 p-3 rounded-lg sm:rounded-xl">{selectedRequest.description}</p>
+            </div>
+            
+            <div className="space-y-2 sm:space-y-3">
+              <p className="text-xs sm:text-sm font-semibold text-gray-700">Otomatik Yanıtlar:</p>
+              {getQuickResponses(selectedRequest.type).map((response) => {
                 const IconComponent = response.icon;
                 return (
                   <button
                     key={response.id}
-                    onClick={() => handleQuickResponse(selectedRequest.id, response.id)}
-                    className="w-full text-left p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-blue-300 transition-all duration-200"
+                    onClick={() => handleQuickResponse(selectedRequest.id, response.id, selectedRequest.type)}
+                    className="w-full text-left p-3 sm:p-4 border border-gray-200 rounded-lg sm:rounded-xl hover:bg-gray-50 hover:border-blue-300 transition-all duration-200"
                   >
-                    <div className="flex items-center space-x-3">
-                      <IconComponent className="w-5 h-5 text-gray-600" />
-                      <span className="text-sm text-gray-900">{response.text}</span>
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                      <span className="text-xs sm:text-sm text-gray-900">{response.text}</span>
                     </div>
                   </button>
                 );
               })}
             </div>
             
-            <div className="flex space-x-3 mt-6">
+            {/* Özel Mesaj Alanı */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">Özel Mesaj Yaz:</p>
+              <textarea
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Kendi mesajınızı yazın..."
+                className="w-full p-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base resize-none"
+                rows={3}
+              />
+              <div className="flex space-x-3 mt-3">
+                <button
+                  onClick={() => handleCustomMessage(selectedRequest.id, customMessage)}
+                  disabled={!customMessage.trim()}
+                  className="flex-1 bg-blue-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm sm:text-base"
+                >
+                  Mesaj Gönder
+                </button>
+                <button
+                  onClick={() => setCustomMessage('')}
+                  className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-all duration-200 font-semibold text-sm sm:text-base"
+                >
+                  Temizle
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 mt-4 sm:mt-6">
               <button
                 onClick={() => setSelectedRequest(null)}
-                className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-200 transition-all duration-200 font-semibold"
+                className="flex-1 bg-gray-100 text-gray-700 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-all duration-200 font-semibold text-sm sm:text-base"
               >
                 İptal
               </button>

@@ -644,6 +644,103 @@ export const sampleRequests: any[] = [
     createdAt: new Date('2024-01-15T11:20:00'),
     assignedTo: 'staff-4',
     notes: 'Su vanası kapatıldı, tamirci çağrıldı.'
+  },
+  // Hızlı isteklerden örnekler
+  {
+    id: 'req-6',
+    roomId: 'room-103',
+    guestId: 'guest-6',
+    type: 'housekeeping',
+    category: 'temizlik',
+    description: 'Havlu',
+    priority: 'low',
+    status: 'pending',
+    createdAt: new Date('2024-01-15T17:30:00'),
+    assignedTo: 'staff-3'
+  },
+  {
+    id: 'req-7',
+    roomId: 'room-104',
+    guestId: 'guest-7',
+    type: 'housekeeping',
+    category: 'temizlik',
+    description: 'Terlik',
+    priority: 'low',
+    status: 'pending',
+    createdAt: new Date('2024-01-15T17:35:00'),
+    assignedTo: 'staff-3'
+  },
+  {
+    id: 'req-8',
+    roomId: 'room-105',
+    guestId: 'guest-8',
+    type: 'housekeeping',
+    category: 'temizlik',
+    description: 'Diş Macunu',
+    priority: 'low',
+    status: 'pending',
+    createdAt: new Date('2024-01-15T17:40:00'),
+    assignedTo: 'staff-3'
+  },
+  {
+    id: 'req-9',
+    roomId: 'room-106',
+    guestId: 'guest-9',
+    type: 'housekeeping',
+    category: 'temizlik',
+    description: 'Yastık',
+    priority: 'low',
+    status: 'pending',
+    createdAt: new Date('2024-01-15T17:45:00'),
+    assignedTo: 'staff-3'
+  },
+  {
+    id: 'req-10',
+    roomId: 'room-107',
+    guestId: 'guest-10',
+    type: 'housekeeping',
+    category: 'temizlik',
+    description: 'Battaniye',
+    priority: 'low',
+    status: 'pending',
+    createdAt: new Date('2024-01-15T17:50:00'),
+    assignedTo: 'staff-3'
+  },
+  {
+    id: 'req-11',
+    roomId: 'room-108',
+    guestId: 'guest-11',
+    type: 'housekeeping',
+    category: 'temizlik',
+    description: 'Şampuan',
+    priority: 'low',
+    status: 'pending',
+    createdAt: new Date('2024-01-15T17:55:00'),
+    assignedTo: 'staff-3'
+  },
+  {
+    id: 'req-12',
+    roomId: 'room-109',
+    guestId: 'guest-12',
+    type: 'housekeeping',
+    category: 'temizlik',
+    description: 'Sabun',
+    priority: 'low',
+    status: 'pending',
+    createdAt: new Date('2024-01-15T18:00:00'),
+    assignedTo: 'staff-3'
+  },
+  {
+    id: 'req-13',
+    roomId: 'room-110',
+    guestId: 'guest-13',
+    type: 'housekeeping',
+    category: 'temizlik',
+    description: 'Su',
+    priority: 'low',
+    status: 'pending',
+    createdAt: new Date('2024-01-15T18:05:00'),
+    assignedTo: 'staff-3'
   }
 ];
 

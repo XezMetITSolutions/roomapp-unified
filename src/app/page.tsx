@@ -81,9 +81,9 @@ export default function HomePage() {
                 QR menü sistemi ile misafir deneyimini dönüştürün. Temassız hizmet, çoklu dil desteği ve gerçek zamanlı yönetim.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <button onClick={() => router.push('/menu')} className="px-8 py-4 rounded-xl text-lg font-semibold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 shadow-xl shadow-amber-500/25 hover:from-amber-500 hover:to-yellow-600 transition-all flex items-center justify-center space-x-2 hover:scale-[1.02] hover:shadow-2xl">
+                <button onClick={() => window.open('http://localhost:3000/guest/101', '_blank')} className="px-8 py-4 rounded-xl text-lg font-semibold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 shadow-xl shadow-amber-500/25 hover:from-amber-500 hover:to-yellow-600 transition-all flex items-center justify-center space-x-2 hover:scale-[1.02] hover:shadow-2xl">
                   <Play className="w-5 h-5" />
-                  <span>Menüyü İncele</span>
+                  <span>Demo</span>
                 </button>
                 <a href="#packages" className="px-8 py-4 rounded-xl text-lg font-semibold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all text-center backdrop-blur-sm hover:scale-[1.02]">
                   Paketleri İncele

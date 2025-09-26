@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   FaConciergeBell, 
@@ -45,16 +45,33 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
     };
     setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Max 5 bildirim
     
-    // 5 saniye sonra otomatik kapat
+    // 8 saniye sonra otomatik kapat (resepsiyon yanıtları için daha uzun)
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    }, 5000);
+    }, 8000);
   };
 
   // Bildirim kapatma
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
+
+  // WebSocket bağlantısı - resepsiyondan gelen bildirimleri dinle
+  useEffect(() => {
+    const ws = ApiService.connectWebSocket(roomId, (data) => {
+      console.log('Misafir bildirimi alındı:', data);
+      
+      if (data.type === 'guest_notification') {
+        addNotification('info', 'Resepsiyon Yanıtı', data.message);
+      }
+    });
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [roomId]);
 
   if (showSurvey) {
     return <SurveyModal roomId={roomId} onClose={() => setShowSurvey(false)} onSurveySent={(message) => addNotification('success', 'Anket', message)} />;
@@ -67,29 +84,37 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
         {notifications.map((notification) => (
           <div
             key={notification.id}
-            className={`w-full bg-white rounded-lg shadow-lg border-l-4 p-3 sm:p-4 transform transition-all duration-300 ${
-              notification.type === 'success' ? 'border-green-500' :
-              notification.type === 'info' ? 'border-blue-500' :
-              'border-yellow-500'
+            className={`w-full bg-white rounded-xl shadow-2xl border-l-4 p-4 sm:p-5 transform transition-all duration-500 notification-slide-in notification-gentle-pulse ${
+              notification.type === 'success' ? 'border-green-500 bg-green-50' :
+              notification.type === 'info' ? 'border-blue-500 bg-blue-50' :
+              'border-yellow-500 bg-yellow-50'
             }`}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1 pr-2">
-                <h4 className="font-semibold text-gray-900 text-xs sm:text-sm">{notification.title}</h4>
-                <p className="text-gray-600 text-xs sm:text-sm mt-1 leading-tight">{notification.message}</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <FaBell className={`w-4 h-4 ${
+                    notification.type === 'success' ? 'text-green-600' :
+                    notification.type === 'info' ? 'text-blue-600' :
+                    'text-yellow-600'
+                  }`} />
+                  <h4 className="font-bold text-gray-900 text-sm sm:text-base">{notification.title}</h4>
+                </div>
+                <p className="text-gray-700 text-sm sm:text-base mt-1 leading-relaxed font-medium">{notification.message}</p>
+                <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                  <span>🕐</span>
                   {notification.timestamp.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                 </p>
-            </div>
+              </div>
               <button
                 onClick={() => removeNotification(notification.id)}
-                className="ml-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                className="ml-2 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 p-1 hover:bg-gray-200 rounded-full"
               >
-                <FaTimes className="w-3 h-3" />
+                <FaTimes className="w-4 h-4" />
               </button>
             </div>
           </div>
-              ))}
+        ))}
       </div>
 
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#222] px-4 text-center">Oda {roomId} - Misafir Ekranı</h1>

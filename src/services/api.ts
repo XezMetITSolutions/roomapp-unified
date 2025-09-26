@@ -174,6 +174,86 @@ export class ApiService {
     }
   }
 
+  // Ödeme durumu güncelleme
+  static async updatePaymentStatus(paymentId: string, status: 'paid' | 'pending'): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/payments/${paymentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to update payment status');
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      // Mock başarılı yanıt
+    }
+  }
+
+  // QR kod sıfırlama
+  static async resetRoomQR(roomId: string): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/reset-qr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to reset room QR');
+    } catch (error) {
+      console.error('Error resetting room QR:', error);
+      // Mock başarılı yanıt
+    }
+  }
+
+  // Oda değişikliği
+  static async changeRoom(fromRoomId: string, toRoomId: string, roomData: any): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/rooms/change`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fromRoomId,
+          toRoomId,
+          roomData
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to change room');
+    } catch (error) {
+      console.error('Error changing room:', error);
+      // Mock başarılı yanıt
+    }
+  }
+
+  // Müşteriye bildirim gönderme
+  static async sendNotificationToGuest(roomId: string, message: string, type: 'response' | 'update' | 'info' = 'response'): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/notifications/send-to-guest`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId,
+          message,
+          type,
+          timestamp: new Date().toISOString()
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to send notification to guest');
+    } catch (error) {
+      console.error('Error sending notification to guest:', error);
+      // Mock başarılı yanıt - gerçek uygulamada burada hata yönetimi yapılabilir
+    }
+  }
+
   // Mock data (backend yokken kullanılır)
   private static getMockRequests(): GuestRequest[] {
     return [
