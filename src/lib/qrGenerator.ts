@@ -1,44 +1,42 @@
-import { Room } from '@/types';
-
-export interface QRData {
-  roomId: string;
-  roomNumber: string;
-  hotelId: string;
-  timestamp: number;
+// QR Code Generator
+export interface QRGeneratorOptions {
+  text: string;
+  size?: number;
+  color?: string;
+  backgroundColor?: string;
 }
 
-export function generateRoomQRData(room: Room): QRData {
-  return {
-    roomId: room.id,
-    roomNumber: room.number,
-    hotelId: 'grand-hotel-001',
-    timestamp: Date.now()
-  };
-}
+export class QRGenerator {
+  static generateQRCode(options: QRGeneratorOptions): string {
+    // Mock QR code generation
+    const { text, size = 200, color = '#000000', backgroundColor = '#ffffff' } = options;
+    
+    // In a real implementation, you would use a QR code library like 'qrcode'
+    // For now, return a placeholder data URL
+    return `data:image/svg+xml;base64,${btoa(`
+      <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="${size}" height="${size}" fill="${backgroundColor}"/>
+        <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="${color}" font-size="14">
+          QR: ${text}
+        </text>
+      </svg>
+    `)}`;
+  }
 
-export function generateQRUrl(room: Room): string {
-  const qrData = generateRoomQRData(room);
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${baseUrl}/guest/${room.id}?data=${encodeURIComponent(JSON.stringify(qrData))}`;
-}
+  static generateRoomQR(roomId: string): string {
+    return this.generateQRCode({
+      text: `room-${roomId}`,
+      size: 200,
+    });
+  }
 
-export function validateQRData(data: string): QRData | null {
-  try {
-    const parsed = JSON.parse(decodeURIComponent(data));
-    if (parsed.roomId && parsed.roomNumber && parsed.hotelId && parsed.timestamp) {
-      // Check if QR code is not older than 24 hours for security
-      const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      if (Date.now() - parsed.timestamp < maxAge) {
-        return parsed as QRData;
-      }
-    }
-    return null;
-  } catch {
-    return null;
+  static generateMenuQR(menuId: string): string {
+    return this.generateQRCode({
+      text: `menu-${menuId}`,
+      size: 200,
+    });
   }
 }
 
-export function generateRoomQRCode(room: Room): string {
-  const url = generateQRUrl(room);
-  return url;
-}
+// Export for compatibility
+export const qrGenerator = QRGenerator;
