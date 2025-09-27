@@ -6,9 +6,8 @@ import {
   FaWifi, 
   FaBroom, 
   FaTools, 
-  FaBell, 
-  FaStar, 
-  FaTimes,
+  FaStar,
+  FaBell,
   FaBed,
   FaTooth,
   FaShoePrints,
@@ -18,6 +17,7 @@ import {
   FaWineBottle
 } from "react-icons/fa";
 import { ApiService } from '@/services/api';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface GuestInterfaceClientProps {
   roomId: string;
@@ -26,52 +26,60 @@ interface GuestInterfaceClientProps {
 export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientProps) {
   const router = useRouter();
   const [showSurvey, setShowSurvey] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    type: 'success' | 'info' | 'warning';
-    title: string;
-    message: string;
-    timestamp: Date;
-  }>>([]);
+  const [guestInfo, setGuestInfo] = useState<{
+    name: string;
+    surname: string;
+  } | null>(null);
+  const { addNotification } = useNotifications();
 
-  // Bildirim ekleme fonksiyonu
-  const addNotification = (type: 'success' | 'info' | 'warning', title: string, message: string) => {
-    const notification = {
-      id: Date.now().toString(),
-      type,
-      title,
-      message,
-      timestamp: new Date()
-    };
-    setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Max 5 bildirim
-    
-    // 8 saniye sonra otomatik kapat (resepsiyon yanıtları için daha uzun)
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    }, 8000);
-  };
 
-  // Bildirim kapatma
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
 
-  // WebSocket bağlantısı - resepsiyondan gelen bildirimleri dinle
+
+
+  // Misafir bilgilerini yükle
   useEffect(() => {
-    const ws = ApiService.connectWebSocket(roomId, (data) => {
-      console.log('Misafir bildirimi alındı:', data);
-      
-      if (data.type === 'guest_notification') {
-        addNotification('info', 'Resepsiyon Yanıtı', data.message);
-      }
-    });
-
-    return () => {
-      if (ws) {
-        ws.close();
+    const loadGuestInfo = async () => {
+      try {
+        const fullRoomId = roomId; // roomId zaten 'room-102' formatında geliyor
+        const guestData = await ApiService.getGuestFromCRM(fullRoomId);
+        if (guestData) {
+          setGuestInfo({
+            name: guestData.name,
+            surname: guestData.surname
+          });
+        }
+      } catch (error) {
+        console.error('Error loading guest info:', error);
       }
     };
+
+    loadGuestInfo();
   }, [roomId]);
+
+  // Hoş geldiniz bildirimi - sadece ilk kez
+  useEffect(() => {
+    const fullRoomId = roomId; // roomId zaten 'room-102' formatında geliyor
+    const welcomeKey = `welcome_shown_${fullRoomId}`;
+    
+    // Bu oda için hoş geldiniz bildirimi daha önce gösterildi mi?
+    const hasShownWelcome = localStorage.getItem(welcomeKey);
+    
+    if (!hasShownWelcome) {
+      const timer = setTimeout(() => {
+        const welcomeMessage = guestInfo 
+          ? `Hoş Geldiniz ${ApiService.formatGuestName(guestInfo.name, guestInfo.surname)}`
+          : 'Hoş Geldiniz';
+        
+        addNotification('info', welcomeMessage, 'Resepsiyon ekibimiz 7/24 hizmetinizdedir. İsteklerinizi buradan gönderebilirsiniz.', false, true, 5000); // Ses çalma, 5 saniye
+        
+        // Bu oda için hoş geldiniz bildirimi gösterildi olarak işaretle
+        localStorage.setItem(welcomeKey, 'true');
+      }, 2000); // 2 saniye
+      
+      return () => clearTimeout(timer);
+    }
+  }, [guestInfo, roomId, addNotification]);
+
 
   if (showSurvey) {
     return <SurveyModal roomId={roomId} onClose={() => setShowSurvey(false)} onSurveySent={(message) => addNotification('success', 'Anket', message)} />;
@@ -79,45 +87,15 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] flex flex-col items-center py-8 relative">
-      {/* Bildirim Sistemi */}
-      <div className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 space-y-2 max-w-xs sm:max-w-sm">
-        {notifications.map((notification) => (
-          <div
-            key={notification.id}
-            className={`w-full bg-white rounded-xl shadow-2xl border-l-4 p-4 sm:p-5 transform transition-all duration-500 notification-slide-in notification-gentle-pulse ${
-              notification.type === 'success' ? 'border-green-500 bg-green-50' :
-              notification.type === 'info' ? 'border-blue-500 bg-blue-50' :
-              'border-yellow-500 bg-yellow-50'
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1 pr-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <FaBell className={`w-4 h-4 ${
-                    notification.type === 'success' ? 'text-green-600' :
-                    notification.type === 'info' ? 'text-blue-600' :
-                    'text-yellow-600'
-                  }`} />
-                  <h4 className="font-bold text-gray-900 text-sm sm:text-base">{notification.title}</h4>
-                </div>
-                <p className="text-gray-700 text-sm sm:text-base mt-1 leading-relaxed font-medium">{notification.message}</p>
-                <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                  <span>🕐</span>
-                  {notification.timestamp.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-              <button
-                onClick={() => removeNotification(notification.id)}
-                className="ml-2 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 p-1 hover:bg-gray-200 rounded-full"
-              >
-                <FaTimes className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
 
-      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#222] px-4 text-center">Oda {roomId} - Misafir Ekranı</h1>
+      {/* Header */}
+      <div className="w-full max-w-md px-4 mb-4 flex items-center justify-between">
+        <h1 className="text-xl sm:text-2xl font-bold text-[#222] flex-1">Oda {roomId}</h1>
+        
+        <div className="flex items-center gap-2">
+          
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-md mb-4 px-4">
         {/* Oda Servisi */}
               <button
@@ -164,7 +142,7 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
               await ApiService.createGuestRequest({
                 roomId: `room-${roomId}`,
                 type: 'maintenance',
-                priority: 'high',
+                priority: 'urgent',
                 status: 'pending',
                 description: 'Teknik arıza bildirimi',
               });
@@ -191,7 +169,8 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
       </button>
       
       {/* Diğer İstekler Alanı */}
-      <DigerIstekler onRequestSent={(message) => addNotification('info', 'Genel Talep', message)} roomId={roomId} />
+      <DigerIstekler onRequestSent={(message) => addNotification('info', 'Genel Talep', message, true, true, 5000)} roomId={roomId} />
+
                 </div>
   );
 }
@@ -218,16 +197,42 @@ function DigerIstekler({ onRequestSent, roomId }: { onRequestSent: (message: str
     setIstek(`${miktar} adet ${item}`);
   };
 
+  // Miktar değiştiğinde istek alanını güncelle
+  useEffect(() => {
+    if (selectedItem) {
+      setIstek(`${miktar} adet ${selectedItem}`);
+    }
+  }, [miktar, selectedItem]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!istek.trim()) return;
     
+    console.log('Gönderilen istek:', istek);
+    console.log('Miktar:', miktar);
+    console.log('Seçili öğe:', selectedItem);
+    console.log('RoomId format:', roomId);
+    
     try {
+      // İstek içeriğine göre priority belirle
+      let priority: 'urgent' | 'high' | 'medium' | 'low' = 'medium';
+      let type: 'housekeeping' | 'maintenance' | 'concierge' | 'general' | 'food_order' = 'general';
+      
+      if (istek.toLowerCase().includes('acil') || istek.toLowerCase().includes('urgent') || istek.toLowerCase().includes('arıza')) {
+        priority = 'urgent';
+        type = 'maintenance';
+      } else if (istek.toLowerCase().includes('temizlik') || istek.toLowerCase().includes('temizle')) {
+        priority = 'medium';
+        type = 'housekeeping';
+      }
+      
+      console.log('İstek priority ve type:', { priority, type, istek });
+      
       // API'ye talep gönder
       await ApiService.createGuestRequest({
-        roomId: `room-${roomId}`,
-        type: 'general',
-        priority: 'medium',
+        roomId: roomId, // roomId zaten 'room-102' formatında
+        type: type,
+        priority: priority,
         status: 'pending',
         description: istek,
       });
@@ -309,10 +314,23 @@ function DigerIstekler({ onRequestSent, roomId }: { onRequestSent: (message: str
           placeholder={selectedItem ? `${miktar} adet ${selectedItem}` : "Lütfen isteğinizi yazınız…"}
           value={istek}
           onChange={(e) => {
-            setIstek(e.target.value);
-            if (e.target.value === "") {
+            const value = e.target.value;
+            setIstek(value);
+            
+            if (value === "") {
               setSelectedItem("");
               setMiktar(1);
+            } else {
+              // Manuel girişte miktar kontrolü yap
+              const miktarMatch = value.match(/^(\d+)\s+adet\s+(.+)$/);
+              if (miktarMatch) {
+                const [, miktarStr, itemName] = miktarMatch;
+                const extractedMiktar = parseInt(miktarStr);
+                if (extractedMiktar >= 1 && extractedMiktar <= 10) {
+                  setMiktar(extractedMiktar);
+                  setSelectedItem(itemName.trim());
+                }
+              }
             }
           }}
           maxLength={200}

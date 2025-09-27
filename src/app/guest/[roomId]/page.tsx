@@ -1,5 +1,6 @@
 import { sampleRooms } from '@/lib/sampleData';
 import GuestInterfaceClient from './GuestInterfaceClient';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 
 export async function generateStaticParams() {
   // Export all possible roomId values for static export
@@ -7,5 +8,9 @@ export async function generateStaticParams() {
 }
 
 export default function GuestInterface({ params }: { params: { roomId: string } }) {
-  return <GuestInterfaceClient roomId={params.roomId} />;
+  return (
+    <NotificationProvider roomId={`room-${params.roomId}`}>
+      <GuestInterfaceClient roomId={`room-${params.roomId}`} />
+    </NotificationProvider>
+  );
 }

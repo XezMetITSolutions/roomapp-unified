@@ -5,6 +5,7 @@ import { useHotelStore } from '@/store/hotelStore';
 import { sampleOrders, sampleMenu } from '@/lib/sampleData';
 import { translate } from '@/lib/translations';
 import { Language, Order, MenuItem } from '@/types';
+import { ApiService } from '@/services/api';
 import { 
   ChefHat, 
   Clock, 
@@ -18,37 +19,194 @@ import {
   Plus,
   Edit,
   Eye,
-  Timer
+  Timer,
+  X
 } from 'lucide-react';
 
 export default function KitchenPanel() {
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
   const [orders, setOrders] = useState<Order[]>(sampleOrders);
   const [menu, setMenu] = useState<MenuItem[]>(sampleMenu);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'preparing' | 'ready'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'preparing' | 'delivered' | 'cancelled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showMenuModal, setShowMenuModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
 
-  const filteredOrders = orders.filter(order => {
-    const matchesFilter = filter === 'all' || order.status === filter;
-    const matchesSearch = order.roomId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.items.some(item => 
-        menu.find(m => m.id === item.menuItemId)?.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    return matchesFilter && matchesSearch;
-  });
+  // Bildirim sesi çalma fonksiyonu
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.log('Ses çalınamadı:', error);
+    }
+  };
 
-  const handleOrderStatusChange = (orderId: string, newStatus: Order['status']) => {
+  // Yemek siparişlerini yükle
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        setIsLoading(true);
+        // Yemek siparişlerini al (type: 'food_order' olanlar)
+        const requests = await ApiService.getGuestRequests();
+        const foodOrders = requests
+          .filter(req => req.type === 'food_order')
+          .map(req => {
+            // Description'dan sipariş detaylarını parse et
+            const description = req.description || '';
+            const items: Array<{
+              menuItemId: string;
+              name: string;
+              quantity: number;
+              price: number;
+              specialRequests: string;
+            }> = [];
+            let totalAmount = 0;
+            
+            // "Yemek siparişi: 2x Cheeseburger, 1x Margherita Pizza" formatını parse et
+            if (description.includes('Yemek siparişi:')) {
+              const orderPart = description.split('Yemek siparişi:')[1];
+              if (orderPart) {
+                const itemStrings = orderPart.split(',').map(s => s.trim());
+                itemStrings.forEach(itemStr => {
+                  const match = itemStr.match(/(\d+)x\s+(.+)/);
+                  if (match) {
+                    const quantity = parseInt(match[1]);
+                    const itemName = match[2].trim();
+                    // Menüden fiyat bul
+                    const menuItem = menu.find(m => m.name === itemName);
+                    const price = menuItem?.price || 0;
+                    totalAmount += price * quantity;
+                    
+                    items.push({
+                      menuItemId: menuItem?.id || itemName.toLowerCase().replace(/\s+/g, '-'),
+                      name: itemName,
+                      quantity: quantity,
+                      price: price,
+                      specialRequests: req.notes || ''
+                    });
+                  }
+                });
+              }
+            }
+            
+            return {
+              id: req.id,
+              roomId: req.roomId.replace('room-', ''),
+              status: req.status === 'pending' ? 'pending' : 
+                     req.status === 'in_progress' ? 'preparing' :
+                     req.status === 'completed' ? 'ready' : 'pending',
+              items: items,
+              totalAmount: totalAmount,
+              paymentStatus: 'paid' as const,
+              specialInstructions: req.notes || '',
+              createdAt: new Date(req.createdAt),
+              deliveryTime: req.status === 'completed' ? new Date() : undefined,
+              guestId: req.roomId // Order tipi için gerekli
+            } as Order;
+          });
+        
+        // Mevcut siparişlerle birleştir (duplicate kontrolü ile)
+        setOrders(prev => {
+          const existingIds = new Set(prev.map(order => order.id));
+          const newOrders = foodOrders.filter(order => !existingIds.has(order.id));
+          
+          // Yeni sipariş varsa ses çal
+          if (newOrders.length > 0) {
+            playNotificationSound();
+          }
+          
+          return [...prev, ...newOrders];
+        });
+      } catch (error) {
+        console.error('Sipariş yükleme hatası:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadOrders();
+    
+    // Her 10 saniyede bir güncelle
+    const interval = setInterval(loadOrders, 10000);
+    return () => clearInterval(interval);
+  }, [menu]);
+
+
+  const filteredOrders = orders
+    .filter(order => {
+      const matchesFilter = filter === 'all' || order.status === filter;
+      const matchesSearch = order.roomId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.items.some(item => 
+          menu.find(m => m.id === item.menuItemId)?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      return matchesFilter && matchesSearch;
+    })
+    .sort((a, b) => {
+      // Teslim edilen ve iptal edilen siparişler en alta, diğerleri duruma göre sırala
+      if ((a.status === 'delivered' || a.status === 'cancelled') && 
+          (b.status !== 'delivered' && b.status !== 'cancelled')) return 1;
+      if ((b.status === 'delivered' || b.status === 'cancelled') && 
+          (a.status !== 'delivered' && a.status !== 'cancelled')) return -1;
+      
+      // Aynı durumda olanlar için tarihe göre sırala (yeni olanlar üstte)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+  const handleOrderStatusChange = async (orderId: string, newStatus: Order['status']) => {
+    // Önce local state'i güncelle
     setOrders(prev => prev.map(order => 
       order.id === orderId 
         ? { 
             ...order, 
             status: newStatus,
-            ...(newStatus === 'ready' && { deliveryTime: new Date() })
+            ...(newStatus === 'delivered' && { deliveryTime: new Date() })
           }
         : order
     ));
+
+    // Müşteriye bildirim gönder
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      try {
+        if (newStatus === 'preparing') {
+          await ApiService.sendNotificationToGuest(
+            `room-${order.roomId}`,
+            `Siparişiniz hazırlanmaya başlandı. Tahmini süre: ${calculateTotalPreparationTime(order)} dakika.`,
+            'info'
+          );
+        } else if (newStatus === 'delivered') {
+          await ApiService.sendNotificationToGuest(
+            `room-${order.roomId}`,
+            `Siparişiniz teslim edildi! Afiyet olsun.`,
+            'info'
+          );
+        } else if (newStatus === 'cancelled') {
+          await ApiService.sendNotificationToGuest(
+            `room-${order.roomId}`,
+            `Siparişiniz iptal edildi. Resepsiyon ile iletişime geçebilirsiniz.`,
+            'info'
+          );
+        }
+      } catch (error) {
+        console.error('Bildirim gönderme hatası:', error);
+      }
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -56,8 +214,7 @@ export default function KitchenPanel() {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'confirmed': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'preparing': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
-      case 'delivered': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'delivered': return 'bg-green-100 text-green-800 border-green-200';
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -68,7 +225,6 @@ export default function KitchenPanel() {
       case 'pending': return <Clock className="w-4 h-4" />;
       case 'confirmed': return <AlertCircle className="w-4 h-4" />;
       case 'preparing': return <Play className="w-4 h-4" />;
-      case 'ready': return <CheckCircle className="w-4 h-4" />;
       case 'delivered': return <CheckCircle className="w-4 h-4" />;
       case 'cancelled': return <Pause className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
@@ -82,7 +238,11 @@ export default function KitchenPanel() {
     }, 0);
   };
 
-  const getMenuItemName = (menuItemId: string) => {
+  const getMenuItemName = (menuItemId: string, itemName?: string) => {
+    // Eğer itemName varsa onu kullan (QR menüden gelen siparişler için)
+    if (itemName) {
+      return itemName;
+    }
     const menuItem = menu.find(m => m.id === menuItemId);
     return menuItem?.name || 'Bilinmeyen Ürün';
   };
@@ -127,46 +287,7 @@ export default function KitchenPanel() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="hotel-card p-6 text-center">
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {orders.filter(o => o.status === 'pending').length}
-            </h3>
-            <p className="text-gray-600">Bekleyen Siparişler</p>
-                      </div>
-          <div className="hotel-card p-6 text-center">
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Play className="w-6 h-6 text-orange-600" />
-                                </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {orders.filter(o => o.status === 'preparing').length}
-                                </h3>
-            <p className="text-gray-600">Hazırlanan Siparişler</p>
-                                      </div>
-          <div className="hotel-card p-6 text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-                                </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {orders.filter(o => o.status === 'ready').length}
-            </h3>
-            <p className="text-gray-600">Hazır Siparişler</p>
-                                </div>
-          <div className="hotel-card p-6 text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Timer className="w-6 h-6 text-blue-600" />
-                                  </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {orders.filter(o => o.status === 'delivered').length}
-            </h3>
-            <p className="text-gray-600">Teslim Edilen</p>
-                            </div>
-                          </div>
 
         {/* Filters and Search */}
         <div className="hotel-card p-6 mb-6">
@@ -188,7 +309,8 @@ export default function KitchenPanel() {
                 { id: 'all', label: 'Tümü', count: orders.length },
                 { id: 'pending', label: 'Bekleyen', count: orders.filter(o => o.status === 'pending').length },
                 { id: 'preparing', label: 'Hazırlanan', count: orders.filter(o => o.status === 'preparing').length },
-                { id: 'ready', label: 'Hazır', count: orders.filter(o => o.status === 'ready').length }
+                { id: 'delivered', label: 'Teslim Edilen', count: orders.filter(o => o.status === 'delivered').length },
+                { id: 'cancelled', label: 'İptal Edilen', count: orders.filter(o => o.status === 'cancelled').length }
               ].map((filterOption) => (
                                   <button
                   key={filterOption.id}
@@ -222,13 +344,17 @@ export default function KitchenPanel() {
                         {order.status === 'pending' ? 'BEKLEMEDE' :
                          order.status === 'confirmed' ? 'ONAYLANDI' :
                          order.status === 'preparing' ? 'HAZIRLANIYOR' :
-                         order.status === 'ready' ? 'HAZIR' :
                          order.status === 'delivered' ? 'TESLİM EDİLDİ' : 'İPTAL'}
                       </span>
                     </span>
                     <span className="text-sm text-gray-600">
                       {new Date(order.createdAt).toLocaleString('tr-TR')}
                     </span>
+                    {order.status === 'preparing' && (
+                      <span className="text-sm text-orange-600 font-medium">
+                        Hazırlık süresi: {calculateTotalPreparationTime(order)} dk
+                      </span>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -238,7 +364,7 @@ export default function KitchenPanel() {
                         {order.items.map((item, index) => (
                           <div key={index} className="flex justify-between text-sm">
                             <span className="text-gray-700">
-                              {item.quantity}x {getMenuItemName(item.menuItemId)}
+                              {item.quantity}x {getMenuItemName(item.menuItemId, (item as any).name)}
                             </span>
                             <span className="font-medium text-gray-900">
                               {(item.price * item.quantity).toFixed(2)}₺
@@ -295,24 +421,40 @@ export default function KitchenPanel() {
                       )}
                   
                   {order.status === 'preparing' && (
+                    <div className="flex items-center space-x-2">
                         <button
-                      onClick={() => handleOrderStatusChange(order.id, 'ready')}
+                      onClick={() => handleOrderStatusChange(order.id, 'delivered')}
                       className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm flex items-center space-x-2"
                         >
                       <CheckCircle className="w-4 h-4" />
-                      <span>Hazır Olarak İşaretle</span>
+                      <span>Hazır</span>
                         </button>
+                        <button
+                      onClick={() => setCancelOrderId(order.id)}
+                      className="bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600 p-2 rounded-lg transition-colors"
+                      title="İptal Et"
+                        >
+                      <X className="w-4 h-4" />
+                        </button>
+                    </div>
                       )}
                   
-                  {order.status === 'ready' && (
-                        <button
-                      onClick={() => handleOrderStatusChange(order.id, 'delivered')}
-                      className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm flex items-center space-x-2"
-                        >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Teslim Edildi</span>
-                        </button>
-                      )}
+                  {order.status === 'delivered' && (
+                    <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium text-center">
+                      ✅ Teslim Edildi
+                      <div className="text-xs mt-1">
+                        {order.deliveryTime && (
+                          <>Hazırlık süresi: {Math.round((new Date(order.deliveryTime).getTime() - new Date(order.createdAt).getTime()) / 60000)} dk</>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.status === 'cancelled' && (
+                    <div className="bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-medium text-center">
+                      ❌ İptal Edildi
+                    </div>
+                  )}
                   
                         <button
                     onClick={() => setSelectedOrder(order)}
@@ -340,8 +482,14 @@ export default function KitchenPanel() {
 
       {/* Order Details Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setSelectedOrder(null)}
+        >
+          <div 
+            className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Sipariş Detayları - Oda {selectedOrder.roomId}
             </h3>
@@ -354,7 +502,7 @@ export default function KitchenPanel() {
                     <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900">
-                          {item.quantity}x {getMenuItemName(item.menuItemId)}
+                          {item.quantity}x {getMenuItemName(item.menuItemId, (item as any).name)}
                         </p>
                         {item.specialRequests && (
                           <p className="text-sm text-gray-600">{item.specialRequests}</p>
@@ -399,8 +547,14 @@ export default function KitchenPanel() {
 
       {/* Menu Management Modal */}
       {showMenuModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowMenuModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Menü Yönetimi</h3>
             
             <div className="space-y-4">
@@ -448,6 +602,45 @@ export default function KitchenPanel() {
             </div>
         </div>
       </div>
+      )}
+
+      {/* İptal Onay Modalı */}
+      {cancelOrderId && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setCancelOrderId(null)}
+        >
+          <div 
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Sipariş İptal Et
+            </h3>
+            
+            <p className="text-gray-700 mb-6">
+              Bu siparişi iptal etmek istediğinizden emin misiniz? İptal edilen siparişler geri alınamaz.
+            </p>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setCancelOrderId(null)}
+                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Vazgeç
+              </button>
+              <button
+                onClick={() => {
+                  handleOrderStatusChange(cancelOrderId, 'cancelled');
+                  setCancelOrderId(null);
+                }}
+                className="flex-1 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+              >
+                İptal Et
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -39,10 +39,7 @@ export function useNotifications(roomId?: string) {
     setNotifications(prev => [newNotification, ...prev.slice(0, 9)]); // Max 10 bildirim
     setUnreadCount(prev => prev + 1);
 
-    // 5 saniye sonra otomatik kapat
-    setTimeout(() => {
-      removeNotification(newNotification.id);
-    }, 5000);
+    // Bildirimler artık kalıcı - otomatik kapanmıyor
   }, [removeNotification]);
 
   // Bildirim okundu olarak işaretle

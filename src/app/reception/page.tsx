@@ -50,8 +50,8 @@ export default function ReceptionPanel() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastRequestCount, setLastRequestCount] = useState(0);
 
-  // Bildirim sistemi
-  const { addNotification, notifications } = useNotifications();
+  // Bildirim sistemi - sadece yeni istekler için
+  const { addNotification, notifications, unreadCount, markAsRead } = useNotifications();
 
   // Oda bilgilerini getir
   const getRoomInfo = (roomId: string) => {
@@ -121,27 +121,31 @@ export default function ReceptionPanel() {
     };
   };
 
-  // Ses bildirimi fonksiyonu
+  // Ses bildirimi fonksiyonu - daha hızlı ve basit
   const playNotificationSound = useCallback(() => {
     if (!soundEnabled) return;
     
     try {
-      // Basit bir bildirim sesi oluştur
+      // Daha basit ve hızlı ses bildirimi
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Kısa ve net ses
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      // Yüksek frekans - dikkat çekici
+      oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.05);
       
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      // Hızlı fade
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
       
       oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
+      oscillator.stop(audioContext.currentTime + 0.15);
     } catch (error) {
       console.log('Ses çalma hatası:', error);
     }
@@ -156,17 +160,49 @@ export default function ReceptionPanel() {
         ApiService.getStatistics(),
       ]);
       
-      // Yeni istek kontrolü - ses bildirimi için
-      const currentRequestCount = requestsData.length;
-      if (currentRequestCount > lastRequestCount && lastRequestCount > 0) {
+      console.log('Resepsiyon paneli - Yüklenen istekler:', requestsData);
+      console.log('Resepsiyon paneli - LocalStorage içeriği:', localStorage.getItem('roomapp_requests'));
+      
+      // Filtre sayılarını debug et (yemek siparişleri hariç)
+      const nonFoodRequests = requestsData.filter(r => r.type !== 'food_order');
+      const urgentCount = nonFoodRequests.filter(r => r.priority === 'urgent' || r.priority === 'high').length;
+      const pendingCount = nonFoodRequests.filter(r => r.status === 'pending').length;
+      const inProgressCount = nonFoodRequests.filter(r => r.status === 'in_progress' || r.status === 'completed').length;
+      console.log('Filtre sayıları (yemek siparişleri hariç):', { 
+        total: requestsData.length,
+        nonFoodTotal: nonFoodRequests.length,
+        urgent: urgentCount, 
+        pending: pendingCount, 
+        inProgress: inProgressCount 
+      });
+      
+      // Yeni istek kontrolü - ses bildirimi için (yemek siparişleri hariç)
+      const nonFoodRequestCount = requestsData.filter(r => r.type !== 'food_order').length;
+      if (nonFoodRequestCount > lastRequestCount && lastRequestCount > 0) {
+        // Ses bildirimi hemen çal
         playNotificationSound();
+        
+        // Yeni gelen istekleri bul ve detaylı bildirim gönder (yemek siparişleri hariç)
+        const newRequests = requestsData.filter(r => r.type !== 'food_order').slice(0, nonFoodRequestCount - lastRequestCount);
+        newRequests.forEach(request => {
+          const roomNumber = request.roomId.replace('room-', '');
+          
+          // İstek türüne göre bildirim türü belirle
+          let notificationType: 'info' | 'warning' | 'success' = 'info';
+          if (request.type === 'maintenance') {
+            notificationType = 'warning'; // Teknik arıza - sarı
+          } else if (request.type === 'housekeeping') {
+            notificationType = 'success'; // Temizlik - yeşil
+          }
+          
         addNotification({
-          type: 'info',
-          title: 'Yeni İstek',
-          message: `${currentRequestCount - lastRequestCount} yeni istek geldi!`,
+            type: notificationType,
+            title: `Oda ${roomNumber}`,
+            message: request.description,
+          });
         });
       }
-      setLastRequestCount(currentRequestCount);
+      setLastRequestCount(nonFoodRequestCount);
       
       setRequests(requestsData);
       setStatistics(statsData);
@@ -189,9 +225,22 @@ export default function ReceptionPanel() {
   // Veri yükleme
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 30000); // 30 saniyede bir güncelle
+    const interval = setInterval(loadData, 5000); // 5 saniyede bir güncelle (yeni istekler için)
     return () => clearInterval(interval);
   }, [loadData]);
+
+  // Test için: Sayfa yüklendiğinde bir test bildirimi ekle (isteğe bağlı)
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     addNotification({
+  //       type: 'info',
+  //       title: 'Sistem Hazır',
+  //       message: 'Resepsiyon paneli başarıyla yüklendi. Yeni istekler burada görünecek.',
+  //     });
+  //   }, 2000);
+  //   
+  //   return () => clearTimeout(timer);
+  // }, [addNotification]);
 
   // İstek türüne göre otomatik cevaplar
   const getQuickResponses = (requestType: string) => {
@@ -217,33 +266,38 @@ export default function ReceptionPanel() {
 
   const filteredRequests = requests
     .filter(request => {
-    const matchesFilter = filter === 'all' || 
-      (filter === 'urgent' && request.priority === 'urgent') ||
-      (filter === 'pending' && request.status === 'pending') ||
-      (filter === 'in_progress' && request.status === 'in_progress');
+    // Yemek siparişlerini resepsiyon panelinden hariç tut
+    if (request.type === 'food_order') {
+      return false;
+    }
     
-    const matchesSearch = request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.roomId.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesFilter && matchesSearch;
+      const matchesFilter = filter === 'all' || 
+      (filter === 'urgent' && (request.priority === 'urgent' || request.priority === 'high')) ||
+        (filter === 'pending' && request.status === 'pending') ||
+      (filter === 'in_progress' && (request.status === 'in_progress' || request.status === 'completed'));
+      
+      const matchesSearch = request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.roomId.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesFilter && matchesSearch;
     })
     .sort((a, b) => {
-      // Önce öncelik sırasına göre (urgent > high > medium > low)
-      const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
-      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
-      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
-      
-      if (aPriority !== bPriority) {
-        return bPriority - aPriority;
-      }
-      
-      // Sonra durum sırasına göre (pending > in_progress > completed) - yanıt verilenler alta
+      // Önce durum sırasına göre (pending > in_progress > completed) - tamamlanan istekler en alta
       const statusOrder = { pending: 4, in_progress: 3, completed: 1, cancelled: 0 };
       const aStatus = statusOrder[a.status as keyof typeof statusOrder] || 0;
       const bStatus = statusOrder[b.status as keyof typeof statusOrder] || 0;
       
       if (aStatus !== bStatus) {
         return bStatus - aStatus;
+      }
+      
+      // Sonra öncelik sırasına göre (urgent > high > medium > low)
+      const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+      
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority;
       }
       
       // Son olarak tarihe göre (en yeni üstte)
@@ -265,7 +319,16 @@ export default function ReceptionPanel() {
       // Müşteriye bildirim gönder
       const request = requests.find(req => req.id === requestId);
       if (request) {
+        console.log('Sending notification to guest:', {
+          requestId,
+          roomId: request.roomId,
+          message: response.text,
+          allRequests: requests.map(r => ({ id: r.id, roomId: r.roomId }))
+        });
         await ApiService.sendNotificationToGuest(request.roomId, response.text, 'response');
+        console.log('Notification sent successfully to:', request.roomId);
+      } else {
+        console.error('Request not found:', requestId, 'Available requests:', requests.map(r => r.id));
       }
       
       // Local state'i güncelle
@@ -280,21 +343,12 @@ export default function ReceptionPanel() {
           : req
       ));
 
-      // Resepsiyon bildirimi gönder
-      console.log('Sending notification for quick response:', response.text);
-      addNotification({
-        type: 'success',
-        title: 'Dönüş Yapıldı',
-        message: `Oda ${requestId.replace('room-', '')} için dönüş yapıldı ve müşteriye bildirim gönderildi.`,
-      });
+      console.log('Quick response sent to guest:', response.text);
       
     } catch (error) {
       console.error('Error updating request:', error);
-      addNotification({
-        type: 'error',
-        title: 'Hata',
-        message: 'Yanıt gönderilirken bir hata oluştu.',
-      });
+      // Sadece console'da hata göster, resepsiyon panelinde bildirim gösterme
+      console.error('Yanıt gönderilirken bir hata oluştu:', error);
     }
 
     // Close modal if open
@@ -326,22 +380,15 @@ export default function ReceptionPanel() {
           : req
       ));
 
-      addNotification({
-        type: 'success',
-        title: 'Dönüş Yapıldı',
-        message: `Oda ${requestId.replace('room-', '')} için özel mesaj gönderildi ve müşteriye bildirim iletildi.`,
-      });
+      console.log('Custom message sent to guest:', message);
 
       setCustomMessage('');
       setSelectedRequest(null);
       
     } catch (error) {
       console.error('Error sending custom message:', error);
-      addNotification({
-        type: 'error',
-        title: 'Hata',
-        message: 'Mesaj gönderilirken bir hata oluştu.',
-      });
+      // Sadece console'da hata göster, resepsiyon panelinde bildirim gösterme
+      console.error('Mesaj gönderilirken bir hata oluştu:', error);
     }
   };
 
@@ -373,20 +420,30 @@ export default function ReceptionPanel() {
     }
   };
 
+  const getRequestTypeIcon = (type: string) => {
+    switch (type) {
+      case 'food_order': return '🍽️';
+      case 'housekeeping': return '🧹';
+      case 'maintenance': return '🔧';
+      case 'concierge': return '🏨';
+      default: return '📋';
+    }
+  };
+
   // Çıkış işlemi fonksiyonu
   const handleCheckout = async (roomId: string) => {
     try {
       // Tüm bekleyen ödemeleri al
       const roomInfo = getRoomInfo(roomId);
       const pendingPayments = roomInfo.payments.filter(p => p.status === 'pending');
-      const totalAmount = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
-      
+        const totalAmount = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
+        
       // Onay popup'ı göster
-      setCheckoutConfirm({
-        roomId,
-        pendingPayments,
+        setCheckoutConfirm({
+          roomId,
+          pendingPayments,
         totalAmount
-      });
+        });
       
     } catch (error) {
       console.error('Error processing checkout:', error);
@@ -462,13 +519,16 @@ export default function ReceptionPanel() {
         });
       }
       
+      // Oda isteklerini temizle
+      await ApiService.clearRoomRequests(roomId);
+      
       // QR kodu sıfırla ve çıkış işlemini tamamla
       await ApiService.resetRoomQR(roomId);
       
       addNotification({
         type: 'success',
         title: 'Çıkış Tamamlandı',
-        message: `Oda ${roomId.replace('room-', '')} için çıkış işlemi tamamlandı ve QR kod sıfırlandı.`,
+        message: `Oda ${roomId.replace('room-', '')} için çıkış işlemi tamamlandı, istekler temizlendi ve QR kod sıfırlandı.`,
       });
       
     } catch (error) {
@@ -501,25 +561,26 @@ export default function ReceptionPanel() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              {/* Test Bildirim Butonu */}
               {/* Bildirim Butonu */}
-                <div className="relative">
+              <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
                   className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors ${
-                    newRequests > 0
+                    unreadCount > 0
                       ? 'bg-red-500 text-white hover:bg-red-600' 
                       : 'bg-blue-500 text-white hover:bg-blue-600'
                   }`}
                   title="Bildirimler"
                 >
                   <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                {newRequests > 0 && (
+                </button>
+                {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-bold">
-                    {newRequests}
+                    {unreadCount}
                   </span>
                 )}
-                </div>
+              </div>
               <select
                 value={currentLanguage}
                 onChange={(e) => setCurrentLanguage(e.target.value as Language)}
@@ -535,6 +596,12 @@ export default function ReceptionPanel() {
 
       {/* Bildirim Dropdown */}
       {showNotifications && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowNotifications(false)}
+          />
         <div className="absolute top-20 right-4 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 w-80 max-h-96 overflow-y-auto">
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -558,8 +625,11 @@ export default function ReceptionPanel() {
                 {notifications.slice(0, 10).map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-3 rounded-lg border-l-4 ${
-                      notification.type === 'success' 
+                    onClick={() => markAsRead(notification.id)}
+                    className={`p-3 rounded-lg border-l-4 cursor-pointer hover:opacity-80 transition-opacity ${
+                      notification.read
+                        ? 'opacity-60'
+                        : notification.type === 'success' 
                         ? 'bg-green-50 border-green-400' 
                         : notification.type === 'error'
                         ? 'bg-red-50 border-red-400'
@@ -570,9 +640,14 @@ export default function ReceptionPanel() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
+                        <div className="flex items-center gap-2">
                         <h4 className="font-medium text-gray-900 text-sm">
                           {notification.title}
                         </h4>
+                          {!notification.read && (
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          )}
+                        </div>
                         <p className="text-gray-600 text-xs mt-1">
                           {notification.message}
                         </p>
@@ -587,6 +662,7 @@ export default function ReceptionPanel() {
             )}
           </div>
         </div>
+        </>
       )}
 
       {/* Filters and Search */}
@@ -607,10 +683,10 @@ export default function ReceptionPanel() {
             </div>
             <div className="flex flex-wrap gap-2">
               {[
-                { id: 'all', label: 'Tümü', count: requests.length },
-                { id: 'urgent', label: 'Acil', count: requests.filter(r => r.priority === 'urgent').length },
-                { id: 'pending', label: 'Bekleyen', count: requests.filter(r => r.status === 'pending').length },
-                { id: 'in_progress', label: 'İşlemde', count: requests.filter(r => r.status === 'in_progress').length }
+                { id: 'all', label: 'Tümü', count: requests.filter(r => r.type !== 'food_order').length },
+                { id: 'urgent', label: 'Acil', count: requests.filter(r => r.type !== 'food_order' && (r.priority === 'urgent' || r.priority === 'high')).length },
+                { id: 'pending', label: 'Bekleyen', count: requests.filter(r => r.type !== 'food_order' && r.status === 'pending').length },
+                { id: 'in_progress', label: 'İşlemde', count: requests.filter(r => r.type !== 'food_order' && (r.status === 'in_progress' || r.status === 'completed')).length }
               ].map((filterOption) => (
                 <button
                   key={filterOption.id}
@@ -640,28 +716,29 @@ export default function ReceptionPanel() {
                     </span>
                     <div className="flex flex-wrap gap-2">
                       <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(request.priority)}`}>
-                      <div className="flex items-center space-x-1">
-                        {getPriorityIcon(request.priority)}
-                        <span>{request.priority === 'urgent' ? 'ACİL' :
-                               request.priority === 'high' ? 'YÜKSEK' :
-                               request.priority === 'medium' ? 'ORTA' :
-                               request.priority === 'low' ? 'DÜŞÜK' : String(request.priority || '').toUpperCase()}</span>
-                      </div>
-                    </span>
+                        <div className="flex items-center space-x-1">
+                          {getPriorityIcon(request.priority)}
+                          <span>{request.priority === 'urgent' ? 'YÜKSEK' :
+                                 request.priority === 'high' ? 'YÜKSEK' :
+                                 request.priority === 'medium' ? 'ORTA' :
+                                 request.priority === 'low' ? 'DÜŞÜK' : String(request.priority || '').toUpperCase()}</span>
+                        </div>
+                      </span>
                       <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
-                      {request.status === 'pending' ? 'BEKLEMEDE' :
-                       request.status === 'in_progress' ? 'İŞLEMDE' :
-                       request.status === 'completed' ? 'TAMAMLANDI' : 'İPTAL'}
-                    </span>
+                        {request.status === 'pending' ? 'BEKLEMEDE' :
+                         request.status === 'in_progress' ? 'İŞLEMDE' :
+                         request.status === 'completed' ? 'TAMAMLANDI' : 'İPTAL'}
+                      </span>
                     </div>
                   </div>
                   
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
                     <div className="flex items-center space-x-1">
-                      <User className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-lg">{getRequestTypeIcon(request.type)}</span>
                       <span>{request.type === 'housekeeping' ? 'Temizlik' : 
                              request.type === 'maintenance' ? 'Bakım' :
-                             request.type === 'concierge' ? 'Konsiyerj' : request.type}</span>
+                             request.type === 'concierge' ? 'Konsiyerj' : 
+                             request.type === 'food_order' ? 'Yemek Siparişi' : request.type}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -675,12 +752,12 @@ export default function ReceptionPanel() {
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                       <div className="flex items-start space-x-2">
                         <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mt-0.5" />
-                  <div>
+                        <div>
                           <p className="text-xs sm:text-sm font-medium text-blue-900">Yanıt:</p>
                           <p className="text-xs sm:text-sm text-blue-700">{request.notes}</p>
                         </div>
                       </div>
-                  </div>
+                    </div>
                   )}
                 </div>
 
@@ -725,59 +802,59 @@ export default function ReceptionPanel() {
             className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl border border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Çıkış Onayı</h3>
-                <p className="text-sm text-gray-600">Oda {checkoutConfirm.roomId.replace('room-', '')} için çıkış işlemi</p>
-              </div>
-            </div>
-
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start space-x-2">
-                <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
-                <div className="text-sm text-orange-800">
-                  <p className="font-medium mb-1">İşlemden emin misiniz?</p>
-                  <p className="text-xs">Bu işlem geri alınamaz. Devam etmek istediğinizden emin misiniz?</p>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Çıkış Onayı</h3>
+                    <p className="text-sm text-gray-600">Oda {checkoutConfirm.roomId.replace('room-', '')} için çıkış işlemi</p>
+                  </div>
                 </div>
-              </div>
-            </div>
+
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                    <div className="text-sm text-orange-800">
+                      <p className="font-medium mb-1">İşlemden emin misiniz?</p>
+                      <p className="text-xs">Bu işlem geri alınamaz. Devam etmek istediğinizden emin misiniz?</p>
+                    </div>
+                  </div>
+                </div>
 
             {/* Bekleyen ödemeler varsa göster */}
             {checkoutConfirm.pendingPayments.length > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center space-x-2 mb-2">
-                  <MessageSquare className="w-4 h-4 text-yellow-600" />
-                  <span className="font-semibold text-yellow-900 text-sm">Bekleyen Ödemeler</span>
-                </div>
-                <div className="space-y-2">
-                  {checkoutConfirm.pendingPayments.map((payment) => (
-                    <div key={payment.id} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-700">{payment.item}</span>
-                      <span className="font-semibold text-gray-900">{payment.amount} TL</span>
-                    </div>
-                  ))}
-                  <div className="border-t border-yellow-200 pt-2 mt-2">
-                    <div className="flex justify-between items-center font-semibold">
-                      <span className="text-gray-700">Toplam Tutar:</span>
-                      <span className="text-red-600 text-lg">{checkoutConfirm.totalAmount} TL</span>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <MessageSquare className="w-4 h-4 text-yellow-600" />
+                    <span className="font-semibold text-yellow-900 text-sm">Bekleyen Ödemeler</span>
+                  </div>
+                  <div className="space-y-2">
+                    {checkoutConfirm.pendingPayments.map((payment) => (
+                      <div key={payment.id} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-700">{payment.item}</span>
+                        <span className="font-semibold text-gray-900">{payment.amount} TL</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-yellow-200 pt-2 mt-2">
+                      <div className="flex justify-between items-center font-semibold">
+                        <span className="text-gray-700">Toplam Tutar:</span>
+                        <span className="text-red-600 text-lg">{checkoutConfirm.totalAmount} TL</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
             )}
 
             <div className="flex space-x-3">
-              <button
+                  <button
                 onClick={() => setCheckoutConfirm(null)}
                 className="flex-1 bg-gray-100 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
-              >
+                  >
                 İptal
-              </button>
-              <button
-                onClick={() => {
+                  </button>
+                  <button
+                    onClick={() => {
                   // Oda değiştirme için selectedRoomInfo'yu set et
                   const roomInfo = {
                     id: checkoutConfirm.roomId,
@@ -790,23 +867,23 @@ export default function ReceptionPanel() {
                     updatedAt: new Date().toISOString()
                   };
                   setSelectedRoomInfo(roomInfo as any);
-                  setCheckoutConfirm(null);
-                  setShowRoomChange(true);
-                }}
+                      setCheckoutConfirm(null);
+                      setShowRoomChange(true);
+                    }}
                 className="flex-1 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold"
-              >
-                Oda Değiştir
-              </button>
-              <button
-                onClick={async () => {
-                  setCheckoutConfirm(null);
-                  await processCheckout(checkoutConfirm.roomId);
-                }}
+                  >
+                    Oda Değiştir
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setCheckoutConfirm(null);
+                      await processCheckout(checkoutConfirm.roomId);
+                    }}
                 className="flex-1 bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition-colors font-semibold"
-              >
-                Çıkış Yap
-              </button>
-            </div>
+                  >
+                    Çıkış Yap
+                  </button>
+                </div>
           </div>
         </div>
       )}
@@ -1095,7 +1172,7 @@ export default function ReceptionPanel() {
                 );
               })}
             </div>
-            
+
             {/* Özel Mesaj Alanı */}
             <div className="mt-6 pt-4 border-t border-gray-200">
               <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">Özel Mesaj Yaz:</p>

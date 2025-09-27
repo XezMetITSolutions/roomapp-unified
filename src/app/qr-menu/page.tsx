@@ -159,6 +159,20 @@ export default function QRMenuPage() {
   const [cartNote, setCartNote] = useState('');
   const [orderStatus, setOrderStatus] = useState<'idle' | 'payment' | 'finalized'>('idle');
   
+  // Finalized modal'ını 3 saniye sonra otomatik kapat
+  useEffect(() => {
+    if (orderStatus === 'finalized') {
+      const timer = setTimeout(() => {
+        setOrderStatus('idle');
+        setCart([]);
+        setCartNote('');
+        addNotification('success', 'Sipariş Tamamlandı', 'Siparişiniz başarıyla mutfağa iletildi. Hazırlanma süresi yaklaşık 20-30 dakikadır.');
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [orderStatus]);
+  
   // Bildirim sistemi
   const [notifications, setNotifications] = useState<Array<{
     id: string;
@@ -265,7 +279,6 @@ export default function QRMenuPage() {
   const handleProceedToPayment = () => {
     setShowConfirmation(false);
     setOrderStatus('payment');
-    addNotification('info', 'Sipariş Onaylandı', 'Siparişiniz onaylandı, ödeme aşamasına geçiliyor.');
   };
   // Onay modalından sepete geri dön
   const handleBackToCart = () => {
@@ -455,15 +468,7 @@ export default function QRMenuPage() {
             <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
               <h2 className="text-2xl font-bold mb-4 text-blue-700">Siparişiniz mutfağa iletildi!</h2>
               <p className="text-gray-700 mb-4">Siparişiniz hazırlanıyor. Afiyet olsun!</p>
-              <button
-                onClick={() => {
-                  setOrderStatus('idle');
-                  setCart([]);
-                  setCartNote('');
-                  addNotification('success', 'Sipariş Tamamlandı', 'Siparişiniz başarıyla mutfağa iletildi. Hazırlanma süresi yaklaşık 20-30 dakikadır.');
-                }}
-                className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-              >Yeni Sipariş Ver</button>
+              <p className="text-sm text-gray-500">Bu pencere 3 saniye sonra otomatik olarak kapanacak...</p>
             </div>
           </div>
         )}

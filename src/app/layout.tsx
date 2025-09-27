@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 }
 
 import DataInitializer from '@/components/DataInitializer'
+import { NotificationProvider } from '@/contexts/NotificationContext'
 
 export default function RootLayout({
   children,
@@ -24,7 +25,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <DataInitializer />
         <div className="min-h-screen bg-gradient-to-br from-hotel-cream to-white max-w-screen-lg mx-auto px-2 sm:px-4 md:px-8">
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
         </div>
       </body>
     </html>
