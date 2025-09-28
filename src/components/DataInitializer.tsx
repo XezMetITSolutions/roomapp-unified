@@ -9,10 +9,10 @@ export default function DataInitializer() {
   const [menuLoaded, setMenuLoaded] = useState(false);
   useEffect(() => {
     // Initialize sample data if store is empty
-    if (rooms.length === 0) {
+    if (rooms && rooms.length === 0) {
       sampleRooms.forEach(room => addRoom(room));
     }
-    if (guests.length === 0) {
+    if (guests && guests.length === 0) {
       sampleGuests.forEach(guest => addGuest(guest));
     }
     // MENU CACHE + API
@@ -34,7 +34,7 @@ export default function DataInitializer() {
 
         // API başarısızsa localStorage
         const cachedMenu = typeof window !== 'undefined' ? localStorage.getItem('menuCache') : null;
-        if (menu.length === 0 && cachedMenu) {
+        if (menu && menu.length === 0 && cachedMenu) {
           try {
             const parsedMenu = JSON.parse(cachedMenu);
             useHotelStore.setState(state => ({ ...state, menu: parsedMenu, staff: sampleStaff }));
@@ -44,13 +44,13 @@ export default function DataInitializer() {
         }
 
         // Son çare: sample
-        if (menu.length === 0) {
+        if (menu && menu.length === 0) {
           useHotelStore.setState(state => ({ ...state, menu: sampleMenu, staff: sampleStaff }));
           localStorage.setItem('menuCache', JSON.stringify(sampleMenu));
         }
         setMenuLoaded(true);
       })();
     }
-  }, [rooms.length, guests.length, menu.length, addRoom, addGuest, menuLoaded, menu]);
+  }, [rooms?.length, guests?.length, menu?.length, addRoom, addGuest, menuLoaded, menu]);
   return null; // This component doesn't render anything
 }
