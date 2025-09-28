@@ -72,7 +72,7 @@ export default function HomePage() {
             <div className="text-left lg:text-left">
               <div className="inline-flex items-center px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm font-medium mb-6">
                 <Star className="w-4 h-4 mr-2" />
-                Türkiye'nin #1 Otel Yönetim Sistemi
+                Türkiye'nin #1 Otel Yönetim Sistemi - LIVE
               </div>
               <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
                 Otelinizi <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent">Dijitalleştirin</span>
