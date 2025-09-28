@@ -255,10 +255,10 @@ export default function BusinessPanel() {
                         {guest.roomId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {guest.checkIn.toLocaleDateString('tr-TR')}
+                        {guest.checkIn instanceof Date ? guest.checkIn.toLocaleDateString('tr-TR') : new Date(guest.checkIn).toLocaleDateString('tr-TR')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {guest.checkOut.toLocaleDateString('tr-TR')}
+                        {guest.checkOut instanceof Date ? guest.checkOut.toLocaleDateString('tr-TR') : new Date(guest.checkOut).toLocaleDateString('tr-TR')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button className="text-hotel-gold hover:text-yellow-600 mr-3">
@@ -287,7 +287,7 @@ export default function BusinessPanel() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sampleRooms.map((room) => (
+              {rooms.map((room) => (
                 <div key={room.id} className="hotel-card p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -416,7 +416,7 @@ export default function BusinessPanel() {
                 <div className="hotel-card p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Mevcut Paketler</h3>
                   <div className="space-y-4">
-                    {packages.map((pkg) => (
+                    {packages.map((pkg: any) => (
                       <div key={pkg.id} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium text-gray-900">{pkg.name}</h4>
@@ -447,14 +447,14 @@ export default function BusinessPanel() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Paket Seçin</h3>
             <div className="space-y-4">
-              {packages.map((pkg) => (
+              {packages.map((pkg: any) => (
                 <div key={pkg.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-medium text-gray-900">{pkg.name}</h4>
                     <span className="text-lg font-bold text-hotel-gold">{pkg.price}₺/ay</span>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
-                    {pkg.features.slice(0, 3).map((feature, index) => (
+                    {pkg.features.slice(0, 3).map((feature: any, index: number) => (
                       <li key={index} className="flex items-center space-x-2">
                         <Check className="w-3 h-3 text-green-500" />
                         <span>{feature}</span>

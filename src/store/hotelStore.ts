@@ -1,6 +1,6 @@
 // Hotel Store - Zustand state management
 import { create } from 'zustand';
-import { Room, Guest, MenuItem, Staff } from '@/types';
+import { Room, Guest, MenuItem, Staff, Business, Package, Cart } from '@/types';
 
 interface HotelState {
   // Hotel bilgileri
@@ -13,6 +13,12 @@ interface HotelState {
   guests: Guest[];
   menu: MenuItem[];
   staff: Staff[];
+  business: Business | null;
+  packages: Package[];
+  
+  // Cart and language
+  cart: Cart;
+  currentLanguage: string;
   
   // Actions
   setHotelInfo: (info: { name: string; address: string; phone: string }) => void;
@@ -20,9 +26,14 @@ interface HotelState {
   addGuest: (guest: Guest) => void;
   setMenu: (menu: MenuItem[]) => void;
   setStaff: (staff: Staff[]) => void;
+  setBusiness: (business: Business) => void;
+  updateBusiness: (updates: Partial<Business>) => void;
+  setPackages: (packages: Package[]) => void;
+  getCartItemCount: () => number;
+  setCurrentLanguage: (language: string) => void;
 }
 
-export const useHotelStore = create<HotelState>((set) => ({
+export const useHotelStore = create<HotelState>((set, get) => ({
   // Initial state
   hotelName: 'RoomApp Hotel',
   hotelAddress: 'İstanbul, Türkiye',
@@ -31,6 +42,10 @@ export const useHotelStore = create<HotelState>((set) => ({
   guests: [],
   menu: [],
   staff: [],
+  business: null,
+  packages: [],
+  cart: { items: [], totalAmount: 0 },
+  currentLanguage: 'tr',
   
   // Actions
   setHotelInfo: (info) => set({
@@ -46,6 +61,16 @@ export const useHotelStore = create<HotelState>((set) => ({
   })),
   setMenu: (menu) => set({ menu }),
   setStaff: (staff) => set({ staff }),
+  setBusiness: (business) => set({ business }),
+  updateBusiness: (updates) => set((state) => ({
+    business: state.business ? { ...state.business, ...updates } : null
+  })),
+  setPackages: (packages) => set({ packages }),
+  getCartItemCount: () => {
+    const state = get();
+    return state.cart.items.reduce((total, item) => total + item.quantity, 0);
+  },
+  setCurrentLanguage: (language) => set({ currentLanguage: language }),
 }));
 
 // Export for compatibility

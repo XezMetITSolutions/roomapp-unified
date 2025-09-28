@@ -36,6 +36,10 @@ export class QRGenerator {
       size: 200,
     });
   }
+
+  static generateRoomQRCode(roomId: string): string {
+    return this.generateRoomQR(roomId);
+  }
 }
 
 // Export for compatibility
