@@ -75,7 +75,7 @@ export default function HomePage() {
                 Türkiye'nin #1 Otel Yönetim Sistemi
               </div>
               <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
-                Otelinizi <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent">Dijitalleştirin - TEST DEPLOY</span>
+                Otelinizi <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent">Dijitalleştirin</span>
               </h1>
               <p className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed">
                 QR menü sistemi ile misafir deneyimini dönüştürün. Temassız hizmet, çoklu dil desteği ve gerçek zamanlı yönetim.
