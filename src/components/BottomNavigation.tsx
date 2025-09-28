@@ -16,13 +16,13 @@ export default function BottomNavigation({ activeTab, onTabChange }: BottomNavig
   const tabs = [
     {
       id: 'home' as const,
-      label: translate('menu', currentLanguage),
+      label: translate('menu', currentLanguage as any),
       icon: Home,
       color: 'text-orange-500'
     },
     {
       id: 'cart' as const,
-      label: translate('cart', currentLanguage),
+      label: translate('cart', currentLanguage as any),
       icon: ShoppingCart,
       color: 'text-orange-500',
       badge: cartItemCount > 0 ? cartItemCount : undefined

@@ -5,8 +5,8 @@ export const sampleRooms = [
     id: '101', 
     number: '101',
     floor: 1,
-    type: 'standard', 
-    status: 'occupied',
+    type: 'standard' as const, 
+    status: 'occupied' as const,
     guestName: 'Ahmet Yılmaz',
     checkIn: new Date('2025-09-25'),
     checkOut: new Date('2025-09-28'),
@@ -16,8 +16,8 @@ export const sampleRooms = [
     id: '102', 
     number: '102',
     floor: 1,
-    type: 'deluxe', 
-    status: 'occupied',
+    type: 'deluxe' as const, 
+    status: 'occupied' as const,
     guestName: 'Fatma Demir',
     checkIn: new Date('2025-09-26'),
     checkOut: new Date('2025-09-29'),
@@ -27,16 +27,16 @@ export const sampleRooms = [
     id: '103', 
     number: '103',
     floor: 1,
-    type: 'standard', 
-    status: 'available',
+    type: 'standard' as const, 
+    status: 'available' as const,
     qrCode: 'room-103-qr'
   },
   { 
     id: '201', 
     number: '201',
     floor: 2,
-    type: 'suite', 
-    status: 'occupied',
+    type: 'suite' as const, 
+    status: 'occupied' as const,
     guestName: 'Mehmet Kaya',
     checkIn: new Date('2025-09-27'),
     checkOut: new Date('2025-09-30'),
@@ -46,8 +46,8 @@ export const sampleRooms = [
     id: '202', 
     number: '202',
     floor: 2,
-    type: 'standard', 
-    status: 'maintenance',
+    type: 'standard' as const, 
+    status: 'maintenance' as const,
     qrCode: 'room-202-qr'
   },
 ];
@@ -60,7 +60,7 @@ export const sampleGuests = [
     email: 'ahmet@example.com',
     phone: '+90 555 123 45 67',
     roomId: '101', 
-    language: 'tr',
+    language: 'tr' as const,
     checkIn: new Date('2025-09-25'), 
     checkOut: new Date('2025-09-28') 
   },
@@ -71,7 +71,7 @@ export const sampleGuests = [
     email: 'fatma@example.com',
     phone: '+90 555 234 56 78',
     roomId: '102', 
-    language: 'tr',
+    language: 'tr' as const,
     checkIn: new Date('2025-09-26'), 
     checkOut: new Date('2025-09-29') 
   },
@@ -82,7 +82,7 @@ export const sampleGuests = [
     email: 'mehmet@example.com',
     phone: '+90 555 345 67 89',
     roomId: '201', 
-    language: 'tr',
+    language: 'tr' as const,
     checkIn: new Date('2025-09-27'), 
     checkOut: new Date('2025-09-30') 
   },
@@ -94,7 +94,7 @@ export const sampleRequests = [
     roomId: 'room-101',
     type: 'housekeeping',
     priority: 'medium',
-    status: 'pending',
+    status: 'pending' as const,
     description: 'Oda temizliği talep edildi',
     createdAt: new Date().toISOString(),
   },
@@ -115,7 +115,7 @@ export const sampleMenuItems = [
     name: 'Cheeseburger',
     description: 'Sulu dana köftesi, cheddar peyniri, taze marul, domates ve özel sos ile',
     price: 210,
-    category: 'main',
+    category: 'main' as const,
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
     available: true,
     preparationTime: 15,
@@ -131,7 +131,7 @@ export const sampleMenuItems = [
     name: 'Margherita Pizza',
     description: 'Taze mozzarella, domates sosu ve fesleğen ile',
     price: 180,
-    category: 'main',
+    category: 'main' as const,
     image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80',
     available: true,
     preparationTime: 20,
@@ -150,7 +150,7 @@ export const sampleStaff = [
   {
     id: '1',
     name: 'Ahmet Yılmaz',
-    role: 'reception',
+    role: 'reception' as const,
     email: 'ahmet@roomapp.com',
     phone: '+90 555 123 45 67',
     shift: 'morning',
@@ -159,7 +159,7 @@ export const sampleStaff = [
   {
     id: '2',
     name: 'Fatma Demir',
-    role: 'housekeeping',
+    role: 'housekeeping' as const,
     email: 'fatma@roomapp.com',
     phone: '+90 555 234 56 78',
     shift: 'afternoon',
@@ -168,7 +168,7 @@ export const sampleStaff = [
   {
     id: '3',
     name: 'Mehmet Kaya',
-    role: 'kitchen',
+    role: 'kitchen' as const,
     email: 'mehmet@roomapp.com',
     phone: '+90 555 345 67 89',
     shift: 'morning',
@@ -190,10 +190,10 @@ export const sampleOrders = [
       }
     ],
     totalAmount: 420,
-    status: 'pending',
+    status: 'pending' as const,
     createdAt: new Date(),
-    paymentStatus: 'pending',
-    paymentMethod: 'room_charge'
+    paymentStatus: 'pending' as const,
+    paymentMethod: 'room_charge' as const
   }
 ];
 
@@ -201,7 +201,7 @@ export const packages = [
   {
     id: '1',
     name: 'Premium Paket',
-    type: 'premium',
+    type: 'premium' as const,
     price: 299,
     features: ['QR Menü', 'Analytics', 'Çoklu Dil', 'Özel Marka'],
     maxRooms: 50,
@@ -221,14 +221,14 @@ export const packages = [
 export const sampleBusiness = {
   id: '1',
   name: 'RoomApp Hotel',
-  type: 'hotel',
+  type: 'hotel' as const,
   package: packages[0],
   rooms: sampleRooms,
   staff: sampleStaff,
   settings: {
     currency: 'TRY',
     timezone: 'Europe/Istanbul',
-    language: 'tr',
+    language: 'tr' as const,
     branding: {
       primaryColor: '#1e3a8a',
       secondaryColor: '#D4AF37'
