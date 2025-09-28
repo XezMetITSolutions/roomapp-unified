@@ -44,3 +44,8 @@ export class QRGenerator {
 
 // Export for compatibility
 export const qrGenerator = QRGenerator;
+
+// Export individual functions
+export const generateRoomQRCode = QRGenerator.generateRoomQRCode;
+export const generateRoomQR = QRGenerator.generateRoomQR;
+export const generateMenuQR = QRGenerator.generateMenuQR;
