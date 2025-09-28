@@ -89,6 +89,8 @@ const withPWA = require('next-pwa')({
   ]
 })
 
+const path = require('path');
+
 module.exports = withPWA({
   reactStrictMode: false,
   swcMinify: true,
@@ -97,6 +99,13 @@ module.exports = withPWA({
   },
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
+    };
+    return config;
   },
   images: {
     domains: ['api.roomapp.com', 'images.unsplash.com'],
