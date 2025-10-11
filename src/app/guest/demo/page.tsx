@@ -1,19 +1,12 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { useHotelStore } from '@/store/hotelStore';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
-
-import { useState } from 'react';
 import { Language } from '@/types';
 import { translate } from '@/lib/translations';
 import AnnouncementBanner from '@/components/AnnouncementBanner';
+import { sampleRooms } from '@/lib/sampleData';
 
 export default function GuestDemo() {
-  const router = useRouter();
-  const { rooms } = useHotelStore();
-  const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
-
+  const currentLanguage: Language = 'tr';
+  const rooms = sampleRooms;
   const occupiedRooms = rooms.filter(room => room.status === 'occupied');
 
   return (
@@ -23,26 +16,19 @@ export default function GuestDemo() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/')}
+              <a
+                href="/"
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
-              </button>
+              </a>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{translate('guest_demo_title', currentLanguage)}</h1>
                 <p className="text-gray-600">{translate('guest_demo_desc', currentLanguage)}</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <select
-                value={currentLanguage}
-                onChange={(e) => setCurrentLanguage(e.target.value as Language)}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-1 bg-white"
-              >
-                <option value="tr">🇹🇷 Türkçe</option>
-                <option value="de">🇩🇪 Deutsch</option>
-              </select>
+              <span className="text-sm text-gray-600">🇹🇷 Türkçe</span>
             </div>
           </div>
         </div>
