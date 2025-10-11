@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+// import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Users, DollarSign, Calendar, Filter } from 'lucide-react';
 
 export default function AnalyticsPageClient() {
@@ -103,29 +103,35 @@ export default function AnalyticsPageClient() {
           {/* Revenue Chart */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Günlük Gelir</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="revenue" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-64 flex items-end justify-between space-x-2">
+              {revenueData.map((item, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div 
+                    className="bg-blue-500 rounded-t w-8 mb-2"
+                    style={{ height: `${(item.revenue / 100) * 2}px` }}
+                  ></div>
+                  <span className="text-xs text-gray-600">{item.name}</span>
+                  <span className="text-xs font-medium">{item.revenue}₺</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Occupancy Chart */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Doluluk Oranı</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={occupancyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="occupancy" stroke="#10b981" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="h-64 flex items-end justify-between space-x-2">
+              {occupancyData.map((item, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div 
+                    className="bg-green-500 rounded-t w-8 mb-2"
+                    style={{ height: `${item.occupancy * 2}px` }}
+                  ></div>
+                  <span className="text-xs text-gray-600">{item.name}</span>
+                  <span className="text-xs font-medium">{item.occupancy}%</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -133,24 +139,12 @@ export default function AnalyticsPageClient() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Oda Tipi Dağılımı</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={roomTypeData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {roomTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-gray-900 mb-2">100%</div>
+                <div className="text-gray-600">Toplam Oda</div>
+              </div>
+            </div>
             <div className="flex flex-col justify-center space-y-4">
               {roomTypeData.map((item, index) => (
                 <div key={index} className="flex items-center">
