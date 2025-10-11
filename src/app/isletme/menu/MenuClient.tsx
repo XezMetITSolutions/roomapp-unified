@@ -1,6 +1,6 @@
 import dynamic from 'next/dynamic';
 
-const MenuClient = dynamic(() => import('./MenuClient'), {
+const MenuClient = dynamic(() => import('./MenuManagementClient'), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">

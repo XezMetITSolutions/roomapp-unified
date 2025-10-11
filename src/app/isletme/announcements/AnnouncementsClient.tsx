@@ -229,7 +229,8 @@ export default function AnnouncementsManagement() {
       linkText: formData.get('linkText') as string || undefined,
       icon: selectedIcon || undefined,
       translations: Object.keys(translations).length > 0 ? translations : undefined,
-      priority: announcementData.priority || 'MEDIUM',
+      priority: 'MEDIUM' as const,
+      targetRooms: [],
     };
 
     if (selectedAnnouncement) {
