@@ -1,12 +1,6 @@
-'use client'
+import Link from 'next/link'
 
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string }
-  reset: () => void
-}) {
+export default function GlobalError() {
   return (
     <html>
       <body>
@@ -21,14 +15,11 @@ export default function GlobalError({
               Kritik Hata
             </h2>
             <p className="text-gray-600 text-center mb-6">
-              Uygulamada kritik bir hata oluştu. Lütfen sayfayı yenileyin.
+              Uygulamada kritik bir hata oluştu.
             </p>
-            <button
-              onClick={reset}
-              className="w-full bg-hotel-gold text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors"
-            >
-              Sayfayı Yenile
-            </button>
+            <Link href="/" className="w-full inline-block text-center bg-hotel-gold text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors">
+              Ana Sayfa
+            </Link>
           </div>
         </div>
       </body>

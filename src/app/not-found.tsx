@@ -23,12 +23,12 @@ export default function NotFound() {
           >
             Ana Sayfa
           </Link>
-          <button
-            onClick={() => window.history.back()}
+          <Link
+            href="/"
             className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
           >
             Geri Dön
-          </button>
+          </Link>
         </div>
       </div>
     </div>
