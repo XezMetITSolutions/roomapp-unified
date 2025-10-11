@@ -25,5 +25,6 @@ module.exports = {
     optimizeCss: false
   },
   output: 'export',
-  trailingSlash: true
+  trailingSlash: true,
+  distDir: 'out'
 }
