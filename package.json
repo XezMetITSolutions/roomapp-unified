@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
     "check": "npm run type-check && npm run lint && npm run build",
+    "debug": "npm run type-check && npm run lint && echo 'Debug kontrolleri tamamlandı!'",
     "prebuild": "echo 'Starting build process...'",
     "postbuild": "echo 'Build completed successfully!'"
   },

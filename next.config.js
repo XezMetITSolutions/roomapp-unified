@@ -24,6 +24,7 @@ module.exports = {
   experimental: {
     optimizeCss: false
   },
-  output: 'standalone',
-  trailingSlash: true
+  output: 'export',
+  trailingSlash: true,
+  distDir: 'out'
 }

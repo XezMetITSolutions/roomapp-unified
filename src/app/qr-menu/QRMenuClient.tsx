@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { QrCode, Download, Share2, RefreshCw } from 'lucide-react';
 
 export default function QRMenuClient() {
@@ -74,9 +75,11 @@ export default function QRMenuClient() {
                   </div>
                 </div>
               ) : qrCodeUrl ? (
-                <img
+                <Image
                   src={qrCodeUrl}
                   alt="Menü QR Kodu"
+                  width={192}
+                  height={192}
                   className="w-48 h-48 border border-gray-200 rounded-lg"
                 />
               ) : (
