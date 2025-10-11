@@ -26,5 +26,9 @@ module.exports = {
   },
   output: 'export',
   trailingSlash: true,
-  distDir: 'out'
+  distDir: 'out',
+  env: {
+    NEXT_PUBLIC_BASE_DOMAIN: process.env.NEXT_PUBLIC_BASE_DOMAIN || 'roomapp.com',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend.onrender.com'
+  }
 }

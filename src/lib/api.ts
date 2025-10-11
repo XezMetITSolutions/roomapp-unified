@@ -2,9 +2,15 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 class ApiClient {
   private baseURL: string
+  private currentTenant: string | null = null
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
+  }
+
+  // Tenant bilgisini ayarla (middleware'den gelecek)
+  setTenant(tenant: string | null) {
+    this.currentTenant = tenant
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
@@ -12,6 +18,11 @@ class ApiClient {
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
+    }
+
+    // Tenant bilgisini header'a ekle
+    if (this.currentTenant) {
+      headers['x-tenant'] = this.currentTenant
     }
 
     const response = await fetch(url, { ...options, headers })
