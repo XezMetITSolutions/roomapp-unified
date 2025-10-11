@@ -3,7 +3,7 @@ services:
     name: roomapp-frontend
     env: node
     buildCommand: npm ci && npm run build:safe
-    startCommand: npm start
+    startCommand: npx serve out
     plan: free
     envVars:
       - key: NODE_ENV
