@@ -112,7 +112,7 @@ module.exports = withPWA({
     formats: ['image/webp', 'image/avif']
   },
   experimental: {
-    optimizeCss: false,
-    staticPageGenerationTimeout: 300
-  }
+    optimizeCss: false
+  },
+  output: 'standalone'
 })
