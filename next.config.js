@@ -108,11 +108,13 @@ module.exports = withPWA({
     return config;
   },
   images: {
+    unoptimized: true,
     domains: ['api.roomapp.com', 'images.unsplash.com'],
     formats: ['image/webp', 'image/avif']
   },
   experimental: {
     optimizeCss: false
   },
-  output: 'standalone'
+  output: 'export',
+  trailingSlash: true
 })
