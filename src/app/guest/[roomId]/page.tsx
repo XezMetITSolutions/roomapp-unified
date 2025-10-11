@@ -1,3 +1,5 @@
+'use client';
+
 import { sampleRooms } from '@/lib/sampleData';
 import GuestInterfaceClient from './GuestInterfaceClient';
 import { NotificationProvider } from '@/contexts/NotificationContext';

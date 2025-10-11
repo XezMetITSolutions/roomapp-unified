@@ -1,3 +1,5 @@
+'use client';
+
 import AnalyticsPageClient from './AnalyticsPageClient';
 
 export default function AnalyticsPage() {

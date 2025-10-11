@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { Language } from '@/types';
 import { translate } from '@/lib/translations';
