@@ -1,9 +1,11 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Clock, Star, Image as ImageIcon, Minus, Plus, X, ArrowLeft } from 'lucide-react';
+import { Clock, Star, Image as ImageIcon, Minus, Plus, X, ArrowLeft, Info, AlertTriangle, Megaphone, Wrench } from 'lucide-react';
 import NextImage from 'next/image';
 import { FaBell, FaTimes } from 'react-icons/fa';
 import { ApiService } from '@/services/api';
+import { useAnnouncementStore } from '@/store/announcementStore';
+import { useLanguageStore } from '@/store/languageStore';
 
 // Gerçekçi ve içerikle %100 uyumlu menü datası - Tüm görseller test edildi ve çalışıyor
 const menuData = [
@@ -122,28 +124,28 @@ const menuData = [
 ];
 
 const categories = [
-  { id: 'all', name: 'Tümü' },
-  { id: 'breakfast', name: 'Kahvaltı' },
-  { id: 'main', name: 'Ana Yemekler' },
-  { id: 'appetizer', name: 'Mezeler' },
-  { id: 'dessert', name: 'Tatlılar' },
-  { id: 'beverage', name: 'İçecekler' },
+  { id: 'all', nameKey: 'category.all' },
+  { id: 'breakfast', nameKey: 'category.breakfast' },
+  { id: 'main', nameKey: 'category.main' },
+  { id: 'appetizer', nameKey: 'category.appetizer' },
+  { id: 'dessert', nameKey: 'category.dessert' },
+  { id: 'beverage', nameKey: 'category.beverage' },
 ];
 
 const subCategories = {
   breakfast: [
-    { id: 'classic', name: 'Klasik' },
+    { id: 'classic', nameKey: 'subcategory.classic' },
   ],
   main: [
-    { id: 'meat', name: 'Et' },
-    { id: 'fish', name: 'Balık' },
+    { id: 'meat', nameKey: 'subcategory.meat' },
+    { id: 'fish', nameKey: 'subcategory.fish' },
   ],
   dessert: [
-    { id: 'classic', name: 'Klasik' },
+    { id: 'classic', nameKey: 'subcategory.classic' },
   ],
   beverage: [
-    { id: 'hot', name: 'Sıcak' },
-    { id: 'juice', name: 'Meyve Suyu' },
+    { id: 'hot', nameKey: 'subcategory.hot' },
+    { id: 'juice', nameKey: 'subcategory.juice' },
   ],
 };
 
@@ -158,6 +160,54 @@ export default function QRMenuPage() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [cartNote, setCartNote] = useState('');
   const [orderStatus, setOrderStatus] = useState<'idle' | 'payment' | 'finalized'>('idle');
+  
+  // Dil store'u
+  const { getTranslation, currentLanguage } = useLanguageStore();
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Hydration kontrolü
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+  
+  // Duyuru store'u
+  const { getAnnouncementsByCategory } = useAnnouncementStore();
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
+
+  
+  // Duyuruları yükle (sadece menü kategorisindeki)
+  useEffect(() => {
+    const loadAnnouncements = () => {
+      const menuAnnouncements = getAnnouncementsByCategory('menu');
+      setAnnouncements(menuAnnouncements);
+    };
+    
+    loadAnnouncements();
+    
+    // Her 30 saniyede bir güncelle
+    const interval = setInterval(loadAnnouncements, 30000);
+    return () => clearInterval(interval);
+  }, [getAnnouncementsByCategory]);
+
+  // Dil değiştiğinde duyuruları yeniden yükle (re-render için)
+  useEffect(() => {
+    const menuAnnouncements = getAnnouncementsByCategory('menu');
+    setAnnouncements(menuAnnouncements);
+  }, [currentLanguage, getAnnouncementsByCategory]);
+
+  // Otomatik duyuru rotasyonu
+  useEffect(() => {
+    if (announcements.length > 1) {
+      const rotationInterval = setInterval(() => {
+        setCurrentAnnouncementIndex((prevIndex) => 
+          (prevIndex + 1) % announcements.length
+        );
+      }, 4000); // 4 saniyede bir değiştir
+      
+      return () => clearInterval(rotationInterval);
+    }
+  }, [announcements.length]);
   
   // Finalized modal'ını 3 saniye sonra otomatik kapat
   useEffect(() => {
@@ -268,6 +318,45 @@ export default function QRMenuPage() {
   // Sepet toplamı
   const getCartTotal = () => getCartItems().reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  // Duyuru helper fonksiyonları
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'info': return <Info className="w-4 h-4" />;
+      case 'warning': return <AlertTriangle className="w-4 h-4" />;
+      case 'promotion': return <Megaphone className="w-4 h-4" />;
+      case 'maintenance': return <Wrench className="w-4 h-4" />;
+      case 'advertisement': return <Star className="w-4 h-4" />;
+      default: return <Info className="w-4 h-4" />;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'info': return 'bg-blue-50 border-blue-200 text-blue-800';
+      case 'warning': return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+      case 'promotion': return 'bg-green-50 border-green-200 text-green-800';
+      case 'maintenance': return 'bg-red-50 border-red-200 text-red-800';
+      case 'advertisement': return 'bg-purple-50 border-purple-200 text-purple-800';
+      default: return 'bg-gray-50 border-gray-200 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const localeMap: Record<string, string> = {
+      tr: 'tr-TR',
+      en: 'en-US',
+      ru: 'ru-RU',
+      ar: 'ar-SA',
+      de: 'de-DE'
+    };
+    const locale = localeMap[currentLanguage as keyof typeof localeMap] || 'en-US';
+    return new Date(dateString).toLocaleDateString(locale, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
   // Sipariş onay akışı
 
   // Siparişi onayla - önce onay modalına git
@@ -285,6 +374,57 @@ export default function QRMenuPage() {
     setShowConfirmation(false);
     setShowCart(true);
   };
+
+  // Hydration kontrolü - client-side rendering bekleniyor
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-[#F7F7F7] py-8 relative">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="mb-6">
+            <button
+              onClick={() => window.history.back()}
+              className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-medium">Geri Dön</span>
+            </button>
+          </div>
+          
+          <div className="mb-8">
+            <div className="mb-4">
+              <h1 className="text-3xl font-extrabold text-[#223] tracking-tight text-center">
+                Oda Servisi Menüsü
+              </h1>
+            </div>
+          </div>
+          
+          <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
+            <div className="flex space-x-2 overflow-x-auto w-full md:w-auto">
+              {['Tümü', 'Kahvaltı', 'Ana Yemekler', 'Mezeler', 'Tatlılar', 'İçecekler'].map((category) => (
+                <button
+                  key={category}
+                  className="px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              placeholder="Ürün ara..."
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-[#222] text-base min-w-[180px]"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white rounded-3xl shadow-lg p-6 text-center">
+              <div className="text-gray-500">Yükleniyor...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] py-8 relative">
@@ -338,7 +478,93 @@ export default function QRMenuPage() {
           </button>
         </div>
         
-        <h1 className="text-3xl font-extrabold text-[#223] mb-8 text-center tracking-tight">Oda Servisi Menüsü</h1>
+        <div className="mb-8">
+          {/* Başlık */}
+          <div className="mb-4">
+            <h1 className="text-3xl font-extrabold text-[#223] tracking-tight text-center">
+              {getTranslation('menu.title')}
+            </h1>
+          </div>
+          
+          {/* Duyurular */}
+          {announcements.length > 0 ? (
+            <div className="max-w-sm mx-auto mb-4">
+              {announcements.length > 1 && (
+                <div className="flex justify-center space-x-1 mb-2">
+                  {announcements.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentAnnouncementIndex(index);
+                      }}
+                      className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                        index === currentAnnouncementIndex ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+              
+              <div className={`border rounded-lg p-3 shadow-sm ${getTypeColor(announcements[currentAnnouncementIndex]?.type || 'info')} transition-all duration-500`}>
+                <div className="flex items-center space-x-2">
+                  <div className="flex-shrink-0">
+                    {getTypeIcon(announcements[currentAnnouncementIndex]?.type || 'info')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-sm truncate">
+                        {(() => {
+                          const announcement = announcements[currentAnnouncementIndex];
+                          if (!announcement) return '';
+                          
+                          // Çeviri varsa kullan, yoksa Türkçe fallback
+                          return announcement.translations?.[currentLanguage]?.title || announcement.title;
+                        })()}
+                      </h3>
+                      <span className="text-xs opacity-75 flex items-center ml-2 flex-shrink-0">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {formatDate(announcements[currentAnnouncementIndex]?.startDate || '')}
+                      </span>
+                    </div>
+                    <p className="text-xs opacity-90 leading-tight mb-2 overflow-hidden" style={{display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'}}>
+                      {(() => {
+                        const announcement = announcements[currentAnnouncementIndex];
+                        if (!announcement) return '';
+                        
+                        // Çeviri varsa kullan, yoksa Türkçe fallback
+                        return announcement.translations?.[currentLanguage]?.content || announcement.content;
+                      })()}
+                    </p>
+                    {announcements[currentAnnouncementIndex]?.linkUrl && announcements[currentAnnouncementIndex]?.linkText && (
+                      <div className="flex justify-end">
+                        <a
+                          href={announcements[currentAnnouncementIndex]?.linkUrl}
+                          target={announcements[currentAnnouncementIndex]?.linkUrl?.startsWith('http') ? '_blank' : '_self'}
+                          rel={announcements[currentAnnouncementIndex]?.linkUrl?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                          className="inline-flex items-center space-x-1 text-xs font-medium text-current hover:opacity-80 transition-opacity bg-white/20 px-2 py-1 rounded-full"
+                        >
+                          <span>
+                            {(() => {
+                              const announcement = announcements[currentAnnouncementIndex];
+                              if (!announcement) return '';
+                              
+                              // Link metni çevirisi varsa kullan, yoksa Türkçe fallback
+                              return announcement.translations?.[currentLanguage]?.linkText || announcement.linkText;
+                            })()}
+                          </span>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
         {/* Kategori ve Arama */}
         <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
           <div className="flex space-x-2 overflow-x-auto w-full md:w-auto">
@@ -355,13 +581,13 @@ export default function QRMenuPage() {
                     : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                 }`}
               >
-                {category.name}
+                {getTranslation(category.nameKey)}
               </button>
             ))}
           </div>
                 <input
                   type="text"
-                  placeholder="Ürün ara..."
+                  placeholder={getTranslation('menu.search')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-[#222] text-base min-w-[180px]"
@@ -370,7 +596,7 @@ export default function QRMenuPage() {
         {/* Alt Kategoriler - Daha belirgin tasarım */}
         {showSubCategories && (
           <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Alt Kategoriler</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">{getTranslation('menu.subcategories')}</h3>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => setSelectedSubCategory('')}
@@ -380,7 +606,7 @@ export default function QRMenuPage() {
                     : 'bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg border border-gray-200'
                 }`}
               >
-                Tümü
+                {getTranslation('category.all')}
               </button>
               {(subCategories as any)[selectedCategory].map((sub: any) => (
                 <button
@@ -392,7 +618,7 @@ export default function QRMenuPage() {
                       : 'bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg border border-gray-200'
                   }`}
                 >
-                  {sub.name}
+                  {getTranslation(sub.nameKey)}
                 </button>
               ))}
             </div>
@@ -405,14 +631,15 @@ export default function QRMenuPage() {
               key={item.id}
               {...item}
               onAdd={() => addToCart(item.id)}
+              getTranslation={getTranslation}
             />
           ))}
         </div>
         {filteredMenu.length === 0 && (
           <div className="hotel-card p-12 text-center mt-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Ürün Bulunamadı</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{getTranslation('general.no_products')}</h3>
             <p className="text-gray-600">
-              {searchTerm ? 'Arama kriterlerinize uygun ürün bulunamadı.' : 'Bu kategoride ürün bulunmuyor.'}
+              {searchTerm ? getTranslation('general.no_search_results') : getTranslation('general.no_category_products')}
             </p>
           </div>
         )}
@@ -439,6 +666,7 @@ export default function QRMenuPage() {
             setCartQuantity={setCartQuantity}
             removeFromCart={removeFromCart}
             total={getCartTotal()}
+            getTranslation={getTranslation}
           />
         )}
         {/* Onay Modalı */}
@@ -449,6 +677,7 @@ export default function QRMenuPage() {
             total={getCartTotal()}
             onProceed={handleProceedToPayment}
             onBack={handleBackToCart}
+            getTranslation={getTranslation}
           />
         )}
         {/* Ödeme Modalı */}
@@ -459,6 +688,7 @@ export default function QRMenuPage() {
             total={getCartTotal()}
             onPaymentSuccess={() => setOrderStatus('finalized')}
             onBack={() => setOrderStatus('idle')}
+            getTranslation={getTranslation}
           />
         )}
         
@@ -477,7 +707,7 @@ export default function QRMenuPage() {
   );
 }
 
-function MenuCard({ name, description, price, preparationTime, rating, image, allergens, service, onAdd }: {
+function MenuCard({ name, description, price, preparationTime, rating, image, allergens, service, onAdd, getTranslation }: {
   name: string;
   description: string;
   price: number;
@@ -487,6 +717,7 @@ function MenuCard({ name, description, price, preparationTime, rating, image, al
   allergens?: string[];
   service?: string;
   onAdd: () => void;
+  getTranslation: (key: string) => string;
 }) {
   const [showDetails, setShowDetails] = useState(false);
   const isLongDescription = description.length > 80;
@@ -525,7 +756,7 @@ function MenuCard({ name, description, price, preparationTime, rating, image, al
               onClick={() => setShowDetails(!showDetails)}
               className="text-xs text-blue-600 hover:text-blue-800 mt-1 font-medium transition-colors"
             >
-              {showDetails ? 'Daha az göster' : 'Detay'}
+              {showDetails ? getTranslation('product.show_less') : getTranslation('product.show_details')}
             </button>
           )}
         </div>
@@ -539,7 +770,7 @@ function MenuCard({ name, description, price, preparationTime, rating, image, al
         <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4" />
-            <span>{preparationTime} dk</span>
+            <span>{preparationTime} {getTranslation('product.minutes')}</span>
           </div>
           {rating && (
             <div className="flex items-center space-x-2">
@@ -551,13 +782,13 @@ function MenuCard({ name, description, price, preparationTime, rating, image, al
         
         {allergens && allergens.length > 0 && (
           <div className="text-xs text-red-600 mb-4 bg-red-50 px-3 py-2 rounded-lg">
-            Alerjenler: {showDetails ? allergens.join(', ') : (isLongAllergens ? allergens.slice(0, 2).join(', ') + '...' : allergens.join(', '))}
+            {getTranslation('product.allergens')}: {showDetails ? allergens.join(', ') : (isLongAllergens ? allergens.slice(0, 2).join(', ') + '...' : allergens.join(', '))}
             {isLongAllergens && (
               <button
                 onClick={() => setShowDetails(!showDetails)}
                 className="text-xs text-blue-600 hover:text-blue-800 ml-2 font-medium transition-colors"
               >
-                {showDetails ? 'Daha az göster' : 'Detay'}
+                {showDetails ? getTranslation('product.show_less') : getTranslation('product.show_details')}
               </button>
             )}
           </div>
@@ -567,14 +798,14 @@ function MenuCard({ name, description, price, preparationTime, rating, image, al
           onClick={onAdd}
           className="mt-auto px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-lg hover:shadow-xl"
         >
-          Sepete Ekle
+          {getTranslation('product.add_to_cart')}
         </button>
       </div>
     </div>
   );
 }
 
-function CartModal({ items, note, setNote, onClose, onOrder, setCartQuantity, removeFromCart, total }: {
+function CartModal({ items, note, setNote, onClose, onOrder, setCartQuantity, removeFromCart, total, getTranslation }: {
   items: any[];
   note: string;
   setNote: (v: string) => void;
@@ -583,12 +814,13 @@ function CartModal({ items, note, setNote, onClose, onOrder, setCartQuantity, re
   setCartQuantity: (id: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
   total: number;
+  getTranslation: (key: string) => string;
 }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl max-h-[95vh] overflow-hidden mx-2 sm:mx-0">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-800">Sepetim</h2>
+          <h2 className="text-2xl font-bold text-gray-800">{getTranslation('cart.title')}</h2>
                 <button
             onClick={onClose} 
             className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
@@ -603,8 +835,8 @@ function CartModal({ items, note, setNote, onClose, onOrder, setCartQuantity, re
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl">🛒</span>
               </div>
-              <p className="text-lg font-medium">Sepetiniz boş</p>
-              <p className="text-sm">Ürün eklemek için menüden seçim yapın</p>
+              <p className="text-lg font-medium">{getTranslation('cart.empty')}</p>
+              <p className="text-sm">{getTranslation('cart.add_products')}</p>
                 </div>
               ) : (
                 <>
@@ -684,12 +916,13 @@ function CartModal({ items, note, setNote, onClose, onOrder, setCartQuantity, re
   );
 }
 
-function ConfirmationModal({ items, note, total, onProceed, onBack }: {
+function ConfirmationModal({ items, note, total, onProceed, onBack, getTranslation }: {
   items: any[];
   note: string;
   total: number;
   onProceed: () => void;
   onBack: () => void;
+  getTranslation: (key: string) => string;
 }) {
   return (
     <div 
@@ -791,12 +1024,13 @@ function ConfirmationModal({ items, note, total, onProceed, onBack }: {
   );
 }
 
-function PaymentModal({ items, note, total, onPaymentSuccess, onBack }: {
+function PaymentModal({ items, note, total, onPaymentSuccess, onBack, getTranslation }: {
   items: any[];
   note: string;
   total: number;
   onPaymentSuccess: () => void;
   onBack: () => void;
+  getTranslation: (key: string) => string;
 }) {
   const [selectedPayment, setSelectedPayment] = useState<'card' | 'cash' | 'room'>('card');
 

@@ -28,7 +28,7 @@ export const sampleRooms = [
     number: '103',
     floor: 1,
     type: 'standard' as const, 
-    status: 'available' as const,
+    status: 'vacant' as const,
     qrCode: 'room-103-qr'
   },
   { 
@@ -153,7 +153,7 @@ export const sampleStaff = [
     role: 'reception' as const,
     email: 'ahmet@roomapp.com',
     phone: '+90 555 123 45 67',
-    shift: 'morning',
+    shift: 'morning' as const,
     active: true
   },
   {
@@ -162,7 +162,7 @@ export const sampleStaff = [
     role: 'housekeeping' as const,
     email: 'fatma@roomapp.com',
     phone: '+90 555 234 56 78',
-    shift: 'afternoon',
+    shift: 'afternoon' as const,
     active: true
   },
   {
@@ -171,7 +171,7 @@ export const sampleStaff = [
     role: 'kitchen' as const,
     email: 'mehmet@roomapp.com',
     phone: '+90 555 345 67 89',
-    shift: 'morning',
+    shift: 'morning' as const,
     active: true
   }
 ];

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, Filter, Star, Clock, Users } from 'lucide-react';
 
@@ -32,54 +33,54 @@ const MenuPage = () => {
     { id: 'beverages', name: 'İçecekler' }
   ];
 
-  const sampleMenuItems: MenuItem[] = [
-    {
-      id: '1',
-      name: 'Çorba',
-      description: 'Günün çorbası',
-      price: 25,
-      category: 'appetizers',
-      image: '/api/placeholder/300/200',
-      rating: 4.5,
-      prepTime: 15,
-      isAvailable: true
-    },
-    {
-      id: '2',
-      name: 'Izgara Tavuk',
-      description: 'Taze baharatlarla marine edilmiş tavuk göğsü',
-      price: 85,
-      category: 'main-courses',
-      image: '/api/placeholder/300/200',
-      rating: 4.8,
-      prepTime: 25,
-      isAvailable: true
-    },
-    {
-      id: '3',
-      name: 'Çikolatalı Pasta',
-      description: 'Ev yapımı çikolatalı pasta',
-      price: 45,
-      category: 'desserts',
-      image: '/api/placeholder/300/200',
-      rating: 4.7,
-      prepTime: 10,
-      isAvailable: true
-    },
-    {
-      id: '4',
-      name: 'Türk Kahvesi',
-      description: 'Geleneksel Türk kahvesi',
-      price: 15,
-      category: 'beverages',
-      image: '/api/placeholder/300/200',
-      rating: 4.6,
-      prepTime: 5,
-      isAvailable: true
-    }
-  ];
-
   useEffect(() => {
+    const sampleMenuItems: MenuItem[] = [
+      {
+        id: '1',
+        name: 'Çorba',
+        description: 'Günün çorbası',
+        price: 25,
+        category: 'appetizers',
+        image: '/api/placeholder/300/200',
+        rating: 4.5,
+        prepTime: 15,
+        isAvailable: true
+      },
+      {
+        id: '2',
+        name: 'Izgara Tavuk',
+        description: 'Taze baharatlarla marine edilmiş tavuk göğsü',
+        price: 85,
+        category: 'main-courses',
+        image: '/api/placeholder/300/200',
+        rating: 4.8,
+        prepTime: 25,
+        isAvailable: true
+      },
+      {
+        id: '3',
+        name: 'Çikolatalı Pasta',
+        description: 'Ev yapımı çikolatalı pasta',
+        price: 45,
+        category: 'desserts',
+        image: '/api/placeholder/300/200',
+        rating: 4.7,
+        prepTime: 10,
+        isAvailable: true
+      },
+      {
+        id: '4',
+        name: 'Türk Kahvesi',
+        description: 'Geleneksel Türk kahvesi',
+        price: 15,
+        category: 'beverages',
+        image: '/api/placeholder/300/200',
+        rating: 4.6,
+        prepTime: 5,
+        isAvailable: true
+      }
+    ];
+
     // Simulate API call
     setTimeout(() => {
       setMenuItems(sampleMenuItems);
@@ -175,9 +176,11 @@ const MenuPage = () => {
               className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
             >
               <div className="aspect-w-16 aspect-h-9 bg-gray-200">
-                <img
+                <Image
                   src={item.image}
                   alt={item.name}
+                  width={400}
+                  height={192}
                   className="w-full h-48 object-cover"
                 />
               </div>

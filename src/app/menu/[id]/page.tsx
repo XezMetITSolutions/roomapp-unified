@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Star, Clock, Users, Plus, Minus, ShoppingCart } from 'lucide-react';
 
@@ -25,21 +26,21 @@ const MenuItemDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  const sampleItem: MenuItem = {
-    id: '1',
-    name: 'Izgara Tavuk',
-    description: 'Taze baharatlarla marine edilmiş tavuk göğsü, yanında patates ve sebze ile servis edilir.',
-    price: 85,
-    category: 'main-courses',
-    image: '/api/placeholder/600/400',
-    rating: 4.8,
-    prepTime: 25,
-    isAvailable: true,
-    ingredients: ['Tavuk göğsü', 'Zeytinyağı', 'Taze otlar', 'Patates', 'Sebze karışımı'],
-    allergens: ['Gluten içerebilir']
-  };
-
   useEffect(() => {
+    const sampleItem: MenuItem = {
+      id: '1',
+      name: 'Izgara Tavuk',
+      description: 'Taze baharatlarla marine edilmiş tavuk göğsü, yanında patates ve sebze ile servis edilir.',
+      price: 85,
+      category: 'main-courses',
+      image: '/api/placeholder/600/400',
+      rating: 4.8,
+      prepTime: 25,
+      isAvailable: true,
+      ingredients: ['Tavuk göğsü', 'Zeytinyağı', 'Taze otlar', 'Patates', 'Sebze karışımı'],
+      allergens: ['Gluten içerebilir']
+    };
+
     // Simulate API call
     setTimeout(() => {
       setItem(sampleItem);
@@ -103,9 +104,11 @@ const MenuItemDetailPage = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           {/* Image */}
           <div className="aspect-w-16 aspect-h-9">
-            <img
+            <Image
               src={item.image}
               alt={item.name}
+              width={800}
+              height={320}
               className="w-full h-64 sm:h-80 object-cover"
             />
           </div>

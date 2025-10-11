@@ -40,7 +40,7 @@ export function useNotifications(roomId?: string) {
     setUnreadCount(prev => prev + 1);
 
     // Bildirimler artık kalıcı - otomatik kapanmıyor
-  }, [removeNotification]);
+  }, []);
 
   // Bildirim okundu olarak işaretle
   const markAsRead = useCallback(async (id: string) => {

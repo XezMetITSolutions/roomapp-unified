@@ -19,15 +19,6 @@ export default function PanelsIndexPage() {
 
   const panels = [
     {
-      id: 'business',
-      title: 'İşletme Paneli',
-      description: 'İşletme bilgileri, müşteri yönetimi ve QR kod oluşturma',
-      icon: Settings,
-      color: 'bg-hotel-navy',
-      hoverColor: 'hover:bg-blue-800',
-      route: '/business'
-    },
-    {
       id: 'reception',
       title: 'Resepsiyon Paneli',
       description: 'Oda istekleri, anında yanıt sistemi ve misafir hizmetleri',
@@ -71,6 +62,15 @@ export default function PanelsIndexPage() {
       color: 'bg-emerald-600',
       hoverColor: 'hover:bg-emerald-700',
       route: '/guest/demo'
+    },
+    {
+      id: 'admin',
+      title: 'İşletme Paneli',
+      description: 'Menü yönetimi, duyurular, kullanıcılar ve ayarlar',
+      icon: Settings,
+      color: 'bg-red-600',
+      hoverColor: 'hover:bg-red-700',
+      route: '/isletme'
     }
   ];
 

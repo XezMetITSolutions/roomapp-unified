@@ -1,19 +1,8 @@
-import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import ClientProviders from '@/components/ClientProviders'
 
 const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'RoomApp - Hotel Management System',
-  description: 'Complete hotel management solution with QR-based guest services',
-  icons: {
-    icon: '/favicon.svg',
-  },
-}
-
-import DataInitializer from '@/components/DataInitializer'
-import { NotificationProvider } from '@/contexts/NotificationContext'
 
 export default function RootLayout({
   children,
@@ -21,14 +10,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body className={inter.className}>
-        <DataInitializer />
-        <div className="min-h-screen bg-gradient-to-br from-hotel-cream to-white max-w-screen-lg mx-auto px-2 sm:px-4 md:px-8">
-          <NotificationProvider>
-            {children}
-          </NotificationProvider>
-        </div>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   )

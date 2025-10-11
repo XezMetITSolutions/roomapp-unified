@@ -7,6 +7,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { Language } from '@/types';
 import { translate } from '@/lib/translations';
+import AnnouncementBanner from '@/components/AnnouncementBanner';
 
 export default function GuestDemo() {
   const router = useRouter();
@@ -48,6 +49,12 @@ export default function GuestDemo() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Duyurular */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Aktif Duyurular</h3>
+          <AnnouncementBanner />
+        </div>
+
         {/* Instructions */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h3 className="text-sm font-medium text-blue-900 mb-2">{translate('guest_demo_instructions_title', currentLanguage)}</h3>

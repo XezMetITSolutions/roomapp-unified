@@ -51,6 +51,6 @@ export default function DataInitializer() {
         setMenuLoaded(true);
       })();
     }
-  }, [rooms?.length, guests?.length, menu?.length, addRoom, addGuest, menuLoaded, menu]);
+  }, [rooms, guests, menu, addRoom, addGuest, menuLoaded]);
   return null; // This component doesn't render anything
 }

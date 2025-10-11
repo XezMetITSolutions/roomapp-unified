@@ -85,6 +85,10 @@ export default function HomePage() {
                   <Play className="w-5 h-5" />
                   <span>Demo</span>
                 </button>
+                <button onClick={() => router.push('/isletme')} className="px-8 py-4 rounded-xl text-lg font-semibold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all text-center backdrop-blur-sm hover:scale-[1.02] flex items-center justify-center space-x-2">
+                  <Shield className="w-5 h-5" />
+                  <span>İşletme Paneli</span>
+                </button>
                 <a href="#packages" className="px-8 py-4 rounded-xl text-lg font-semibold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all text-center backdrop-blur-sm hover:scale-[1.02]">
                   Paketleri İncele
                 </a>
@@ -471,7 +475,7 @@ export default function HomePage() {
                     </li>
                   ))}
                 </ul>
-                <button onClick={() => router.push('/business')} className={`w-full py-5 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] ${pkg.popular ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 hover:from-amber-500 hover:to-yellow-600 shadow-xl shadow-amber-500/25' : 'bg-gradient-to-r from-slate-700 to-slate-800 text-white hover:from-slate-600 hover:to-slate-700 border border-slate-600'}`}>
+                <button onClick={() => router.push('/isletme')} className={`w-full py-5 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] ${pkg.popular ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 hover:from-amber-500 hover:to-yellow-600 shadow-xl shadow-amber-500/25' : 'bg-gradient-to-r from-slate-700 to-slate-800 text-white hover:from-slate-600 hover:to-slate-700 border border-slate-600'}`}>
                   {pkg.popular ? '🚀 Hemen Başla' : 'Paketi Seç'}
                 </button>
               </div>
@@ -526,7 +530,7 @@ export default function HomePage() {
           <h2 className="text-6xl font-black text-white mb-6 tracking-tight">Otelinizi Dijitalleştirin</h2>
           <p className="text-2xl text-slate-300 mb-12 leading-relaxed">Sadece birkaç dakikada modern otel yönetimine geçin</p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <button onClick={() => router.push('/business')} className="px-12 py-6 rounded-2xl text-xl font-bold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 shadow-2xl shadow-amber-500/25 hover:from-amber-500 hover:to-yellow-600 transition-all hover:scale-105 hover:shadow-3xl">
+            <button onClick={() => router.push('/isletme')} className="px-12 py-6 rounded-2xl text-xl font-bold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 shadow-2xl shadow-amber-500/25 hover:from-amber-500 hover:to-yellow-600 transition-all hover:scale-105 hover:shadow-3xl">
               🚀 Ücretsiz Denemeye Başla
             </button>
             <button onClick={() => router.push('/guest/demo')} className="px-12 py-6 rounded-2xl text-xl font-bold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all backdrop-blur-sm hover:scale-105">
