@@ -1,0 +1,101 @@
+{
+  "name": "RoomApp - Hotel Services",
+  "short_name": "RoomApp",
+  "description": "Modern hotel room service management system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#D4AF37",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "tr",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "travel"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshots/mobile-1.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "QR Menü",
+      "short_name": "Menü",
+      "description": "Oda menüsüne hızlı erişim",
+      "url": "/menu",
+      "icons": [{ "src": "/icons/menu-shortcut.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Garson Çağır",
+      "short_name": "Garson",
+      "description": "Garson çağırma servisi",
+      "url": "/waiter",
+      "icons": [{ "src": "/icons/waiter-shortcut.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Siparişlerim",
+      "short_name": "Siparişler",
+      "description": "Aktif siparişlerimi görüntüle",
+      "url": "/orders",
+      "icons": [{ "src": "/icons/orders-shortcut.png", "sizes": "96x96" }]
+    }
+  ]
+}
