@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { Wifi, WifiOff } from 'lucide-react'
+import { useLanguageStore } from '@/store/languageStore'
+import { RealtimeTranslator } from '@/components/RealtimeTranslator'
 
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(true)
+  const { currentLanguage } = useLanguageStore()
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
@@ -27,7 +30,12 @@ export default function OfflineIndicator() {
   return (
     <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
       <WifiOff className="w-5 h-5" />
-      <span>İnternet bağlantısı yok - Offline modda çalışıyor</span>
+      <span>
+        <RealtimeTranslator
+          text="İnternet bağlantısı yok - Offline modda çalışıyor"
+          targetLang={currentLanguage as any}
+        />
+      </span>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 // API servis dosyası - Gerçek backend entegrasyonu için
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend-1.onrender.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend-1.onrender.com/api';
 const USE_MOCK_DATA = true; // Geçici olarak mock data kullan
 
 export interface GuestRequest {
@@ -224,7 +224,7 @@ export class ApiService {
   // WebSocket bağlantısı (gerçek zamanlı güncellemeler için)
   static connectWebSocket(roomId: string, onMessage: (data: any) => void): WebSocket | null {
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://roomapp-backend-1.onrender.com';
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://roomxqr-backend-1.onrender.com';
       const ws = new WebSocket(`${wsUrl}/ws?roomId=${roomId}`);
       
       ws.onopen = () => console.log('WebSocket connected');
@@ -278,6 +278,97 @@ export class ApiService {
     } catch (error) {
       console.error('Error resetting room QR:', error);
       // Mock başarılı yanıt
+    }
+  }
+
+  // Yeni: Müşteri adını içeren QR kod oluşturma
+  static async generateGuestQR(roomId: string, guestName: string): Promise<string> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/generate-guest-qr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ guestName }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to generate guest QR');
+      const data = await response.json();
+      return data.qrCode;
+    } catch (error) {
+      console.error('Error generating guest QR:', error);
+      // Mock QR kod döndür
+      return this.generateMockGuestQR(roomId, guestName);
+    }
+  }
+
+  // Mock müşteri QR kodu oluşturma
+  private static generateMockGuestQR(roomId: string, guestName: string): string {
+    const qrText = `room-${roomId}-${guestName.replace(/\s+/g, '-').toLowerCase()}`;
+    return `data:image/svg+xml;base64,${btoa(`
+      <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+        <rect width="200" height="200" fill="#ffffff"/>
+        <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#000000" font-size="12">
+          QR: ${qrText}
+        </text>
+        <text x="50%" y="70%" text-anchor="middle" dy=".3em" fill="#666666" font-size="10">
+          ${guestName}
+        </text>
+      </svg>
+    `)}`;
+  }
+
+  // Yeni: Müşteri check-in işlemi (QR kod otomatik güncelleme ile)
+  static async checkInGuest(roomId: string, guestData: {
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+    language?: string;
+  }): Promise<{ success: boolean; qrCode?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/guests/checkin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId,
+          ...guestData,
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to check in guest');
+      const data = await response.json();
+      return { success: true, qrCode: data.qrCode };
+    } catch (error) {
+      console.error('Error checking in guest:', error);
+      // Mock başarılı yanıt
+      const guestName = `${guestData.firstName} ${guestData.lastName}`;
+      const qrCode = this.generateMockGuestQR(roomId, guestName);
+      return { success: true, qrCode };
+    }
+  }
+
+  // Yeni: Müşteri check-out işlemi (QR kod otomatik sıfırlama ile)
+  static async checkOutGuest(roomId: string): Promise<{ success: boolean; qrCode?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/guests/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ roomId }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to check out guest');
+      const data = await response.json();
+      return { success: true, qrCode: data.qrCode };
+    } catch (error) {
+      console.error('Error checking out guest:', error);
+      // Mock başarılı yanıt - QR kodu sıfırla
+      const qrCode = this.generateMockGuestQR(roomId, '');
+      return { success: true, qrCode };
     }
   }
 
@@ -525,7 +616,7 @@ export class ApiService {
     if (typeof window === 'undefined') return this.mockRequests;
     
     try {
-      const stored = localStorage.getItem('roomapp_requests');
+      const stored = localStorage.getItem('roomxqr_requests');
       if (stored) {
         return JSON.parse(stored);
       }
@@ -541,7 +632,7 @@ export class ApiService {
     if (typeof window === 'undefined') return;
     
     try {
-      localStorage.setItem('roomapp_requests', JSON.stringify(requests));
+      localStorage.setItem('roomxqr_requests', JSON.stringify(requests));
     } catch (error) {
       console.error('Error saving requests:', error);
     }
@@ -573,12 +664,12 @@ export class ApiService {
     if (typeof window === 'undefined') return;
     
     try {
-      const stored = localStorage.getItem('roomapp_requests');
+      const stored = localStorage.getItem('roomxqr_requests');
       if (stored) {
         const requests: GuestRequest[] = JSON.parse(stored);
         // Bu oda için olan istekleri filtrele
         const filteredRequests = requests.filter(request => request.roomId !== roomId);
-        localStorage.setItem('roomapp_requests', JSON.stringify(filteredRequests));
+        localStorage.setItem('roomxqr_requests', JSON.stringify(filteredRequests));
         console.log(`Cleared requests for room ${roomId}, remaining: ${filteredRequests.length}`);
       }
     } catch (error) {

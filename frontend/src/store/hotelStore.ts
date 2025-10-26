@@ -35,7 +35,7 @@ interface HotelState {
 
 export const useHotelStore = create<HotelState>((set, get) => ({
   // Initial state
-  hotelName: 'RoomApp Hotel',
+  hotelName: 'RoomXQR Hotel',
   hotelAddress: 'İstanbul, Türkiye',
   hotelPhone: '+90 212 123 45 67',
   rooms: [],

@@ -4,7 +4,7 @@ export const translations: Record<Language, Record<string, string>> = {
   tr: {
     // Homepage
     'hotel_management_system': 'Otel Yönetim Sistemi',
-    'welcome_to_roomapp': 'RoomApp’a Hoş Geldiniz',
+    'welcome_to_roomxqr': 'RoomXQR\'a Hoş Geldiniz',
     'homepage_intro': 'Otel operasyonlarınızı kapsamlı yönetim sistemimiz ile kolaylaştırın. Misafir isteklerini, oda servisi siparişlerini ve otel bilgilerini sorunsuzca yönetin.',
     'reception_panel_title': 'Resepsiyon Paneli',
     'reception_panel_desc': 'Misafir isteklerini, girişleri ve bildirimleri yönetin',
@@ -295,7 +295,7 @@ export const translations: Record<Language, Record<string, string>> = {
   de: {
     // Homepage
     'hotel_management_system': 'Hotelverwaltungssystem',
-    'welcome_to_roomapp': 'Willkommen bei RoomApp',
+    'welcome_to_roomxqr': 'Willkommen bei RoomXQR',
     'homepage_intro': 'Vereinfachen Sie Ihre Hotelabläufe mit unserem umfassenden Managementsystem. Verwalten Sie Gästewünsche, Zimmerservice-Bestellungen und Hotelinformationen nahtlos.',
     'reception_panel_title': 'Rezeption Panel',
     'reception_panel_desc': 'Gästewünsche, Check-ins und Benachrichtigungen verwalten',

@@ -151,7 +151,7 @@ export const sampleStaff = [
     id: '1',
     name: 'Ahmet Yılmaz',
     role: 'reception' as const,
-    email: 'ahmet@roomapp.com',
+    email: 'ahmet@roomxqr.com',
     phone: '+90 555 123 45 67',
     shift: 'morning' as const,
     active: true
@@ -160,7 +160,7 @@ export const sampleStaff = [
     id: '2',
     name: 'Fatma Demir',
     role: 'housekeeping' as const,
-    email: 'fatma@roomapp.com',
+    email: 'fatma@roomxqr.com',
     phone: '+90 555 234 56 78',
     shift: 'afternoon' as const,
     active: true
@@ -169,7 +169,7 @@ export const sampleStaff = [
     id: '3',
     name: 'Mehmet Kaya',
     role: 'kitchen' as const,
-    email: 'mehmet@roomapp.com',
+    email: 'mehmet@roomxqr.com',
     phone: '+90 555 345 67 89',
     shift: 'morning' as const,
     active: true
@@ -220,7 +220,7 @@ export const packages = [
 
 export const sampleBusiness = {
   id: '1',
-  name: 'RoomApp Hotel',
+  name: 'RoomXQR Hotel',
   type: 'hotel' as const,
   package: packages[0],
   rooms: sampleRooms,

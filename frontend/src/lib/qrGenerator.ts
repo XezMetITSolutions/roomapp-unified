@@ -30,6 +30,18 @@ export class QRGenerator {
     });
   }
 
+  // Yeni: Müşteri adını içeren dinamik QR kod
+  static generateGuestRoomQR(roomId: string, guestName?: string): string {
+    const qrText = guestName 
+      ? `room-${roomId}-${guestName.replace(/\s+/g, '-').toLowerCase()}`
+      : `room-${roomId}`;
+    
+    return this.generateQRCode({
+      text: qrText,
+      size: 200,
+    });
+  }
+
   static generateMenuQR(menuId: string): string {
     return this.generateQRCode({
       text: `menu-${menuId}`,
@@ -39,6 +51,11 @@ export class QRGenerator {
 
   static generateRoomQRCode(roomId: string): string {
     return this.generateRoomQR(roomId);
+  }
+
+  // Yeni: Müşteri adını içeren QR kod için
+  static generateRoomQRCodeWithGuest(roomId: string, guestName?: string): string {
+    return this.generateGuestRoomQR(roomId, guestName);
   }
 }
 

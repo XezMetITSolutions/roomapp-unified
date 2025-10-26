@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAnnouncementStore } from '@/store/announcementStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { RealtimeTranslator } from '@/components/RealtimeTranslator';
 
 interface AnnouncementBannerProps {
   roomId?: string;
@@ -176,7 +177,10 @@ export default function AnnouncementBanner({ roomId, className = '' }: Announcem
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
                 <h4 className="font-semibold text-sm">
-                  {currentAnnouncement.translations?.[currentLanguage]?.title || currentAnnouncement.title}
+                  <RealtimeTranslator
+                    text={currentAnnouncement.translations?.[currentLanguage]?.title || currentAnnouncement.title}
+                    targetLang={currentLanguage as any}
+                  />
                 </h4>
                 <span className="text-xs opacity-75 flex items-center">
                   <Clock className="w-3 h-3 mr-1" />
@@ -184,7 +188,10 @@ export default function AnnouncementBanner({ roomId, className = '' }: Announcem
                 </span>
               </div>
               <p className="text-sm opacity-90 leading-relaxed">
-                {currentAnnouncement.translations?.[currentLanguage]?.content || currentAnnouncement.content}
+                <RealtimeTranslator
+                  text={currentAnnouncement.translations?.[currentLanguage]?.content || currentAnnouncement.content}
+                  targetLang={currentLanguage as any}
+                />
               </p>
               {currentAnnouncement.linkUrl && currentAnnouncement.linkText && (
                 <div className="mt-3">
@@ -194,7 +201,12 @@ export default function AnnouncementBanner({ roomId, className = '' }: Announcem
                     rel={currentAnnouncement.linkUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
                     className="inline-flex items-center space-x-2 text-sm font-medium text-current hover:opacity-80 transition-opacity"
                   >
-                    <span>{currentAnnouncement.translations?.[currentLanguage]?.linkText || currentAnnouncement.linkText}</span>
+                    <span>
+                      <RealtimeTranslator
+                        text={currentAnnouncement.translations?.[currentLanguage]?.linkText || currentAnnouncement.linkText}
+                        targetLang={currentLanguage as any}
+                      />
+                    </span>
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 </div>

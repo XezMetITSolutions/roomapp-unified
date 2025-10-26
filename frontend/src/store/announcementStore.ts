@@ -55,6 +55,24 @@ export const useAnnouncementStore = create<AnnouncementStore>()(
           createdAt: '2024-01-10',
           createdBy: 'Admin',
           priority: 'HIGH',
+          translations: {
+            en: {
+              title: 'Pool Maintenance',
+              content: 'The pool will be closed from January 15-16 due to maintenance work.'
+            },
+            ru: {
+              title: 'Обслуживание бассейна',
+              content: 'Бассейн будет закрыт с 15 по 16 января из-за работ по обслуживанию.'
+            },
+            ar: {
+              title: 'صيانة المسبح',
+              content: 'سيتم إغلاق المسبح من 15 إلى 16 يناير بسبب أعمال الصيانة.'
+            },
+            de: {
+              title: 'Pool-Wartung',
+              content: 'Der Pool wird vom 15. bis 16. Januar aufgrund von Wartungsarbeiten geschlossen.'
+            }
+          }
         },
         {
           id: '2',

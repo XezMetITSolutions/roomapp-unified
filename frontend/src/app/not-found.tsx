@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 
 export default function NotFound() {
@@ -23,12 +25,12 @@ export default function NotFound() {
           >
             Ana Sayfa
           </Link>
-          <Link
-            href="/"
+          <button
+            onClick={() => window.history.back()}
             className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
           >
             Geri Dön
-          </Link>
+          </button>
         </div>
       </div>
     </div>

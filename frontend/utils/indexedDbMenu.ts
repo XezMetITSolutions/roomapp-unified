@@ -6,7 +6,7 @@ type MenuItem = {
 
 export async function saveMenuToIndexedDB(menu: MenuItem[]): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open('RoomAppDB', 1);
+    const request = window.indexedDB.open('RoomXQRDB', 1);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains('menu')) {
@@ -30,7 +30,7 @@ export async function saveMenuToIndexedDB(menu: MenuItem[]): Promise<boolean> {
 
 export async function getMenuFromIndexedDB(): Promise<MenuItem[]> {
   return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open('RoomAppDB', 1);
+    const request = window.indexedDB.open('RoomXQRDB', 1);
     request.onsuccess = () => {
       const db = request.result;
       const tx = db.transaction('menu', 'readonly');

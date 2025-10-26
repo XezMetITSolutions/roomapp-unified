@@ -1,8 +1,19 @@
 'use client'
 
-import Link from 'next/link'
+import { useEffect } from 'react'
 
-export default function Error() {
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  useEffect(() => {
+    // Log the error to an error reporting service
+    console.error(error)
+  }, [error])
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
@@ -15,12 +26,21 @@ export default function Error() {
           Bir Hata Oluştu
         </h2>
         <p className="text-gray-600 text-center mb-6">
-          Üzgünüz, beklenmeyen bir hata oluştu.
+          Üzgünüz, beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.
         </p>
         <div className="flex space-x-3">
-          <Link href="/" className="flex-1 bg-hotel-gold text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors">
+          <button
+            onClick={reset}
+            className="flex-1 bg-hotel-gold text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors"
+          >
+            Tekrar Dene
+          </button>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
+          >
             Ana Sayfa
-          </Link>
+          </button>
         </div>
       </div>
     </div>

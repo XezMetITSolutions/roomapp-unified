@@ -8,6 +8,11 @@ type IncomingItem = {
   description?: string;
   category?: string;
   image?: string;
+  preparationTime?: number;
+  allergens?: string[];
+  calories?: number;
+  rating?: number;
+  available?: boolean;
 };
 
 const DATA_DIR = path.join(process.cwd(), '.data');
@@ -33,7 +38,11 @@ function normalizeItem(it: IncomingItem) {
     category: String(it.category || 'Genel'),
     price: !isNaN(priceNumber) ? Number(priceNumber) : 0,
     image: it.image || '',
-    available: true,
+    preparationTime: it.preparationTime || 15,
+    allergens: it.allergens || [],
+    calories: it.calories,
+    rating: it.rating || 4.0,
+    available: it.available !== false, // API'den gelen available değerini kullan
     isNew: false,
     isPopular: false,
     dietaryInfo: [] as string[],
@@ -87,13 +96,17 @@ export async function POST(request: Request) {
       const key = normalizeKey(it.name, it.category);
       const existingIdx = keyToIndex.get(key);
       if (existingIdx !== undefined) {
-        // Var olanı güncelle (fiyat, açıklama, image)
+        // Var olanı güncelle (fiyat, açıklama, image, hazırlık süresi, availability)
         current[existingIdx] = {
           ...current[existingIdx],
           description: it.description || current[existingIdx].description,
           price: it.price ?? current[existingIdx].price,
           image: it.image || current[existingIdx].image,
-          available: true,
+          preparationTime: it.preparationTime ?? current[existingIdx].preparationTime,
+          allergens: it.allergens || current[existingIdx].allergens,
+          calories: it.calories ?? current[existingIdx].calories,
+          rating: it.rating ?? current[existingIdx].rating,
+          available: it.available !== undefined ? it.available : current[existingIdx].available,
         };
       } else {
         current.push(it);
