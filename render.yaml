@@ -26,11 +26,11 @@ services:
 
   - type: web
     name: roomapp-frontend
-    env: node
-    plan: free
+    env: static
+    plan: starter
     rootDir: frontend
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    staticPublishPath: ./out
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://roomapp-backend.onrender.com
