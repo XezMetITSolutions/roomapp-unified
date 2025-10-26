@@ -954,7 +954,7 @@ export default function HomePage() {
             <button onClick={() => router.push('/isletme')} className="px-12 py-6 rounded-2xl text-xl font-bold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 shadow-2xl shadow-amber-500/25 hover:from-amber-500 hover:to-yellow-600 transition-all duration-200 hover:scale-105 hover:shadow-3xl">
               🚀 Ücretsiz Denemeye Başla
             </button>
-            <button onClick={() => router.push('/paneller')} className="px-12 py-6 rounded-2xl text-xl font-bold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all duration-200 backdrop-blur-sm hover:scale-105">
+            <button onClick={() => router.push('/guest/demo')} className="px-12 py-6 rounded-2xl text-xl font-bold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all duration-200 backdrop-blur-sm hover:scale-105">
               👀 Canlı QR Demo
             </button>
           </div>
