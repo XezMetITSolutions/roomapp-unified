@@ -45,7 +45,7 @@ export async function adminAuthMiddleware(req: Request, res: Response, next: Nex
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      permissions: user.permissions.map((p: any) => p.pageName),
+      permissions: [],
       tenantId: user.tenantId,
       hotelId: user.hotelId
     }

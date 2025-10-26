@@ -705,7 +705,7 @@ app.post('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req: Req
     const { id } = req.params
     const { featureKey, enabled, config } = req.body
 
-    if (!featureKey) {
+    if (!featureKey || typeof featureKey !== 'string') {
       res.status(400).json({ message: 'Feature key gerekli' }); return;
     }
 
