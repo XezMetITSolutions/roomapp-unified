@@ -38,9 +38,9 @@ export async function getUsers(req: Request, res: Response) {
       }
     })
 
-    const usersWithPermissions = users.map(user => ({
+    const usersWithPermissions = users.map((user: any) => ({
       ...user,
-      permissions: user.permissions.map(p => p.pageName)
+      permissions: user.permissions.map((p: any) => p.pageName)
     }))
 
     res.json(usersWithPermissions)
@@ -111,7 +111,7 @@ export async function createUser(req: Request, res: Response) {
     const { password: _, ...userResponse } = user
     const userWithPermissions = {
       ...userResponse,
-      permissions: userResponse.permissions.map(p => p.pageName)
+      permissions: userResponse.permissions.map((p: any) => p.pageName)
     }
 
     res.status(201).json({
@@ -188,7 +188,7 @@ export async function updateUser(req: Request, res: Response) {
     const { password: _, ...userResponse } = updatedUser
     const userWithPermissions = {
       ...userResponse,
-      permissions: userResponse.permissions.map(p => p.pageName)
+      permissions: userResponse.permissions.map((p: any) => p.pageName)
     }
 
     res.json({
@@ -280,7 +280,7 @@ export async function updateUserPermissions(req: Request, res: Response) {
     const { password: _, ...userResponse } = updatedUser
     const userWithPermissions = {
       ...userResponse,
-      permissions: userResponse.permissions.map(p => p.pageName)
+      permissions: userResponse.permissions.map((p: any) => p.pageName)
     }
 
     res.json({

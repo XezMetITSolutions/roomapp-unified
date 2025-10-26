@@ -124,7 +124,7 @@ app.use(compression())
 app.use(morgan('combined'))
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),

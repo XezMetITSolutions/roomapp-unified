@@ -92,7 +92,7 @@ export async function login(req: Request, res: Response) {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      permissions: user.permissions.map(p => p.pageName),
+      permissions: user.permissions.map((p: any) => p.pageName),
       tenant: {
         id: user.tenant.id,
         name: user.tenant.name,
@@ -158,7 +158,7 @@ export async function getCurrentUser(req: Request, res: Response) {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      permissions: user.permissions.map(p => p.pageName),
+      permissions: user.permissions.map((p: any) => p.pageName),
       tenant: {
         id: user.tenant.id,
         name: user.tenant.name,

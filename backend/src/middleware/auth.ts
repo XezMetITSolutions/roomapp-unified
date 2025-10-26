@@ -71,7 +71,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      permissions: user.permissions.map(p => p.pageName),
+      permissions: user.permissions.map((p: any) => p.pageName),
       tenantId: user.tenantId,
       hotelId: user.hotelId
     }
