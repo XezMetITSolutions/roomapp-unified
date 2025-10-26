@@ -24,9 +24,8 @@ services:
       - key: UPLOAD_PATH
         value: "./uploads"
 
-  - type: web
+  - type: static
     name: roomapp-frontend
-    env: static
     plan: starter
     rootDir: frontend
     buildCommand: npm install && npm run build
