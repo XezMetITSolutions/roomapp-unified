@@ -8,6 +8,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import dotenv from 'dotenv'
 import { PrismaClient } from '@prisma/client'
+import { Request, Response } from 'express'
 import { tenantMiddleware, getTenantId } from './middleware/tenant'
 import { authMiddleware, requirePermission } from './middleware/auth'
 import { adminAuthMiddleware, createSuperAdmin } from './middleware/adminAuth'
@@ -144,7 +145,7 @@ app.put('/api/users/:id/permissions', tenantMiddleware, authMiddleware, requireP
 app.delete('/api/users/:id', tenantMiddleware, authMiddleware, requirePermission('users'), deleteUser)
 
 // API Routes
-app.get('/api/menu', tenantMiddleware, async (req, res) => {
+app.get('/api/menu', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const menuItems = await prisma.menuItem.findMany({
@@ -163,7 +164,7 @@ app.get('/api/menu', tenantMiddleware, async (req, res) => {
   }
 })
 
-app.get('/api/rooms', tenantMiddleware, async (req, res) => {
+app.get('/api/rooms', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const rooms = await prisma.room.findMany({
@@ -192,7 +193,7 @@ app.get('/api/rooms', tenantMiddleware, async (req, res) => {
   }
 })
 
-app.get('/api/guests', tenantMiddleware, async (req, res) => {
+app.get('/api/guests', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const guests = await prisma.guest.findMany({
@@ -218,7 +219,7 @@ app.get('/api/guests', tenantMiddleware, async (req, res) => {
   }
 })
 
-app.post('/api/orders', tenantMiddleware, async (req, res) => {
+app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { roomId, guestId, items, notes } = req.body
@@ -277,7 +278,7 @@ app.post('/api/orders', tenantMiddleware, async (req, res) => {
 })
 
 // Guest Requests API
-app.get('/api/requests', tenantMiddleware, async (req, res) => {
+app.get('/api/requests', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { roomId } = req.query
@@ -300,7 +301,7 @@ app.get('/api/requests', tenantMiddleware, async (req, res) => {
   }
 })
 
-app.post('/api/requests', tenantMiddleware, async (req, res) => {
+app.post('/api/requests', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { roomId, type, priority, status, description, notes } = req.body
@@ -329,7 +330,7 @@ app.post('/api/requests', tenantMiddleware, async (req, res) => {
   }
 })
 
-app.patch('/api/requests/:id', async (req, res) => {
+app.patch('/api/requests/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const { status, notes } = req.body
@@ -351,7 +352,7 @@ app.patch('/api/requests/:id', async (req, res) => {
 })
 
 // Guest Check-in/Check-out endpoints
-app.post('/api/guests/checkin', tenantMiddleware, async (req, res) => {
+app.post('/api/guests/checkin', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { roomId, firstName, lastName, email, phone, language } = req.body
@@ -409,7 +410,7 @@ app.post('/api/guests/checkin', tenantMiddleware, async (req, res) => {
   }
 })
 
-app.post('/api/guests/checkout', tenantMiddleware, async (req, res) => {
+app.post('/api/guests/checkout', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { roomId } = req.body
@@ -466,7 +467,7 @@ app.post('/api/guests/checkout', tenantMiddleware, async (req, res) => {
 })
 
 // Generate guest-specific QR code
-app.post('/api/rooms/:roomId/generate-guest-qr', tenantMiddleware, async (req, res) => {
+app.post('/api/rooms/:roomId/generate-guest-qr', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { roomId } = req.params
@@ -504,7 +505,7 @@ app.post('/api/rooms/:roomId/generate-guest-qr', tenantMiddleware, async (req, r
 })
 
 // CRM Integration - Get guest data by room
-app.get('/api/crm/guest/:roomId', tenantMiddleware, async (req, res) => {
+app.get('/api/crm/guest/:roomId', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { roomId } = req.params
@@ -549,7 +550,7 @@ app.get('/api/crm/guest/:roomId', tenantMiddleware, async (req, res) => {
   }
 })
 
-app.post('/api/notifications', tenantMiddleware, async (req, res) => {
+app.post('/api/notifications', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { type, title, message, roomId } = req.body
@@ -577,7 +578,7 @@ app.post('/api/notifications', tenantMiddleware, async (req, res) => {
 })
 
 // Admin Routes (Tenant Management) - Admin yetkilendirmesi gerekli
-app.post('/api/admin/tenants', adminAuthMiddleware, async (req, res) => {
+app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const { name, slug, adminEmail, adminPassword, adminFirstName, adminLastName } = req.body
 
@@ -650,7 +651,7 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req, res) => {
   }
 })
 
-app.get('/api/admin/tenants', adminAuthMiddleware, async (req, res) => {
+app.get('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const tenants = await prisma.tenant.findMany({
       select: {
@@ -677,7 +678,7 @@ app.get('/api/admin/tenants', adminAuthMiddleware, async (req, res) => {
 })
 
 // Tenant özellik yönetimi API'leri
-app.get('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req, res) => {
+app.get('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     
@@ -699,7 +700,7 @@ app.get('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req, res)
   }
 })
 
-app.post('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req, res) => {
+app.post('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const { featureKey, enabled, config } = req.body
@@ -746,7 +747,7 @@ app.post('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req, res
   }
 })
 
-app.put('/api/admin/tenants/:id/features/:featureKey', adminAuthMiddleware, async (req, res) => {
+app.put('/api/admin/tenants/:id/features/:featureKey', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const { id, featureKey } = req.params as { id: string; featureKey: string }
     const { enabled, config } = req.body
@@ -773,7 +774,7 @@ app.put('/api/admin/tenants/:id/features/:featureKey', adminAuthMiddleware, asyn
   }
 })
 
-app.delete('/api/admin/tenants/:id/features/:featureKey', adminAuthMiddleware, async (req, res) => {
+app.delete('/api/admin/tenants/:id/features/:featureKey', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const { id, featureKey } = req.params as { id: string; featureKey: string }
 
@@ -793,7 +794,7 @@ app.delete('/api/admin/tenants/:id/features/:featureKey', adminAuthMiddleware, a
 })
 
 // Toplu özellik güncelleme
-app.post('/api/admin/features/bulk-update', adminAuthMiddleware, async (req, res) => {
+app.post('/api/admin/features/bulk-update', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const { tenantIds, featureKey, enabled, config } = req.body
 
@@ -840,7 +841,7 @@ app.post('/api/admin/features/bulk-update', adminAuthMiddleware, async (req, res
 })
 
 // Tüm mevcut özellikleri listele
-app.get('/api/admin/features/available', adminAuthMiddleware, async (req, res) => {
+app.get('/api/admin/features/available', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const availableFeatures = [
       {
@@ -933,7 +934,7 @@ app.use((err: unknown, req: express.Request, res: express.Response, _next: expre
 })
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('*', (req: Request, res: Response) => {
   res.status(404).json({ message: 'Route not found' })
 })
 
