@@ -62,10 +62,11 @@ const connectWithRetry = async (retries = 10) => {
   }
 }
 
-// Connect to database with retry
+// Connect to database with retry (non-blocking)
 connectWithRetry().catch((error) => {
   console.error('❌ Failed to connect to database:', error)
-  process.exit(1)
+  console.log('⚠️ Server will continue without database connection')
+  // Don't exit, let the server start and retry later
 })
 
 // Types
@@ -124,13 +125,27 @@ app.use(compression())
 app.use(morgan('combined'))
 
 // Health check
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    database: 'Connected'
-  })
+app.get('/health', async (req: Request, res: Response) => {
+  try {
+    // Test database connection
+    await prisma.$queryRaw`SELECT 1`
+    res.status(200).json({ 
+      status: 'OK', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: 'Connected',
+      environment: process.env.NODE_ENV || 'development'
+    })
+  } catch (error) {
+    res.status(503).json({ 
+      status: 'ERROR', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: 'Disconnected',
+      environment: process.env.NODE_ENV || 'development',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+  }
 })
 
 // Auth Routes
