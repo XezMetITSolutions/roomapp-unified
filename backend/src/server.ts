@@ -709,6 +709,9 @@ app.post('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req: Req
       res.status(400).json({ message: 'Feature key gerekli' }); return;
     }
 
+    // TypeScript'e featureKey'in string olduğunu garanti et
+    const validFeatureKey: string = featureKey
+
     // Tenant'ın var olup olmadığını kontrol et
     const tenant = await prisma.tenant.findUnique({
       where: { id }
@@ -723,7 +726,7 @@ app.post('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req: Req
       where: {
         tenantId_featureKey: {
           tenantId: id,
-          featureKey: featureKey
+          featureKey: validFeatureKey
         }
       },
       update: {
@@ -732,7 +735,7 @@ app.post('/api/admin/tenants/:id/features', adminAuthMiddleware, async (req: Req
       },
       create: {
         tenantId: id!,
-        featureKey: featureKey!,
+        featureKey: validFeatureKey,
         enabled: enabled ?? false,
         config: config || null
       }
