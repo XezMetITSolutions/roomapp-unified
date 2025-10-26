@@ -24,12 +24,13 @@ services:
       - key: UPLOAD_PATH
         value: "./uploads"
 
-  - type: static
+  - type: web
     name: roomapp-frontend
-    plan: starter
+    env: node
+    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: ./out
+    startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://roomapp-backend.onrender.com
