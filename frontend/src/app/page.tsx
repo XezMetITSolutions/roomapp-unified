@@ -150,9 +150,9 @@ export default function HomePage() {
       </div>
 
       {/* Stats Section */}
-      <div className="bg-gradient-to-b from-slate-50 to-white py-20">
+      <div className="bg-gradient-to-b from-slate-50 to-white py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {stats.map((stat, index) => (
               <div 
                 key={index} 
@@ -160,8 +160,8 @@ export default function HomePage() {
                 data-scroll
                 className="text-center group"
               >
-                <div className="text-5xl font-black bg-gradient-to-r from-slate-800 via-blue-800 to-slate-900 bg-clip-text text-transparent mb-3 group-hover:scale-110 transition-transform">{stat.number}</div>
-                <div className="text-slate-600 font-medium">{stat.label}</div>
+                <div className="text-3xl md:text-5xl font-black bg-gradient-to-r from-slate-800 via-blue-800 to-slate-900 bg-clip-text text-transparent mb-2 md:mb-3 group-hover:scale-110 transition-transform">{stat.number}</div>
+                <div className="text-xs md:text-base text-slate-600 font-medium">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -180,19 +180,19 @@ export default function HomePage() {
       </div>
 
       {/* Features Section */}
-      <div className="py-24 bg-white">
+      <div className="py-12 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div 
             id="features-header"
             data-scroll
-            className="text-center mb-20"
+            className="text-center mb-8 md:mb-20"
           >
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-700 text-sm font-medium mb-6">
-              <Zap className="w-4 h-4 mr-2" />
+            <div className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-700 text-xs md:text-sm font-medium mb-4 md:mb-6">
+              <Zap className="w-3 h-3 md:w-4 md:h-4 mr-2" />
               Güçlü Özellikler
             </div>
-            <h2 className="text-5xl font-black tracking-tight text-slate-900 mb-6">Neden RoomXQR?</h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Modern otel yönetimi için ihtiyacınız olan tüm özellikler tek platformda</p>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-3 md:mb-6">Neden RoomXQR?</h2>
+            <p className="text-base md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Modern otel yönetimi için ihtiyacınız olan tüm özellikler tek platformda</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => {
@@ -202,13 +202,13 @@ export default function HomePage() {
                   key={index} 
                   id={`feature-${index}`}
                   data-scroll
-                  className="group p-8 text-center rounded-3xl bg-gradient-to-br from-white to-slate-50 border border-slate-200 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"
+                  className="group p-4 md:p-8 text-center rounded-2xl md:rounded-3xl bg-gradient-to-br from-white to-slate-50 border border-slate-200 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"
                 >
-                  <div className={`w-20 h-20 ${feature.color} bg-opacity-10 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300` }>
-                    <IconComponent className={`w-10 h-10 ${feature.color}`} />
+                  <div className={`w-14 h-14 md:w-20 md:h-20 ${feature.color} bg-opacity-10 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300` }>
+                    <IconComponent className={`w-7 h-7 md:w-10 md:h-10 ${feature.color}`} />
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-4 tracking-tight">{feature.title}</h3>
-                  <p className="text-slate-600 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-lg md:text-2xl font-bold text-slate-900 mb-2 md:mb-4 tracking-tight">{feature.title}</h3>
+                  <p className="text-sm md:text-base text-slate-600 leading-relaxed">{feature.description}</p>
                 </div>
               );
             })}
@@ -217,19 +217,19 @@ export default function HomePage() {
       </div>
 
       {/* How It Works Section */}
-      <div className="py-24 bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="py-12 md:py-24 bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div 
             id="how-it-works-header"
             data-scroll
-            className="text-center mb-20 opacity-100 translate-y-0"
+            className="text-center mb-8 md:mb-20 opacity-100 translate-y-0"
           >
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-sm font-medium mb-6">
-              <Settings className="w-4 h-4 mr-2" />
+            <div className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-xs md:text-sm font-medium mb-4 md:mb-6">
+              <Settings className="w-3 h-3 md:w-4 md:h-4 mr-2" />
               Basit Süreç
             </div>
-            <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight">Nasıl Çalışır?</h2>
-            <p className="text-xl text-slate-600">3 basit adımda otelinizi dijitalleştirin</p>
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-3 md:mb-6 tracking-tight">Nasıl Çalışır?</h2>
+            <p className="text-base md:text-xl text-slate-600">3 basit adımda otelinizi dijitalleştirin</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
@@ -265,13 +265,13 @@ export default function HomePage() {
                   data-scroll
                   className="text-center group opacity-100 translate-y-0"
                 >
-                  <div className={`w-32 h-32 ${step.bgColor} ${step.borderColor} border-2 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                    <div className={`w-20 h-20 text-white rounded-2xl flex items-center justify-center text-4xl font-black bg-gradient-to-br ${step.color} shadow-xl`}>
+                  <div className={`w-24 h-24 md:w-32 md:h-32 ${step.bgColor} ${step.borderColor} border-2 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-6 md:mb-8 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                    <div className={`w-14 h-14 md:w-20 md:h-20 text-white rounded-xl md:rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black bg-gradient-to-br ${step.color} shadow-xl`}>
                       {step.step}
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-4 tracking-tight">{step.title}</h3>
-                  <p className="text-slate-600 leading-relaxed text-lg">{step.description}</p>
+                  <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4 tracking-tight">{step.title}</h3>
+                  <p className="text-sm md:text-lg text-slate-600 leading-relaxed">{step.description}</p>
                 </div>
               );
             })}
@@ -280,19 +280,19 @@ export default function HomePage() {
       </div>
 
       {/* AI Image Enhancement Section */}
-      <div className="py-24 bg-gradient-to-br from-purple-50 to-pink-50">
+      <div className="py-12 md:py-24 bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div 
             id="ai-enhancement-header"
             data-scroll
-            className="text-center mb-20 opacity-100 translate-y-0"
+            className="text-center mb-8 md:mb-20 opacity-100 translate-y-0"
           >
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-700 text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4 mr-2" />
+            <div className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-700 text-xs md:text-sm font-medium mb-4 md:mb-6">
+              <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-2" />
               AI Teknolojisi
             </div>
-            <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight">Telefon Çekimlerinizi Profesyonel Hale Getirin</h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Tek tıkla telefon fotoğraflarınızı profesyonel menü görsellerine dönüştürün</p>
+            <h2 className="text-2xl md:text-5xl font-black text-slate-900 mb-3 md:mb-6 tracking-tight">Telefon Çekimlerinizi Profesyonel Hale Getirin</h2>
+            <p className="text-sm md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Tek tıkla telefon fotoğraflarınızı profesyonel menü görsellerine dönüştürün</p>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
@@ -429,26 +429,26 @@ export default function HomePage() {
       </div>
 
       {/* Benefits Section */}
-      <div className="py-24 bg-white">
+      <div className="py-12 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div 
             id="benefits-header"
             data-scroll
-            className="text-center mb-20 opacity-100 translate-y-0"
+            className="text-center mb-8 md:mb-20 opacity-100 translate-y-0"
           >
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-700 text-sm font-medium mb-6">
-              <Star className="w-4 h-4 mr-2" />
+            <div className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-700 text-xs md:text-sm font-medium mb-4 md:mb-6">
+              <Star className="w-3 h-3 md:w-4 md:h-4 mr-2" />
               Faydalar
             </div>
-            <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight">RoomXQR ile Ayrıcalıklar</h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Otel işletmenizi dönüştüren, müşteri memnuniyetini artıran kapsamlı çözümler</p>
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-3 md:mb-6 tracking-tight">RoomXQR ile Ayrıcalıklar</h2>
+            <p className="text-base md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Otel işletmenizi dönüştüren, müşteri memnuniyetini artıran kapsamlı çözümler</p>
           </div>
           
           {/* Customer Benefits */}
-          <div className="mb-20">
-            <div className="text-center mb-12">
-              <h3 className="text-3xl font-bold text-slate-900 mb-4">Müşterilerinize Ne Sunarsınız?</h3>
-              <p className="text-lg text-slate-600">Misafirlerinizin deneyimini dönüştüren özellikler</p>
+          <div className="mb-8 md:mb-20">
+            <div className="text-center mb-8 md:mb-12">
+              <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3 md:mb-4">Müşterilerinize Ne Sunarsınız?</h3>
+              <p className="text-base md:text-lg text-slate-600">Misafirlerinizin deneyimini dönüştüren özellikler</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -522,10 +522,10 @@ export default function HomePage() {
           </div>
 
           {/* Business Benefits */}
-          <div className="mb-20">
-            <div className="text-center mb-12">
-              <h3 className="text-3xl font-bold text-slate-900 mb-4">Siz Ne Kazanırsınız?</h3>
-              <p className="text-lg text-slate-600">İşletmenizi büyüten ve verimliliği artıran faydalar</p>
+          <div className="mb-8 md:mb-20">
+            <div className="text-center mb-8 md:mb-12">
+              <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3 md:mb-4">Siz Ne Kazanırsınız?</h3>
+              <p className="text-base md:text-lg text-slate-600">İşletmenizi büyüten ve verimliliği artıran faydalar</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -599,19 +599,19 @@ export default function HomePage() {
           </div>
 
       {/* Social Media Integration Section */}
-      <div className="py-24 bg-gradient-to-br from-orange-50 to-red-50">
+      <div className="py-12 md:py-24 bg-gradient-to-br from-orange-50 to-red-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div 
             id="social-header"
             data-scroll
-            className="text-center mb-20 opacity-100 translate-y-0"
+            className="text-center mb-8 md:mb-20 opacity-100 translate-y-0"
           >
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-700 text-sm font-medium mb-6">
-              <Share2 className="w-4 h-4 mr-2" />
+            <div className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-700 text-xs md:text-sm font-medium mb-4 md:mb-6">
+              <Share2 className="w-3 h-3 md:w-4 md:h-4 mr-2" />
               Sosyal Medya Entegrasyonu
             </div>
-            <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight">Organik Takipçi ve Google Yorumları</h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Anket sistemi ile sosyal medya hesaplarınıza organik trafik çekin</p>
+            <h2 className="text-2xl md:text-5xl font-black text-slate-900 mb-3 md:mb-6 tracking-tight">Organik Takipçi ve Google Yorumları</h2>
+            <p className="text-sm md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Anket sistemi ile sosyal medya hesaplarınıza organik trafik çekin</p>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
@@ -756,19 +756,19 @@ export default function HomePage() {
       </div>
 
       {/* Packages Section */}
-      <div id="packages" className="py-24 bg-slate-900">
+      <div id="packages" className="py-12 md:py-24 bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm font-medium mb-6">
-              <Star className="w-4 h-4 mr-2" />
+          <div className="text-center mb-8 md:mb-20">
+            <div className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs md:text-sm font-medium mb-4 md:mb-6">
+              <Star className="w-3 h-3 md:w-4 md:h-4 mr-2" />
               Fiyatlandırma
             </div>
-            <h2 className="text-5xl font-black text-white mb-6 tracking-tight">Paketlerimiz</h2>
-            <p className="text-xl text-slate-300">İhtiyacınıza uygun paketi seçin, 14 gün ücretsiz deneyin</p>
+            <h2 className="text-3xl md:text-5xl font-black text-white mb-3 md:mb-6 tracking-tight">Paketlerimiz</h2>
+            <p className="text-base md:text-xl text-slate-300">İhtiyacınıza uygun paketi seçin, 14 gün ücretsiz deneyin</p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {packages.map((pkg) => (
-              <div key={pkg.id} className={`relative p-10 rounded-3xl bg-white/5 border border-white/20 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-200 ${pkg.popular ? 'ring-2 ring-amber-400 scale-105' : ''}`}>
+              <div key={pkg.id} className={`relative p-6 md:p-10 rounded-2xl md:rounded-3xl bg-white/5 border border-white/20 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-200 ${pkg.popular ? 'ring-2 ring-amber-400 scale-105' : ''}`}>
                 {pkg.popular && (
                   <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
                     <div className="px-8 py-3 rounded-full text-sm font-bold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg">
@@ -776,23 +776,23 @@ export default function HomePage() {
                     </div>
                   </div>
                 )}
-                <div className="text-center mb-10">
-                  <div className="flex items-center justify-center mb-4">
+                <div className="text-center mb-6 md:mb-10">
+                  <div className="flex items-center justify-center mb-3 md:mb-4">
                     {pkg.id === 'yillik' ? (
-                      <div className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-300 text-sm font-semibold">{pkg.tag}</div>
+                      <div className="px-3 py-1 md:px-4 md:py-2 rounded-full bg-blue-500/20 text-blue-300 text-xs md:text-sm font-semibold">{pkg.tag}</div>
                     ) : pkg.id === '6aylik' ? (
-                      <div className="px-4 py-2 rounded-full bg-amber-500/20 text-amber-300 text-sm font-semibold">{pkg.tag}</div>
+                      <div className="px-3 py-1 md:px-4 md:py-2 rounded-full bg-amber-500/20 text-amber-300 text-xs md:text-sm font-semibold">{pkg.tag}</div>
                     ) : (
-                      <div className="px-4 py-2 rounded-full bg-purple-500/20 text-purple-300 text-sm font-semibold">{pkg.tag}</div>
+                      <div className="px-3 py-1 md:px-4 md:py-2 rounded-full bg-purple-500/20 text-purple-300 text-xs md:text-sm font-semibold">{pkg.tag}</div>
                     )}
                   </div>
-                  <h3 className="text-3xl font-black text-white mb-3">{pkg.name}</h3>
-                  <p className="text-slate-300 mb-6">{pkg.description}</p>
-                  <div className="relative mb-10">
-                    <div className="absolute -inset-4 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-500/5 to-transparent blur-lg"></div>
-                    <div className="relative bg-gradient-to-r from-slate-800/80 to-slate-900/80 p-6 rounded-xl border border-white/10">
-                      <div className="flex items-center justify-center space-x-3 mb-2">
-                        <span className="text-6xl font-black bg-gradient-to-br from-white via-amber-100 to-amber-300 bg-clip-text text-transparent">{pkg.price}</span>
+                  <h3 className="text-2xl md:text-3xl font-black text-white mb-2 md:mb-3">{pkg.name}</h3>
+                  <p className="text-sm md:text-base text-slate-300 mb-4 md:mb-6">{pkg.description}</p>
+                  <div className="relative mb-6 md:mb-10">
+                    <div className="absolute -inset-2 md:-inset-4 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-500/5 to-transparent blur-lg"></div>
+                    <div className="relative bg-gradient-to-r from-slate-800/80 to-slate-900/80 p-4 md:p-6 rounded-xl border border-white/10">
+                      <div className="flex items-center justify-center space-x-2 md:space-x-3 mb-2">
+                        <span className="text-4xl md:text-6xl font-black bg-gradient-to-br from-white via-amber-100 to-amber-300 bg-clip-text text-transparent">{pkg.price}</span>
                     <div className="text-left">
                           <div className="text-amber-300 font-medium">TL</div>
                           <div className="text-slate-400 text-sm">/{pkg.period}</div>
@@ -842,7 +842,7 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => router.push('/isletme')} className={`w-full py-5 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] ${pkg.popular ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 hover:from-amber-500 hover:to-yellow-600 shadow-xl shadow-amber-500/25' : 'bg-gradient-to-r from-slate-700 to-slate-800 text-white hover:from-slate-600 hover:to-slate-700 border border-slate-600'}`}>
+                <button onClick={() => router.push('/isletme')} className={`w-full py-4 md:py-5 rounded-xl font-bold text-base md:text-lg transition-all hover:scale-[1.02] ${pkg.popular ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 hover:from-amber-500 hover:to-yellow-600 shadow-xl shadow-amber-500/25' : 'bg-gradient-to-r from-slate-700 to-slate-800 text-white hover:from-slate-600 hover:to-slate-700 border border-slate-600'}`}>
                   {pkg.popular ? '🚀 Hemen Başla' : 'Paketi Seç'}
                 </button>
               </div>
@@ -914,17 +914,17 @@ export default function HomePage() {
       </div>
 
       {/* FAQ Section */}
-      <div className="py-20 bg-gray-50">
+      <div className="py-12 md:py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">Sıkça Sorulan Sorular</h2>
-            <p className="text-xl text-gray-600">Merak ettiğiniz her şey burada</p>
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3 md:mb-4 tracking-tight">Sıkça Sorulan Sorular</h2>
+            <p className="text-base md:text-xl text-gray-600">Merak ettiğiniz her şey burada</p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {faqs.map((faq, index) => (
-              <div key={index} className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-white shadow-md">
+              <div key={index} className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-white/80 backdrop-blur-md border border-white shadow-md">
                 <button onClick={() => setOpenFaq(openFaq === index ? null : index)} className="w-full flex items-center justify-between text-left">
-                  <h3 className="text-lg font-semibold text-gray-900 pr-4">{faq.question}</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900 pr-3 md:pr-4">{faq.question}</h3>
                   {openFaq === index ? (
                     <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
                   ) : (
@@ -941,20 +941,20 @@ export default function HomePage() {
       </div>
 
       {/* CTA Section */}
-      <div className="py-24 bg-slate-900 relative overflow-hidden">
+      <div className="py-12 md:py-24 bg-slate-900 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.05),transparent_70%)]"></div>
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center px-6 py-3 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm font-medium mb-8">
-            <Zap className="w-5 h-5 mr-2" />
+          <div className="inline-flex items-center px-4 py-2 md:px-6 md:py-3 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs md:text-sm font-medium mb-6 md:mb-8">
+            <Zap className="w-4 h-4 md:w-5 md:h-5 mr-2" />
             Hemen Başlayın
           </div>
-          <h2 className="text-6xl font-black text-white mb-6 tracking-tight">Otelinizi Dijitalleştirin</h2>
-          <p className="text-2xl text-slate-300 mb-12 leading-relaxed">Sadece birkaç dakikada modern otel yönetimine geçin</p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <button onClick={() => router.push('/isletme')} className="px-12 py-6 rounded-2xl text-xl font-bold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 shadow-2xl shadow-amber-500/25 hover:from-amber-500 hover:to-yellow-600 transition-all duration-200 hover:scale-105 hover:shadow-3xl">
+          <h2 className="text-3xl md:text-6xl font-black text-white mb-3 md:mb-6 tracking-tight">Otelinizi Dijitalleştirin</h2>
+          <p className="text-lg md:text-2xl text-slate-300 mb-8 md:mb-12 leading-relaxed">Sadece birkaç dakikada modern otel yönetimine geçin</p>
+          <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center">
+            <button onClick={() => router.push('/isletme')} className="px-8 py-4 md:px-12 md:py-6 rounded-xl md:rounded-2xl text-base md:text-xl font-bold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 shadow-2xl shadow-amber-500/25 hover:from-amber-500 hover:to-yellow-600 transition-all duration-200 hover:scale-105 hover:shadow-3xl">
               🚀 Ücretsiz Denemeye Başla
             </button>
-            <button onClick={() => router.push('/guest/demo')} className="px-12 py-6 rounded-2xl text-xl font-bold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all duration-200 backdrop-blur-sm hover:scale-105">
+            <button onClick={() => router.push('/guest/demo')} className="px-8 py-4 md:px-12 md:py-6 rounded-xl md:rounded-2xl text-base md:text-xl font-bold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all duration-200 backdrop-blur-sm hover:scale-105">
               👀 Canlı QR Demo
             </button>
           </div>
