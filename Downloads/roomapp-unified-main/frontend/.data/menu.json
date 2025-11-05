@@ -1,0 +1,62 @@
+[
+  {
+    "id": "menu-1761061976433-0.5999080944163673",
+    "name": "karniyarik",
+    "description": "patlican,kiyma,lezzetli sos domates",
+    "category": "Burger",
+    "price": 2436,
+    "image": "",
+    "preparationTime": 15,
+    "allergens": [
+      ""
+    ],
+    "rating": 4.2,
+    "available": true,
+    "isNew": false,
+    "isPopular": false,
+    "dietaryInfo": [],
+    "likes": 0
+  },
+  {
+    "id": "menu-1761138342385-0.5964336850779182",
+    "name": "Cheeseburger",
+    "description": "Dana eti, cheddar peyniri, marul, domates",
+    "category": "Burger",
+    "price": 35,
+    "image": "",
+    "preparationTime": 15,
+    "allergens": [
+      "Gluten",
+      "Süt",
+      "Yumurta"
+    ],
+    "calories": 520,
+    "rating": 4,
+    "available": true,
+    "isNew": false,
+    "isPopular": false,
+    "dietaryInfo": [],
+    "likes": 0
+  },
+  {
+    "id": "menu-1761138376677-0.5831769575736678",
+    "name": "Caesar Salad",
+    "description": "Marul, parmesan, kruton, caesar sos",
+    "category": "Salata",
+    "price": 25,
+    "image": "",
+    "preparationTime": 15,
+    "allergens": [
+      "Gluten",
+      "Süt",
+      "Yumurta"
+    ],
+    "calories": 180,
+    "rating": 4,
+    "available": false,
+    "isNew": false,
+    "isPopular": false,
+    "dietaryInfo": [],
+    "likes": 0
+  }
+]

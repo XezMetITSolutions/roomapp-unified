@@ -1,0 +1,320 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  domain      String?  @unique
+  isActive    Boolean  @default(true)
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  hotels      Hotel[]
+  users       User[]
+  rooms       Room[]
+  guests      Guest[]
+  menuItems   MenuItem[]
+  orders      Order[]
+  guestRequests GuestRequest[]
+  notifications Notification[]
+  features    TenantFeature[]
+
+  @@map("tenants")
+}
+
+model TenantFeature {
+  id          String   @id @default(cuid())
+  featureKey  String
+  enabled     Boolean  @default(false)
+  config      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, featureKey])
+  @@map("tenant_features")
+}
+
+model Hotel {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  phone       String
+  email       String
+  website     String?
+  logo        String?
+  settings    Json?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rooms       Room[]
+  users       User[]
+  menuItems   MenuItem[]
+  orders      Order[]
+  guests      Guest[]
+  guestRequests GuestRequest[]
+  notifications Notification[]
+
+  @@map("hotels")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  firstName   String
+  lastName    String
+  role        UserRole @default(STAFF)
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  permissions UserPermission[]
+
+  @@map("users")
+}
+
+model UserPermission {
+  id        String   @id @default(cuid())
+  pageName  String
+  grantedAt DateTime @default(now())
+
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pageName])
+  @@map("user_permissions")
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  number      String
+  floor       Int
+  type        RoomType
+  capacity    Int
+  qrCode      String   @unique
+  isOccupied  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  guests      Guest[]
+  orders      Order[]
+  notifications Notification[]
+
+  @@map("rooms")
+}
+
+model Guest {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  language    String   @default("tr")
+  checkIn     DateTime
+  checkOut    DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  orders      Order[]
+
+  @@map("guests")
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  category    String
+  image       String?
+  allergens   String[]
+  calories    Int?
+  isAvailable Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+
+  @@map("menu_items")
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique
+  status      OrderStatus @default(PENDING)
+  totalAmount Decimal     @db.Decimal(10, 2)
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotelId     String
+  hotel       Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomId      String
+  room        Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  guestId     String
+  guest       Guest       @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  items       OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+  notes     String?
+
+  // Relations
+  orderId   String
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem  MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model GuestRequest {
+  id          String            @id @default(cuid())
+  roomId      String
+  type        RequestType
+  priority    RequestPriority
+  status      RequestStatus     @default(PENDING)
+  description String
+  notes       String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  tenantId    String
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotelId     String
+  hotel       Hotel             @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@map("guest_requests")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomId    String?
+  room      Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  STAFF
+  RECEPTION
+  KITCHEN
+  WAITER
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TWIN
+  SUITE
+  FAMILY
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum RequestType {
+  HOUSEKEEPING
+  MAINTENANCE
+  CONCIERGE
+  GENERAL
+  FOOD_ORDER
+}
+
+enum RequestPriority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  ORDER
+  REQUEST
+  PAYMENT
+  SYSTEM
+  PROMOTION
+}

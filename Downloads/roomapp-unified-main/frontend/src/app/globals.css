@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sidebar scrollbar gizleme */
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+  /* theme tokens */
+  --color-primary: #D4AF37;
+  --color-secondary: #1E3A8A;
+  --color-accent: #F59E0B;
+  --color-bg: #ffffff;
+  --color-text: #1F2937;
+  --color-card: #F9FAFB;
+  --color-border: #E5E7EB;
+  --font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  --gradient-0: #D4AF37;
+  --gradient-1: #B9902F;
+  --gradient-2: #997827;
+  --gradient-3: #7A611F;
+  --gradient-4: #5C4A18;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+/* explicit theme mode control via data-theme attribute overrides */
+[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-text: #1F2937;
+  --color-card: #F9FAFB;
+  --color-border: #E5E7EB;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0F172A;
+  --color-text: #F9FAFB;
+  --color-card: #1E293B;
+  --color-border: #334155;
+}
+
+body {
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: var(--font-family);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom hotel-themed styles */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.hotel-card {
+  @apply bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300;
+}
+
+.hotel-button {
+  @apply bg-hotel-navy text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors duration-200 flex items-center gap-2;
+}
+
+.hotel-button-gold {
+  @apply bg-hotel-gold text-hotel-navy px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors duration-200 flex items-center gap-2;
+}
+
+.notification-badge {
+  @apply absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold animate-pulse;
+}
+
+/* Bildirim animasyonları */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes gentlePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.notification-slide-in {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.notification-slide-out {
+  animation: slideOutRight 0.3s ease-in;
+}
+
+.notification-gentle-pulse {
+  animation: gentlePulse 2s infinite;
+}
