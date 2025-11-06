@@ -98,56 +98,32 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }))
 
-// CORS ayarları - Daha esnek ve kapsamlı
+// CORS ayarları - Basitleştirilmiş ve daha açık
 const corsOptions: cors.CorsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, Postman, etc.)
     if (!origin) {
+      console.log('✅ CORS: Allowing request with no origin')
       return callback(null, true)
     }
     
     // Normalize origin (remove trailing slash)
     const normalizedOrigin = origin.replace(/\/$/, '')
+    console.log(`🔍 CORS: Checking origin: ${normalizedOrigin}`)
     
-    // Allow localhost and specific domains
-    const allowedOrigins = [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://roomapp-frontend.onrender.com",
-      "https://roomxqr-frontend.onrender.com",
-      "https://roomxr.com",
-      "https://www.roomxr.com",
-      "https://roomxqr.com",
-      "https://www.roomxqr.com"
-    ]
+    // Check if origin contains allowed domains
+    const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'localhost']
     
-    // Normalize allowed origins
-    const normalizedAllowedOrigins = allowedOrigins.map(o => o.replace(/\/$/, ''))
-    
-    // Allow subdomains of roomxr.com
-    if (normalizedOrigin.endsWith('.roomxr.com') || normalizedOrigin.includes('roomxr.com')) {
-      return callback(null, true)
+    for (const domain of allowedDomains) {
+      if (normalizedOrigin.includes(domain)) {
+        console.log(`✅ CORS: Allowed origin ${normalizedOrigin} (matches ${domain})`)
+        return callback(null, true)
+      }
     }
     
-    // Allow subdomains of roomxqr.com
-    if (normalizedOrigin.endsWith('.roomxqr.com') || normalizedOrigin.includes('roomxqr.com')) {
-      return callback(null, true)
-    }
-    
-    // Allow Render.com subdomains
-    if (normalizedOrigin.endsWith('.onrender.com')) {
-      return callback(null, true)
-    }
-    
-    // Check exact match
-    if (normalizedAllowedOrigins.includes(normalizedOrigin)) {
-      return callback(null, true)
-    }
-    
-    // Log for debugging
-    console.log(`CORS blocked origin: ${normalizedOrigin}`)
-    console.log(`Allowed origins: ${normalizedAllowedOrigins.join(', ')}`)
+    // Log blocked origin for debugging
+    console.log(`❌ CORS: Blocked origin: ${normalizedOrigin}`)
+    console.log(`   Allowed domains: ${allowedDomains.join(', ')}`)
     
     callback(new Error(`CORS policy violation: ${normalizedOrigin} is not allowed`))
   },
