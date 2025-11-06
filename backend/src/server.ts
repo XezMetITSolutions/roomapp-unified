@@ -305,6 +305,8 @@ app.get('/debug/tenants', async (req: Request, res: Response) => {
 // OPTIONS request'lerini tenant middleware'den önce handle et
 app.options('/api/auth/login', (req: Request, res: Response) => {
   const origin = req.headers.origin
+  console.log('🔍 OPTIONS /api/auth/login:', { origin, headers: req.headers })
+  
   if (origin) {
     const normalizedOrigin = origin.replace(/\/$/, '')
     const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'localhost']
@@ -316,6 +318,7 @@ app.options('/api/auth/login', (req: Request, res: Response) => {
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, x-tenant, X-Tenant')
         res.setHeader('Access-Control-Allow-Credentials', 'true')
         res.setHeader('Access-Control-Max-Age', '86400')
+        console.log('✅ CORS headers set for:', origin)
         res.status(200).end()
         return
       }
@@ -323,6 +326,7 @@ app.options('/api/auth/login', (req: Request, res: Response) => {
   }
   
   // Fallback: CORS middleware'i uygula
+  console.log('⚠️ Using fallback CORS for:', origin)
   cors(corsOptions)(req, res, () => {
     res.status(200).end()
   })

@@ -127,9 +127,16 @@ export async function login(req: Request, res: Response) {
   } catch (error) {
     console.error('❌ Login error:', error)
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      name: error instanceof Error ? error.name : 'Unknown',
+      body: req.body,
+      tenant: req.tenant?.slug
+    })
     res.status(500).json({ 
       message: 'Sunucu hatası',
-      error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      error: error instanceof Error ? error.message : String(error),
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
     })
   }
 }
