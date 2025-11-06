@@ -82,51 +82,77 @@ interface RequestItem {
   notes?: string
 }
 
-// Security middleware
-app.use(helmet())
+// Security middleware - Helmet'i CORS ile uyumlu hale getir
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}))
+
+// CORS ayarları - Daha esnek ve kapsamlı
 const corsOptions: cors.CorsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return callback(null, true)
+    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
+    if (!origin) {
+      return callback(null, true)
+    }
+    
+    // Normalize origin (remove trailing slash)
+    const normalizedOrigin = origin.replace(/\/$/, '')
     
     // Allow localhost and specific domains
     const allowedOrigins = [
       process.env.FRONTEND_URL || "http://localhost:3000",
       "http://localhost:3000",
+      "http://localhost:3001",
       "https://roomapp-frontend.onrender.com",
       "https://roomxqr-frontend.onrender.com",
       "https://roomxr.com",
-      "https://roomxqr.com"
+      "https://www.roomxr.com",
+      "https://roomxqr.com",
+      "https://www.roomxqr.com"
     ]
     
+    // Normalize allowed origins
+    const normalizedAllowedOrigins = allowedOrigins.map(o => o.replace(/\/$/, ''))
+    
     // Allow subdomains of roomxr.com
-    if (origin.endsWith('.roomxr.com')) {
+    if (normalizedOrigin.endsWith('.roomxr.com') || normalizedOrigin === 'roomxr.com') {
       return callback(null, true)
     }
     
     // Allow subdomains of roomxqr.com
-    if (origin.endsWith('.roomxqr.com')) {
+    if (normalizedOrigin.endsWith('.roomxqr.com') || normalizedOrigin === 'roomxqr.com') {
       return callback(null, true)
     }
     
     // Allow Render.com subdomains
-    if (origin.endsWith('.onrender.com')) {
+    if (normalizedOrigin.endsWith('.onrender.com')) {
       return callback(null, true)
     }
     
-    if (allowedOrigins.includes(origin)) {
+    // Check exact match
+    if (normalizedAllowedOrigins.includes(normalizedOrigin)) {
       return callback(null, true)
     }
     
-    callback(new Error('CORS policy violation'))
+    // Log for debugging
+    console.log(`CORS blocked origin: ${normalizedOrigin}`)
+    console.log(`Allowed origins: ${normalizedAllowedOrigins.join(', ')}`)
+    
+    callback(new Error(`CORS policy violation: ${normalizedOrigin} is not allowed`))
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+  exposedHeaders: ["Content-Length", "Content-Type"],
   credentials: true,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 200,
+  preflightContinue: false,
+  maxAge: 86400 // 24 hours
 }
 
+// CORS middleware'i uygula
 app.use(cors(corsOptions))
+
 // Explicitly handle preflight requests for all routes
 app.options('*', cors(corsOptions))
 

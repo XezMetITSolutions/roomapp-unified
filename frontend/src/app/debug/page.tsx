@@ -143,6 +143,7 @@ export default function DebugPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         mode: 'cors',
+        credentials: 'include',
       };
       
       if (body && method !== 'GET') {
@@ -170,8 +171,8 @@ export default function DebugPage() {
       } else {
         return {
           name: `${method} ${endpoint}`,
-          status: response.status === 404 ? 'warning' : response.status === 401 || response.status === 403 ? 'warning' : 'error',
-          message: `Hata: ${response.status} ${response.statusText}${response.status === 401 || response.status === 403 ? ' (Auth gerekli - normal)' : ''}`,
+          status: response.status === 404 ? 'warning' : 'error',
+          message: `Hata: ${response.status} ${response.statusText}`,
           data: responseData,
           duration,
         };
@@ -187,7 +188,7 @@ export default function DebugPage() {
         message: isCorsError 
           ? `CORS hatası: Backend CORS ayarlarını kontrol edin`
           : `Bağlantı hatası: ${errorMessage}`,
-        data: { 
+        data: {
           error: errorMessage,
           endpoint: `${apiBaseUrl}${endpoint}`,
           origin: typeof window !== 'undefined' ? window.location.origin : 'unknown'
