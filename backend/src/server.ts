@@ -25,6 +25,7 @@ const io = new Server(server, {
     origin: [
       process.env.FRONTEND_URL || "http://localhost:3000",
       "http://localhost:3000",
+      "https://roomapp-frontend.onrender.com",
       "https://roomxqr-frontend.onrender.com",
       "https://roomxr.com"
     ],
@@ -91,12 +92,18 @@ const corsOptions: cors.CorsOptions = {
     const allowedOrigins = [
       process.env.FRONTEND_URL || "http://localhost:3000",
       "http://localhost:3000",
+      "https://roomapp-frontend.onrender.com",
       "https://roomxqr-frontend.onrender.com",
       "https://roomxr.com"
     ]
     
     // Allow subdomains of roomxr.com
     if (origin.endsWith('.roomxr.com')) {
+      return callback(null, true)
+    }
+    
+    // Allow Render.com subdomains
+    if (origin.endsWith('.onrender.com')) {
       return callback(null, true)
     }
     

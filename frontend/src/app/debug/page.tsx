@@ -49,6 +49,7 @@ export default function DebugPage() {
       const response = await fetch(`${apiBaseUrl}/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
       });
       const duration = Date.now() - startTime;
       
@@ -62,19 +63,31 @@ export default function DebugPage() {
           duration,
         };
       } else {
+        const errorText = await response.text().catch(() => '');
         return {
           name: 'Backend Health Check',
           status: 'error',
-          message: `Backend yanıt verdi ama hata: ${response.status}`,
+          message: `Backend yanıt verdi ama hata: ${response.status} ${response.statusText}${errorText ? ` - ${errorText.substring(0, 100)}` : ''}`,
+          data: { status: response.status, statusText: response.statusText, error: errorText },
           duration,
         };
       }
     } catch (error) {
       const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+      const isCorsError = errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError');
+      
       return {
         name: 'Backend Health Check',
         status: 'error',
-        message: `Backend'e bağlanılamadı: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        message: isCorsError 
+          ? `CORS hatası: Backend CORS ayarlarını kontrol edin. Origin: ${typeof window !== 'undefined' ? window.location.origin : 'unknown'}`
+          : `Backend'e bağlanılamadı: ${errorMessage}`,
+        data: { 
+          error: errorMessage,
+          apiUrl: apiBaseUrl,
+          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown'
+        },
         duration,
       };
     }
@@ -129,6 +142,7 @@ export default function DebugPage() {
       const options: RequestInit = {
         method,
         headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
       };
       
       if (body && method !== 'GET') {
@@ -156,18 +170,28 @@ export default function DebugPage() {
       } else {
         return {
           name: `${method} ${endpoint}`,
-          status: response.status === 404 ? 'warning' : 'error',
-          message: `Hata: ${response.status} ${response.statusText}`,
+          status: response.status === 404 ? 'warning' : response.status === 401 || response.status === 403 ? 'warning' : 'error',
+          message: `Hata: ${response.status} ${response.statusText}${response.status === 401 || response.status === 403 ? ' (Auth gerekli - normal)' : ''}`,
           data: responseData,
           duration,
         };
       }
     } catch (error) {
       const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+      const isCorsError = errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError');
+      
       return {
         name: `${method} ${endpoint}`,
         status: 'error',
-        message: `Bağlantı hatası: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        message: isCorsError 
+          ? `CORS hatası: Backend CORS ayarlarını kontrol edin`
+          : `Bağlantı hatası: ${errorMessage}`,
+        data: { 
+          error: errorMessage,
+          endpoint: `${apiBaseUrl}${endpoint}`,
+          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown'
+        },
         duration,
       };
     }
