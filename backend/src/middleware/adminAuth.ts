@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -62,61 +63,95 @@ export async function adminAuthMiddleware(req: Request, res: Response, next: Nex
 // Super admin oluşturma fonksiyonu
 export async function createSuperAdmin() {
   try {
-    const existingSuperAdmin = await prisma.user.findFirst({
-      where: { role: 'SUPER_ADMIN' }
+    // Super admin için özel tenant'ı bul veya oluştur
+    let superTenant = await prisma.tenant.findUnique({
+      where: { slug: 'system-admin' }
     })
 
-    if (existingSuperAdmin) {
-      console.log('Super admin zaten mevcut')
-      return
+    if (!superTenant) {
+      superTenant = await prisma.tenant.create({
+        data: {
+          name: 'System Admin',
+          slug: 'system-admin',
+          domain: 'admin.roomxr.com',
+          isActive: true,
+          settings: {
+            theme: {
+              primaryColor: '#1f2937',
+              secondaryColor: '#f3f4f6'
+            },
+            currency: 'TRY',
+            language: 'tr'
+          }
+        }
+      })
+      console.log('✅ System admin tenant oluşturuldu')
     }
 
-    // Super admin için özel tenant oluştur
-    const superTenant = await prisma.tenant.create({
-      data: {
-        name: 'System Admin',
-        slug: 'system-admin',
-        domain: 'admin.roomxr.com',
-        isActive: true,
-        settings: {
-          theme: {
-            primaryColor: '#1f2937',
-            secondaryColor: '#f3f4f6'
-          },
-          currency: 'TRY',
-          language: 'tr'
+    // Super admin için özel otel'i bul veya oluştur
+    let superHotel = await prisma.hotel.findFirst({
+      where: { tenantId: superTenant.id }
+    })
+
+    if (!superHotel) {
+      superHotel = await prisma.hotel.create({
+        data: {
+          name: 'System Hotel',
+          address: 'System Address',
+          phone: '000-000-0000',
+          email: 'admin@system.com',
+          tenantId: superTenant.id
         }
-      }
-    })
+      })
+      console.log('✅ System admin hotel oluşturuldu')
+    }
 
-    // Super admin için özel otel oluştur
-    const superHotel = await prisma.hotel.create({
-      data: {
-        name: 'System Hotel',
-        address: 'System Address',
-        phone: '000-000-0000',
-        email: 'admin@system.com',
-        tenantId: superTenant.id
-      }
-    })
+    // Şifreyi hash'le
+    const hashedPassword = await bcrypt.hash('01528797Mb##', 10)
 
-    // Super admin kullanıcısı oluştur
-    const superAdmin = await prisma.user.create({
-      data: {
-        email: 'admin@roomxr.com',
-        password: 'admin123', // Production'da hash'lenmeli
-        firstName: 'Super',
-        lastName: 'Admin',
+    // Super admin kullanıcısını bul veya oluştur/güncelle
+    const existingSuperAdmin = await prisma.user.findFirst({
+      where: { 
         role: 'SUPER_ADMIN',
-        tenantId: superTenant.id,
-        hotelId: superHotel.id
+        email: 'roomxqr-admin@roomxqr.com'
       }
     })
 
-    console.log('Super admin oluşturuldu:', superAdmin.email)
+    let superAdmin
+    if (existingSuperAdmin) {
+      // Mevcut super admin'i güncelle
+      superAdmin = await prisma.user.update({
+        where: { id: existingSuperAdmin.id },
+        data: {
+          email: 'roomxqr-admin@roomxqr.com',
+          password: hashedPassword,
+          firstName: 'RoomXQR',
+          lastName: 'Admin',
+          role: 'SUPER_ADMIN',
+          tenantId: superTenant.id,
+          hotelId: superHotel.id
+        }
+      })
+      console.log('✅ Super admin güncellendi:', superAdmin.email)
+    } else {
+      // Yeni super admin oluştur
+      superAdmin = await prisma.user.create({
+        data: {
+          email: 'roomxqr-admin@roomxqr.com',
+          password: hashedPassword,
+          firstName: 'RoomXQR',
+          lastName: 'Admin',
+          role: 'SUPER_ADMIN',
+          tenantId: superTenant.id,
+          hotelId: superHotel.id
+        }
+      })
+      console.log('✅ Super admin oluşturuldu:', superAdmin.email)
+    }
+
     return superAdmin
   } catch (error) {
-    console.error('Super admin oluşturma hatası:', error)
+    console.error('❌ Super admin oluşturma hatası:', error)
     throw error
   }
 }
