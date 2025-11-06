@@ -1018,6 +1018,67 @@ app.use('*', (req: Request, res: Response) => {
   res.status(404).json({ message: 'Route not found' })
 })
 
+// Demo tenant oluşturma fonksiyonu (seed yerine)
+async function createDemoTenant() {
+  try {
+    // Demo tenant'ı kontrol et
+    const existingTenant = await prisma.tenant.findUnique({
+      where: { slug: 'demo' }
+    })
+
+    if (existingTenant) {
+      console.log('✅ Demo tenant zaten mevcut')
+      return existingTenant
+    }
+
+    console.log('🌱 Demo tenant oluşturuluyor...')
+
+    // Demo tenant oluştur
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: 'Demo İşletme',
+        slug: 'demo',
+        domain: 'demo.roomxr.com',
+        isActive: true,
+        settings: {
+          theme: {
+            primaryColor: '#D4AF37',
+            secondaryColor: '#f3f4f6'
+          },
+          currency: 'TRY',
+          language: 'tr'
+        }
+      }
+    })
+
+    console.log('✅ Demo tenant oluşturuldu:', tenant.name)
+
+    // Demo hotel oluştur
+    const hotel = await prisma.hotel.upsert({
+      where: { id: 'demo-hotel' },
+      update: {},
+      create: {
+        id: 'demo-hotel',
+        name: 'Demo Otel',
+        address: 'Demo Adres, İstanbul',
+        phone: '+90 212 555 0123',
+        email: 'info@demo-otel.com',
+        website: 'https://demo-otel.com',
+        isActive: true,
+        tenantId: tenant.id
+      }
+    })
+
+    console.log('✅ Demo hotel oluşturuldu:', hotel.name)
+
+    return tenant
+  } catch (error) {
+    console.error('❌ Demo tenant oluşturma hatası:', error)
+    // Hata olsa bile devam et
+    return null
+  }
+}
+
 // Start server
 server.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`)
@@ -1030,6 +1091,13 @@ server.listen(PORT, async () => {
     console.log('✅ Super admin hazır')
   } catch (error) {
     console.error('❌ Super admin oluşturma hatası:', error)
+  }
+
+  // Demo tenant oluştur (test için)
+  try {
+    await createDemoTenant()
+  } catch (error) {
+    console.error('❌ Demo tenant oluşturma hatası:', error)
   }
 })
 
