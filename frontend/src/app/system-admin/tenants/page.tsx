@@ -194,9 +194,9 @@ export default function TenantManagement() {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Restoran Yönetimi</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">İşletme Yönetimi</h1>
             <p className="mt-2 text-sm text-gray-600">
-              Tüm restoranları yönetin, özelliklerini kontrol edin ve toplu işlemler yapın
+              Tüm işletmeleri yönetin, özelliklerini kontrol edin ve toplu işlemler yapın
             </p>
         </div>
           <div className="mt-4 sm:mt-0 flex space-x-3">
@@ -210,7 +210,7 @@ export default function TenantManagement() {
             </button>
             <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
           <Plus className="w-4 h-4 mr-2" />
-          Restoran Ekle
+          Yeni İşletme
         </button>
           </div>
         </div>
@@ -224,11 +224,11 @@ export default function TenantManagement() {
               <Building2 className="w-6 h-6 text-white" />
             </div>
             <div className="ml-4 flex-1">
-              <p className="text-sm font-medium text-gray-600">Toplam Restoran</p>
+              <p className="text-sm font-medium text-gray-600">Toplam İşletme</p>
               <div className="flex items-baseline">
                 <p className="text-2xl font-bold text-gray-900">{totalTenants}</p>
               </div>
-              <p className="text-xs text-gray-500 mt-1">{totalTenants} restoran kayıtlı</p>
+              <p className="text-xs text-gray-500 mt-1">{totalTenants} işletme kayıtlı</p>
             </div>
           </div>
         </div>
@@ -239,11 +239,11 @@ export default function TenantManagement() {
               <Activity className="w-6 h-6 text-white" />
             </div>
             <div className="ml-4 flex-1">
-              <p className="text-sm font-medium text-gray-600">Aktif Restoran</p>
+              <p className="text-sm font-medium text-gray-600">Aktif İşletme</p>
               <div className="flex items-baseline">
                 <p className="text-2xl font-bold text-gray-900">{activeTenants}</p>
               </div>
-              <p className="text-xs text-gray-500 mt-1">{activeTenants} aktif restoran</p>
+              <p className="text-xs text-gray-500 mt-1">{activeTenants} aktif işletme</p>
             </div>
           </div>
         </div>
@@ -315,7 +315,7 @@ export default function TenantManagement() {
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
-              Restoranlar ({filteredTenants.length})
+              İşletmeler ({filteredTenants.length})
             </h3>
             <div className="flex items-center space-x-2">
               <input
