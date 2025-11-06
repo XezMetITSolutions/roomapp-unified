@@ -25,9 +25,12 @@ const io = new Server(server, {
     origin: [
       process.env.FRONTEND_URL || "http://localhost:3000",
       "http://localhost:3000",
-      "https://roomxqr-frontend.onrender.com"
+      "https://roomxqr-frontend.onrender.com",
+      "https://roomxqr.com"
     ],
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
   }
 })
 
@@ -79,7 +82,7 @@ interface RequestItem {
 
 // Security middleware
 app.use(helmet())
-app.use(cors({
+const corsOptions: cors.CorsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true)
@@ -103,8 +106,15 @@ app.use(cors({
     
     callback(new Error('CORS policy violation'))
   },
-  credentials: true
-}))
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  optionsSuccessStatus: 204
+}
+
+app.use(cors(corsOptions))
+// Explicitly handle preflight requests for all routes
+app.options('*', cors(corsOptions))
 
 // Rate limiting
 const limiter = rateLimit({
