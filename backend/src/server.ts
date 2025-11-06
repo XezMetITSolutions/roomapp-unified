@@ -27,7 +27,8 @@ const io = new Server(server, {
       "http://localhost:3000",
       "https://roomapp-frontend.onrender.com",
       "https://roomxqr-frontend.onrender.com",
-      "https://roomxr.com"
+      "https://roomxr.com",
+      "https://roomxqr.com"
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -94,11 +95,17 @@ const corsOptions: cors.CorsOptions = {
       "http://localhost:3000",
       "https://roomapp-frontend.onrender.com",
       "https://roomxqr-frontend.onrender.com",
-      "https://roomxr.com"
+      "https://roomxr.com",
+      "https://roomxqr.com"
     ]
     
     // Allow subdomains of roomxr.com
     if (origin.endsWith('.roomxr.com')) {
+      return callback(null, true)
+    }
+    
+    // Allow subdomains of roomxqr.com
+    if (origin.endsWith('.roomxqr.com')) {
       return callback(null, true)
     }
     
