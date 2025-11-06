@@ -233,16 +233,16 @@ app.get('/health', async (req: Request, res: Response) => {
 // Debug endpoint - Migration çalıştır
 app.post('/debug/migrate', async (req: Request, res: Response) => {
   try {
-    console.log('🔄 Manual migration başlatılıyor...')
+    console.log('🔄 Manual migration baslatiliyor...')
     const { execSync } = require('child_process')
     const output = execSync('npx prisma migrate deploy', { 
       encoding: 'utf8',
       cwd: process.cwd()
     })
-    console.log('✅ Migration çıktısı:', output)
+    console.log('✅ Migration ciktisi:', output)
     res.status(200).json({
       success: true,
-      message: 'Migration\'lar başarıyla çalıştırıldı',
+      message: 'Migrations basariyla calistirildi',
       output: output
     })
   } catch (error: any) {
@@ -1204,7 +1204,7 @@ async function createDemoTenant() {
 // Migration kontrolü ve çalıştırma
 async function runMigrations() {
   try {
-    console.log('🔄 Database migration'ları kontrol ediliyor...')
+    console.log('🔄 Database migrations kontrol ediliyor...')
     // Prisma migration'larını programatik olarak çalıştır
     const { execSync } = require('child_process')
     try {
@@ -1212,13 +1212,13 @@ async function runMigrations() {
         stdio: 'inherit',
         cwd: process.cwd()
       })
-      console.log('✅ Migration'lar başarıyla çalıştırıldı')
+      console.log('✅ Migrations basariyla calistirildi')
     } catch (migrateError) {
-      console.error('⚠️ Migration çalıştırma hatası (devam ediliyor):', migrateError)
+      console.error('⚠️ Migration calistirma hatasi (devam ediliyor):', migrateError)
       // Migration hatası olsa bile devam et - belki zaten çalıştırılmış
     }
   } catch (error) {
-    console.error('❌ Migration fonksiyonu hatası:', error)
+    console.error('❌ Migration fonksiyonu hatasi:', error)
     // Migration hatası olsa bile devam et
   }
 }
