@@ -22,14 +22,24 @@ const app = express()
 const server = createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      "http://localhost:3000",
-      "https://roomapp-frontend.onrender.com",
-      "https://roomxqr-frontend.onrender.com",
-      "https://roomxr.com",
-      "https://roomxqr.com"
-    ],
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Allow requests with no origin
+      if (!origin) {
+        return callback(null, true)
+      }
+      
+      const normalizedOrigin = origin.replace(/\/$/, '')
+      
+      // Allow all roomxqr.com and roomxr.com domains
+      if (normalizedOrigin.includes('roomxqr.com') || 
+          normalizedOrigin.includes('roomxr.com') ||
+          normalizedOrigin.includes('onrender.com') ||
+          normalizedOrigin.includes('localhost')) {
+        return callback(null, true)
+      }
+      
+      callback(new Error('Not allowed by CORS'))
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
@@ -116,12 +126,12 @@ const corsOptions: cors.CorsOptions = {
     const normalizedAllowedOrigins = allowedOrigins.map(o => o.replace(/\/$/, ''))
     
     // Allow subdomains of roomxr.com
-    if (normalizedOrigin.endsWith('.roomxr.com') || normalizedOrigin === 'roomxr.com') {
+    if (normalizedOrigin.endsWith('.roomxr.com') || normalizedOrigin.includes('roomxr.com')) {
       return callback(null, true)
     }
     
     // Allow subdomains of roomxqr.com
-    if (normalizedOrigin.endsWith('.roomxqr.com') || normalizedOrigin === 'roomxqr.com') {
+    if (normalizedOrigin.endsWith('.roomxqr.com') || normalizedOrigin.includes('roomxqr.com')) {
       return callback(null, true)
     }
     

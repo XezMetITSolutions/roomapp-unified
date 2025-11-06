@@ -1,0 +1,87 @@
+═══════════════════════════════════════════════════════════════
+  CORS FIX - DEPLOYMENT COMMANDS
+═══════════════════════════════════════════════════════════════
+
+STEP 1: COMMIT AND PUSH CHANGES
+────────────────────────────────────────────────────────────────
+
+cd "c:\Users\IT Admin\Downloads\Yeni\roomapp-unified"
+
+git status
+
+git add backend/src/server.ts
+git add backend/render.yaml
+git add frontend/render.yaml
+
+git commit -m "Fix CORS configuration for production deployment
+
+- Updated CORS origin validation to use .includes() instead of exact match
+- Fixed Socket.IO CORS configuration with dynamic origin function
+- Updated backend FRONTEND_URL to https://roomxqr.com
+- Updated frontend API URL to https://roomapp-backend.onrender.com
+- Added missing frontend environment variables"
+
+git push origin main
+
+
+STEP 2: DEPLOY ON RENDER.COM
+────────────────────────────────────────────────────────────────
+
+1. Open browser: https://dashboard.render.com
+
+2. Deploy Backend:
+   - Click on "roomapp-backend" service
+   - Click "Manual Deploy" button
+   - Select "Deploy latest commit"
+   - Wait for deployment to complete (~3-5 minutes)
+
+3. Deploy Frontend:
+   - Click on "roomxqr-frontend" service
+   - Click "Manual Deploy" button
+   - Select "Deploy latest commit"
+   - Wait for deployment to complete (~5-10 minutes)
+
+
+STEP 3: VERIFY DEPLOYMENT
+────────────────────────────────────────────────────────────────
+
+1. Open browser: https://roomxqr.com/debug
+
+2. Check all items show ✅:
+   ✅ Backend Health Check
+   ✅ Veritabanı Bağlantısı
+   ✅ GET /api/menu
+   ✅ GET /api/rooms
+   ✅ GET /api/guests
+   ✅ GET /api/requests
+   ✅ Socket.IO Bağlantısı
+
+3. Test main application: https://roomxqr.com
+
+
+ALTERNATIVE: MANUAL ENV VARIABLE UPDATE (if needed)
+────────────────────────────────────────────────────────────────
+
+If render.yaml is not being used, manually set these in Render Dashboard:
+
+Backend Environment Variables:
+  FRONTEND_URL=https://roomxqr.com
+  NODE_ENV=production
+  JWT_SECRET=57a5b92f247c21ee7b45982adf802015
+  PORT=3001
+  DATABASE_URL=postgresql://roomapp_db_user:5e7JWCOAeMJeo5TmAjF5RdDSwpLh7zND@dpg-d3um8vuuk2gs73dvv5kg-a/roomapp_db
+  DIRECT_URL=postgresql://roomapp_db_user:5e7JWCOAeMJeo5TmAjF5RdDSwpLh7zND@dpg-d3um8vuuk2gs73dvv5kg-a/roomapp_db
+  MAX_FILE_SIZE=10485760
+  UPLOAD_PATH=./uploads
+
+Frontend Environment Variables:
+  NODE_ENV=production
+  NEXT_PUBLIC_API_URL=https://roomapp-backend.onrender.com
+  NEXT_PUBLIC_BASE_DOMAIN=roomxqr.com
+  NEXT_PUBLIC_FRONTEND_URL=roomxqr.com
+  HUSKY=0
+
+
+═══════════════════════════════════════════════════════════════
+  END OF DEPLOYMENT COMMANDS
+═══════════════════════════════════════════════════════════════
