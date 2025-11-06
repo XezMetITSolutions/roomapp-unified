@@ -53,6 +53,14 @@ export async function login(req: Request, res: Response) {
       return
     }
 
+    // Tenant kontrolü
+    if (!user.tenant) {
+      res.status(403).json({ 
+        message: 'Kullanıcı tenant bilgisi bulunamadı' 
+      })
+      return
+    }
+
     if (!user.tenant.isActive) {
       res.status(403).json({ 
         message: 'İşletme hesabı aktif değil' 
@@ -60,7 +68,8 @@ export async function login(req: Request, res: Response) {
       return
     }
 
-    if (!user.hotel.isActive) {
+    // Hotel kontrolü (opsiyonel - super admin için olmayabilir)
+    if (user.hotel && !user.hotel.isActive) {
       res.status(403).json({ 
         message: 'Otel hesabı aktif değil' 
       })
@@ -92,16 +101,16 @@ export async function login(req: Request, res: Response) {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      permissions: user.permissions.map((p: any) => p.pageName),
+      permissions: user.permissions ? user.permissions.map((p: any) => p.pageName) : [],
       tenant: {
         id: user.tenant.id,
         name: user.tenant.name,
         slug: user.tenant.slug
       },
-      hotel: {
+      hotel: user.hotel ? {
         id: user.hotel.id,
         name: user.hotel.name
-      }
+      } : null
     }
 
     res.json({
