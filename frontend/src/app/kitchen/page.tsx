@@ -267,13 +267,6 @@ export default function KitchenPanel() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowMenuModal(true)}
-                className="bg-hotel-gold text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Menü Yönetimi</span>
-              </button>
               <select
                 value={currentLanguage}
                 onChange={(e) => setCurrentLanguage(e.target.value as Language)}
