@@ -1,0 +1,106 @@
+═══════════════════════════════════════════════════════════════
+  503 HATASI - HIZLI ÇÖZÜM
+═══════════════════════════════════════════════════════════════
+
+SORUN: https://roomxqr.com/debug → HTTP ERROR 503
+
+NEDEN: Frontend servisi çalışmıyor veya build hatası var
+
+═══════════════════════════════════════════════════════════════
+  HEMEN YAPILACAKLAR (5 DAKİKA)
+═══════════════════════════════════════════════════════════════
+
+1. RENDER.COM'A GİRİN
+   → https://dashboard.render.com
+
+2. FRONTEND SERVİSİNİ BULUN
+   → "roomxqr-frontend" veya benzeri isimli servisi arayın
+
+3. SERVİS DURUMUNU KONTROL EDİN
+   → 🟢 Live mi?
+   → 🔴 Failed mi?
+   → 🟡 Deploying mi?
+
+4. LOGS'A BAKIN (EN ÖNEMLİ!)
+   → "Logs" sekmesine tıklayın
+   → Son 50 satırı okuyun
+   → Hata mesajı var mı?
+
+5. YENİDEN DEPLOY EDİN
+   → "Manual Deploy" butonuna tıklayın
+   → "Clear build cache & deploy" seçin
+   → 5-10 dakika bekleyin
+
+6. TEST EDİN
+   → https://roomxqr.com/debug
+   → Sayfa açılmalı
+
+═══════════════════════════════════════════════════════════════
+  ALTERNATIF TEST
+═══════════════════════════════════════════════════════════════
+
+Render'ın kendi URL'sini deneyin:
+→ https://roomxqr-frontend.onrender.com/debug
+
+Eğer bu çalışıyorsa:
+  ✓ Frontend servisi çalışıyor
+  ✗ Domain (roomxqr.com) ayarları yanlış
+
+Eğer bu da çalışmıyorsa:
+  ✗ Frontend servisi çalışmıyor
+  → Logs'a bakın ve hatayı bulun
+
+═══════════════════════════════════════════════════════════════
+  KONTROL EDİLECEK ENVIRONMENT VARIABLES
+═══════════════════════════════════════════════════════════════
+
+Render Dashboard → Frontend Service → Environment
+
+Şunlar olmalı:
+  NODE_ENV=production
+  NEXT_PUBLIC_API_URL=https://roomapp-backend.onrender.com
+  NEXT_PUBLIC_BASE_DOMAIN=roomxqr.com
+  NEXT_PUBLIC_FRONTEND_URL=roomxqr.com
+  HUSKY=0
+
+═══════════════════════════════════════════════════════════════
+  BAŞARILI BUILD LOGLARI BÖYLE GÖRÜNÜR
+═══════════════════════════════════════════════════════════════
+
+✓ Compiled successfully
+✓ Linting and checking validity of types
+✓ Collecting page data
+✓ Generating static pages (XX/XX)
+✓ Finalizing page optimization
+✓ Collecting build traces
+
+Route (app)                        Size     First Load JS
+┌ ○ /                              XXX kB   XXX kB
+└ ○ /debug                         XXX kB   XXX kB
+
+○  (Static)  prerendered as static content
+
+═══════════════════════════════════════════════════════════════
+  BAŞARISIZ BUILD LOGLARI BÖYLE GÖRÜNÜR
+═══════════════════════════════════════════════════════════════
+
+✗ Failed to compile
+./src/...
+Error: ...
+TypeError: ...
+Build failed
+
+═══════════════════════════════════════════════════════════════
+  ÖZET
+═══════════════════════════════════════════════════════════════
+
+1. Render.com'a git
+2. Frontend servisini bul
+3. Logs'a bak
+4. "Clear build cache & deploy" yap
+5. 5-10 dakika bekle
+6. Test et: https://roomxqr.com/debug
+
+Hala çalışmıyorsa → Logs'taki hata mesajlarını paylaş
+
+═══════════════════════════════════════════════════════════════

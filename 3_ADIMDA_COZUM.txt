@@ -1,0 +1,49 @@
+═══════════════════════════════════════════════════════════════
+  3 ADIMDA CORS SORUNUNU ÇÖZ
+═══════════════════════════════════════════════════════════════
+
+SORUN: CORS hatası hala devam ediyor
+NEDEN: Backend Render.com'da yeni kodla deploy edilmemiş!
+
+═══════════════════════════════════════════════════════════════
+  ADIM 1: RENDER.COM'A GİT
+═══════════════════════════════════════════════════════════════
+
+https://dashboard.render.com
+
+Giriş yap ve backend servisini bul:
+  → "roomapp-backend" veya benzeri isimli servisi aç
+
+═══════════════════════════════════════════════════════════════
+  ADIM 2: DEPLOY YAP
+═══════════════════════════════════════════════════════════════
+
+1. "Manual Deploy" butonuna tıkla
+2. "Deploy latest commit" seç
+3. 3-5 dakika bekle
+
+Deploy sırasında logları izle:
+  ✓ npm install
+  ✓ npm run build
+  ✓ npm start
+  ✓ "Database connected successfully" mesajını gör
+
+═══════════════════════════════════════════════════════════════
+  ADIM 3: TEST ET
+═══════════════════════════════════════════════════════════════
+
+https://roomxqr.com/debug
+
+Tüm checkler ✅ olmalı!
+
+═══════════════════════════════════════════════════════════════
+  ÖZET
+═══════════════════════════════════════════════════════════════
+
+✅ Kod GitHub'da hazır (Commit: 5d4b6c1)
+✅ CORS düzeltmeleri yapıldı
+❌ Render.com'da deploy edilmedi
+
+YAPILACAK: Sadece Render'da "Deploy" butonuna bas!
+
+═══════════════════════════════════════════════════════════════
