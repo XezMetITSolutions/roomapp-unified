@@ -13,7 +13,7 @@ export default function AdminLogin() {
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend.onrender.com';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.roomxr.com';
 
   useEffect(() => {
     const remembered = localStorage.getItem('admin_remembered_email');
@@ -100,7 +100,7 @@ export default function AdminLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="admin@roomxqr.com"
+                  placeholder="admin@roomxr.com"
                 />
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function AdminLogin() {
             <div className="mt-6 bg-gray-50 rounded-md p-4">
               <div className="text-sm text-gray-600">
                 <p className="font-medium mb-2">Test Hesabı:</p>
-                <p><strong>Email:</strong> admin@roomxqr.com</p>
+                <p><strong>Email:</strong> admin@roomxr.com</p>
                 <p><strong>Şifre:</strong> admin123</p>
               </div>
             </div>

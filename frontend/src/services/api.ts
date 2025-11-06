@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 
 // API kökünü normalle: ENV kök domain ise '/api' ekle, zaten '/api' içeriyorsa olduğu gibi kullan
-const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend.onrender.com';
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.roomxr.com';
 const API_BASE_URL = /\/api\/?$/.test(RAW_API_BASE)
   ? RAW_API_BASE.replace(/\/$/, '')
   : `${RAW_API_BASE.replace(/\/$/, '')}/api`;
@@ -228,7 +228,7 @@ export class ApiService {
   // WebSocket bağlantısı (gerçek zamanlı güncellemeler için)
   static connectWebSocket(roomId: string, onMessage: (data: any) => void): WebSocket | null {
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://roomapp-backend.onrender.com';
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://api.roomxr.com';
       const ws = new WebSocket(`${wsUrl}/ws?roomId=${roomId}`);
       
       ws.onopen = () => console.log('WebSocket connected');

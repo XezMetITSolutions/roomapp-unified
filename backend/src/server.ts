@@ -26,7 +26,7 @@ const io = new Server(server, {
       process.env.FRONTEND_URL || "http://localhost:3000",
       "http://localhost:3000",
       "https://roomxqr-frontend.onrender.com",
-      "https://roomxqr.com"
+      "https://roomxr.com"
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -92,11 +92,11 @@ const corsOptions: cors.CorsOptions = {
       process.env.FRONTEND_URL || "http://localhost:3000",
       "http://localhost:3000",
       "https://roomxqr-frontend.onrender.com",
-      "https://roomxqr.com"
+      "https://roomxr.com"
     ]
     
-    // Allow subdomains of roomxqr.com
-    if (origin.endsWith('.roomxqr.com')) {
+    // Allow subdomains of roomxr.com
+    if (origin.endsWith('.roomxr.com')) {
       return callback(null, true)
     }
     
@@ -659,7 +659,7 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
         id: tenant.id,
         name: tenant.name,
         slug: tenant.slug,
-        url: `https://${tenant.slug}.roomxqr.com`
+        url: `https://${tenant.slug}.roomxr.com`
       },
       hotel: {
         id: hotel.id,

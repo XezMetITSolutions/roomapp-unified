@@ -13,7 +13,7 @@ async function main() {
     create: {
       name: 'Demo İşletme',
       slug: 'demo',
-      domain: 'demo.roomxqr.com',
+      domain: 'demo.roomxr.com',
       isActive: true,
       settings: {
         theme: {

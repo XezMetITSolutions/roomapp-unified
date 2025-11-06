@@ -42,17 +42,17 @@ export default function SystemSettings() {
     email: {
       smtpHost: 'smtp.gmail.com',
       smtpPort: 587,
-      smtpUsername: 'noreply@roomxqr.com',
+      smtpUsername: 'noreply@roomxr.com',
       smtpPassword: '••••••••',
       fromName: 'RoomXQR Support',
-      fromEmail: 'support@roomxqr.com'
+      fromEmail: 'support@roomxr.com'
     },
     security: {
       sessionTimeout: 30,
       maxLoginAttempts: 5,
       passwordMinLength: 8,
       requireTwoFactor: false,
-      allowedDomains: ['roomxqr.com', 'localhost'],
+      allowedDomains: ['roomxr.com', 'localhost'],
       apiKey: 'sk_live_••••••••••••••••••••••••••••••••'
     },
     notifications: {

@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 
-const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend.onrender.com';
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.roomxr.com';
 const API_BASE = /\/api\/?$/.test(RAW_API_BASE)
   ? RAW_API_BASE.replace(/\/$/, '')
   : `${RAW_API_BASE.replace(/\/$/, '')}`;

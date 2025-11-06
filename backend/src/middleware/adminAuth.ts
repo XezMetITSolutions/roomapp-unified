@@ -76,7 +76,7 @@ export async function createSuperAdmin() {
       data: {
         name: 'System Admin',
         slug: 'system-admin',
-        domain: 'admin.roomxqr.com',
+        domain: 'admin.roomxr.com',
         isActive: true,
         settings: {
           theme: {
@@ -103,7 +103,7 @@ export async function createSuperAdmin() {
     // Super admin kullanıcısı oluştur
     const superAdmin = await prisma.user.create({
       data: {
-        email: 'admin@roomxqr.com',
+        email: 'admin@roomxr.com',
         password: 'admin123', // Production'da hash'lenmeli
         firstName: 'Super',
         lastName: 'Admin',

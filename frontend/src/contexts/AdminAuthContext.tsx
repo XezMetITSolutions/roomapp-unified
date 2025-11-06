@@ -37,7 +37,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend.onrender.com';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.roomxr.com';
 
   // Admin kontrolü
   const isAdmin = user?.role === 'SUPER_ADMIN';
@@ -152,7 +152,7 @@ export function useAdminAuth() {
 export const adminApiClient = {
   async request(endpoint: string, options: RequestInit = {}) {
     const token = localStorage.getItem('admin_token');
-    const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend.onrender.com'}${endpoint}`;
+    const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://api.roomxr.com'}${endpoint}`;
     
     const headers = {
       'Content-Type': 'application/json',

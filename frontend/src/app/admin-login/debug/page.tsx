@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 
 export default function AdminLoginDebug() {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend.onrender.com';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.roomxr.com';
   const [results, setResults] = useState<Array<{ name: string; ok: boolean; status?: number; data?: any; error?: string }>>([]);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function AdminLoginDebug() {
           const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
             method: 'OPTIONS',
             headers: {
-              'Origin': typeof window !== 'undefined' ? window.location.origin : 'https://roomxqr.com',
+              'Origin': typeof window !== 'undefined' ? window.location.origin : 'https://roomxr.com',
               'Access-Control-Request-Method': 'POST',
             } as any,
           } as RequestInit);
@@ -68,7 +68,7 @@ export default function AdminLoginDebug() {
           const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'admin@roomxqr.com', password: 'wrong' })
+            body: JSON.stringify({ email: 'admin@roomxr.com', password: 'wrong' })
           });
           const data = await res.json().catch(() => ({}));
           push({ name: 'POST /api/auth/login', ok: res.ok, status: res.status, data });

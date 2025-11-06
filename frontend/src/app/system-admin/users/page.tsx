@@ -37,7 +37,7 @@ export default function UserManagement() {
       id: '1',
       firstName: 'Ahmet',
       lastName: 'Yılmaz',
-      email: 'ahmet@roomxqr.com',
+      email: 'ahmet@roomxr.com',
       phone: '+90 555 123 4567',
       role: 'ADMIN',
       status: 'active',
