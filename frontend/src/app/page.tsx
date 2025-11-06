@@ -957,6 +957,9 @@ export default function HomePage() {
             <button onClick={() => router.push('/guest/demo')} className="px-8 py-4 md:px-12 md:py-6 rounded-xl md:rounded-2xl text-base md:text-xl font-bold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all duration-200 backdrop-blur-sm hover:scale-105">
               👀 Canlı QR Demo
             </button>
+            <button onClick={() => router.push('/paneller')} className="px-8 py-4 md:px-12 md:py-6 rounded-xl md:rounded-2xl text-base md:text-xl font-bold text-white border-2 border-white/30 hover:bg-white hover:text-slate-900 transition-all duration-200 backdrop-blur-sm hover:scale-105">
+              🧭 Panelleri Görüntüle
+            </button>
           </div>
         </div>
       </div>
