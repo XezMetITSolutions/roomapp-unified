@@ -62,12 +62,15 @@ export default function AdminLoginDebug() {
         }
       })());
 
-      // 3) Login endpoint’e POST (dummy) – sadece ağ hatası ve CORS’i gözlemek için
+      // 3) Login endpoint'e POST (dummy) – sadece ağ hatası ve CORS'i gözlemek için
       steps.push((async () => {
         try {
           const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'x-tenant': 'system-admin' // Super admin için system-admin tenant'ı
+            },
             body: JSON.stringify({ email: 'admin@roomxr.com', password: 'wrong' })
           });
           const data = await res.json().catch(() => ({}));

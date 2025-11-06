@@ -38,6 +38,7 @@ export default function AdminLogin() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-tenant': 'system-admin', // Super admin için system-admin tenant'ı
         },
         body: JSON.stringify({ email, password }),
       });

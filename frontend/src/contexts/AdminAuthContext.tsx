@@ -51,6 +51,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-tenant': 'system-admin', // Super admin için system-admin tenant'ı
         },
         body: JSON.stringify({ email, password }),
       });
@@ -156,6 +157,7 @@ export const adminApiClient = {
     
     const headers = {
       'Content-Type': 'application/json',
+      'x-tenant': 'system-admin', // Super admin için system-admin tenant'ı
       ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     };
