@@ -20,6 +20,7 @@ export default function DebugPage() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [apiBaseUrl, setApiBaseUrl] = useState(defaultApiUrl);
+  const [tenantSlug, setTenantSlug] = useState('demo'); // Default tenant slug (seed'de oluşturulur)
   const [envVars, setEnvVars] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -193,9 +194,18 @@ export default function DebugPage() {
   const testApiEndpoint = async (endpoint: string, method: string = 'GET', body?: any): Promise<TestResult> => {
     const startTime = Date.now();
     try {
+      const headers: Record<string, string> = { 
+        'Content-Type': 'application/json',
+      };
+      
+      // x-tenant header'ını ekle (API endpoint'leri için gerekli)
+      if (endpoint.startsWith('/api/') && tenantSlug) {
+        headers['x-tenant'] = tenantSlug;
+      }
+      
       const options: RequestInit = {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         mode: 'cors',
         credentials: 'include',
       };
@@ -428,19 +438,36 @@ export default function DebugPage() {
         {/* API Base URL Input */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">⚙️ Ayarlar</h2>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Backend API Base URL:
-            </label>
-            <input
-              type="text"
-              value={apiBaseUrl}
-              onChange={(e) => setApiBaseUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder={typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-                ? 'https://roomapp-backend.onrender.com' 
-                : 'http://localhost:3001'}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Backend API Base URL:
+              </label>
+              <input
+                type="text"
+                value={apiBaseUrl}
+                onChange={(e) => setApiBaseUrl(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder={typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+                  ? 'https://roomapp-backend-1.onrender.com' 
+                  : 'http://localhost:3001'}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tenant Slug (x-tenant header):
+              </label>
+              <input
+                type="text"
+                value={tenantSlug}
+                onChange={(e) => setTenantSlug(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="default"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                API endpoint'leri için gerekli. Varsayılan: "demo" (seed ile oluşturulur). Veritabanında mevcut bir tenant slug'ı girin.
+              </p>
+            </div>
           </div>
         </div>
 
