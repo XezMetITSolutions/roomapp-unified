@@ -11,9 +11,15 @@ interface TestResult {
 }
 
 export default function DebugPage() {
+  // Environment variable'dan API URL'ini al, yoksa Render backend URL'ini kullan
+  const defaultApiUrl = process.env.NEXT_PUBLIC_API_URL || 
+    (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+      ? 'https://roomapp-backend.onrender.com' 
+      : 'http://localhost:3001');
+  
   const [results, setResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [apiBaseUrl, setApiBaseUrl] = useState('http://localhost:3001');
+  const [apiBaseUrl, setApiBaseUrl] = useState(defaultApiUrl);
   const [envVars, setEnvVars] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -22,6 +28,11 @@ export default function DebugPage() {
       'NEXT_PUBLIC_API_URL': process.env.NEXT_PUBLIC_API_URL || 'Not set',
       'NODE_ENV': process.env.NODE_ENV || 'Not set',
     });
+    
+    // API URL'ini environment variable'dan güncelle
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      setApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+    }
   }, []);
 
   const addResult = (result: TestResult) => {
@@ -313,7 +324,9 @@ export default function DebugPage() {
               value={apiBaseUrl}
               onChange={(e) => setApiBaseUrl(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="http://localhost:3001"
+              placeholder={typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+                ? 'https://roomapp-backend.onrender.com' 
+                : 'http://localhost:3001'}
             />
           </div>
         </div>
