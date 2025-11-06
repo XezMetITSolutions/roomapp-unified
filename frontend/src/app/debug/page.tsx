@@ -46,29 +46,63 @@ export default function DebugPage() {
   const testBackendHealth = async (): Promise<TestResult> => {
     const startTime = Date.now();
     try {
-      const response = await fetch(`${apiBaseUrl}/health`, {
+      const requestUrl = `${apiBaseUrl}/health`;
+      const requestHeaders = { 
+        'Content-Type': 'application/json',
+        'Origin': typeof window !== 'undefined' ? window.location.origin : 'unknown'
+      };
+      
+      console.log('🔍 Backend Health Check başlatılıyor...');
+      console.log('📍 Request URL:', requestUrl);
+      console.log('📤 Request Headers:', requestHeaders);
+      console.log('🌐 Origin:', typeof window !== 'undefined' ? window.location.origin : 'unknown');
+      
+      const response = await fetch(requestUrl, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: requestHeaders,
         mode: 'cors',
+        credentials: 'include',
       });
       const duration = Date.now() - startTime;
       
+      console.log('📥 Response Status:', response.status, response.statusText);
+      console.log('📥 Response Headers:', Object.fromEntries(response.headers.entries()));
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Backend Health Check başarılı:', data);
         return {
           name: 'Backend Health Check',
           status: 'success',
           message: `Backend çalışıyor (${duration}ms)`,
-          data,
+          data: {
+            ...data,
+            _debug: {
+              requestUrl,
+              requestHeaders,
+              responseStatus: response.status,
+              responseHeaders: Object.fromEntries(response.headers.entries()),
+            }
+          },
           duration,
         };
       } else {
         const errorText = await response.text().catch(() => '');
+        console.log('❌ Backend Health Check hatası:', response.status, errorText);
         return {
           name: 'Backend Health Check',
           status: 'error',
           message: `Backend yanıt verdi ama hata: ${response.status} ${response.statusText}${errorText ? ` - ${errorText.substring(0, 100)}` : ''}`,
-          data: { status: response.status, statusText: response.statusText, error: errorText },
+          data: { 
+            status: response.status, 
+            statusText: response.statusText, 
+            error: errorText,
+            _debug: {
+              requestUrl,
+              requestHeaders,
+              responseHeaders: Object.fromEntries(response.headers.entries()),
+            }
+          },
           duration,
         };
       }
@@ -76,6 +110,14 @@ export default function DebugPage() {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
       const isCorsError = errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError');
+      
+      console.error('❌ Backend Health Check exception:', error);
+      console.error('🔍 Error details:', {
+        message: errorMessage,
+        isCorsError,
+        apiUrl: apiBaseUrl,
+        origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
+      });
       
       return {
         name: 'Backend Health Check',
@@ -85,8 +127,20 @@ export default function DebugPage() {
           : `Backend'e bağlanılamadı: ${errorMessage}`,
         data: { 
           error: errorMessage,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          isCorsError,
           apiUrl: apiBaseUrl,
-          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown'
+          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
+          possibleCauses: isCorsError ? [
+            'Backend servisi Render.com\'da deploy edilmedi',
+            'Backend CORS ayarları yanlış yapılandırılmış',
+            'Backend servisi çalışmıyor',
+            'Network bağlantı sorunu'
+          ] : [
+            'Backend servisi çalışmıyor',
+            'Network bağlantı sorunu',
+            'URL yanlış'
+          ]
         },
         duration,
       };
@@ -336,6 +390,40 @@ export default function DebugPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-4">🔧 RoomApp Debug & Test Sayfası</h1>
           <p className="text-lg text-gray-600">Backend, Frontend ve Veritabanı bağlantı testleri</p>
         </div>
+
+        {/* CORS Warning Banner */}
+        {errorCount > 0 && results.some(r => r.data?.isCorsError) && (
+          <div className="bg-red-100 border-2 border-red-500 rounded-lg p-6 mb-6">
+            <div className="flex items-start space-x-4">
+              <span className="text-4xl">🚨</span>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-red-900 mb-2">CORS Hatası Tespit Edildi!</h3>
+                <p className="text-red-800 mb-4">
+                  Backend servisi ile iletişim kurulamıyor. Bu genellikle şu nedenlerden biri olabilir:
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-red-800 mb-4">
+                  <li><strong>Backend Render.com'da deploy edilmedi</strong> (En olası neden)</li>
+                  <li>Backend CORS ayarları yanlış yapılandırılmış</li>
+                  <li>Backend servisi çalışmıyor</li>
+                  <li>Network bağlantı sorunu</li>
+                </ul>
+                <div className="bg-red-200 rounded p-4 mb-4">
+                  <p className="font-bold text-red-900 mb-2">✅ Çözüm Adımları:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-red-900">
+                    <li>Render.com Dashboard'a gidin: <a href="https://dashboard.render.com" target="_blank" rel="noopener noreferrer" className="underline font-bold">https://dashboard.render.com</a></li>
+                    <li>Backend servisini bulun (roomapp-backend)</li>
+                    <li>"Manual Deploy" → "Deploy latest commit" tıklayın</li>
+                    <li>3-5 dakika bekleyin</li>
+                    <li>Bu sayfayı yenileyin ve testleri tekrar çalıştırın</li>
+                  </ol>
+                </div>
+                <p className="text-sm text-red-700">
+                  <strong>Not:</strong> Kod GitHub'da hazır (Commit: 5d4b6c1), sadece Render.com'da deploy edilmesi gerekiyor.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* API Base URL Input */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
