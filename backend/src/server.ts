@@ -229,6 +229,12 @@ app.get('/health', async (req: Request, res: Response) => {
 })
 
 // Auth Routes
+// OPTIONS request'lerini tenant middleware'den önce handle et
+app.options('/api/auth/login', (req: Request, res: Response) => {
+  cors(corsOptions)(req, res, () => {
+    res.status(200).end()
+  })
+})
 app.post('/api/auth/login', tenantMiddleware, login)
 app.get('/api/auth/me', tenantMiddleware, authMiddleware, getCurrentUser)
 
