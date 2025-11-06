@@ -6,10 +6,9 @@ import {
   Hotel, 
   Users, 
   ChefHat, 
-  QrCode, 
   Settings, 
   BarChart3,
-  ScanLine  // yeni eklendi
+  ScanLine
 } from 'lucide-react';
 import { Language } from '@/types';
 import { translate } from '@/lib/translations';
@@ -41,19 +40,10 @@ export default function PanelsIndexPage() {
       id: 'qr-menu',
       title: 'QR Menü',
       description: 'QR ile menü erişimi ve sipariş',
-      icon: ScanLine,  // QrCode yerine ScanLine
+      icon: ScanLine,
       color: 'bg-purple-600',
       hoverColor: 'hover:bg-purple-700',
       route: '/qr-menu'
-    },
-    {
-      id: 'qr-generator',
-      title: 'QR Kod Oluşturucu',
-      description: 'Odalara özel QR kodlar üret',
-      icon: ScanLine, // QrCode yerine ScanLine
-      color: 'bg-hotel-sage',
-      hoverColor: 'hover:bg-green-600',
-      route: '/admin/qr-generator'
     },
     {
       id: 'guest-demo',
