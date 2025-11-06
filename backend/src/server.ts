@@ -230,6 +230,32 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 })
 
+// Debug endpoint - Migration çalıştır
+app.post('/debug/migrate', async (req: Request, res: Response) => {
+  try {
+    console.log('🔄 Manual migration başlatılıyor...')
+    const { execSync } = require('child_process')
+    const output = execSync('npx prisma migrate deploy', { 
+      encoding: 'utf8',
+      cwd: process.cwd()
+    })
+    console.log('✅ Migration çıktısı:', output)
+    res.status(200).json({
+      success: true,
+      message: 'Migration\'lar başarıyla çalıştırıldı',
+      output: output
+    })
+  } catch (error: any) {
+    console.error('❌ Migration hatası:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      output: error.stdout || error.stderr || 'No output',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    })
+  }
+})
+
 // Debug endpoint - Tenant ve User durumunu kontrol et
 app.get('/debug/tenants', async (req: Request, res: Response) => {
   try {
@@ -1175,11 +1201,40 @@ async function createDemoTenant() {
   }
 }
 
+// Migration kontrolü ve çalıştırma
+async function runMigrations() {
+  try {
+    console.log('🔄 Database migration'ları kontrol ediliyor...')
+    // Prisma migration'larını programatik olarak çalıştır
+    const { execSync } = require('child_process')
+    try {
+      execSync('npx prisma migrate deploy', { 
+        stdio: 'inherit',
+        cwd: process.cwd()
+      })
+      console.log('✅ Migration'lar başarıyla çalıştırıldı')
+    } catch (migrateError) {
+      console.error('⚠️ Migration çalıştırma hatası (devam ediliyor):', migrateError)
+      // Migration hatası olsa bile devam et - belki zaten çalıştırılmış
+    }
+  } catch (error) {
+    console.error('❌ Migration fonksiyonu hatası:', error)
+    // Migration hatası olsa bile devam et
+  }
+}
+
 // Start server
 server.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`)
   console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`)
   console.log(`🗄️ Database: ${process.env.DATABASE_URL?.split('@')[1]}`)
+  
+  // Migration'ları çalıştır (eğer çalıştırılmamışsa)
+  try {
+    await runMigrations()
+  } catch (error) {
+    console.error('❌ Migration çalıştırma hatası:', error)
+  }
   
   // Super admin oluştur
   try {
