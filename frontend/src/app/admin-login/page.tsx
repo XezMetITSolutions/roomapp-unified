@@ -75,6 +75,9 @@ export default function AdminLogin() {
         <p className="mt-2 text-center text-sm text-gray-600">
           Sistem yöneticisi olarak giriş yapın
         </p>
+        <p className="mt-2 text-center text-xs text-gray-500">
+          <a href="/admin-login/debug" className="underline hover:text-blue-600">Giriş Sorun Gider (Debug)</a>
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
