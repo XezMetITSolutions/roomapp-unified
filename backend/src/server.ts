@@ -41,7 +41,7 @@ const io = new Server(server, {
       callback(new Error('Not allowed by CORS'))
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-tenant", "X-Tenant"],
     credentials: true
   }
 })
@@ -128,7 +128,7 @@ const corsOptions: cors.CorsOptions = {
     callback(new Error(`CORS policy violation: ${normalizedOrigin} is not allowed`))
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "x-tenant", "X-Tenant"],
   exposedHeaders: ["Content-Length", "Content-Type"],
   credentials: true,
   optionsSuccessStatus: 200,
