@@ -11,7 +11,6 @@ import {
   ScanLine
 } from 'lucide-react';
 import { Language } from '@/types';
-import { translate } from '@/lib/translations';
 
 export default function PanelsIndexPage() {
   const router = useRouter();
