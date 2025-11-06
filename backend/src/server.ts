@@ -245,7 +245,8 @@ app.options('/api/auth/login', (req: Request, res: Response) => {
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, x-tenant, X-Tenant')
         res.setHeader('Access-Control-Allow-Credentials', 'true')
         res.setHeader('Access-Control-Max-Age', '86400')
-        return res.status(200).end()
+        res.status(200).end()
+        return
       }
     }
   }
@@ -254,6 +255,7 @@ app.options('/api/auth/login', (req: Request, res: Response) => {
   cors(corsOptions)(req, res, () => {
     res.status(200).end()
   })
+  return
 })
 app.post('/api/auth/login', tenantMiddleware, login)
 app.get('/api/auth/me', tenantMiddleware, authMiddleware, getCurrentUser)
