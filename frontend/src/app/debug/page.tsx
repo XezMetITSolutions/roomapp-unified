@@ -14,7 +14,7 @@ export default function DebugPage() {
   // Environment variable'dan API URL'ini al, yoksa Render backend URL'ini kullan
   const defaultApiUrl = process.env.NEXT_PUBLIC_API_URL || 
     (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-      ? 'https://roomapp-backend.onrender.com' 
+      ? 'https://roomapp-backend-1.onrender.com' 
       : 'http://localhost:3001');
   
   const [results, setResults] = useState<TestResult[]>([]);

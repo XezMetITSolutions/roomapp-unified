@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Direkt Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .error { color: #d32f2f; }
+        .success { color: #388e3c; }
+        .warning { color: #f57c00; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Backend Direkt Test</h1>
+    
+    <div class="test-box">
+        <h2>Test 1: Backend Health Check (No CORS)</h2>
+        <p>Bu test CORS olmadan backend'e direkt bağlanmayı dener.</p>
+        <button onclick="testBackendNoCors()">Test Et</button>
+        <pre id="result1">Henüz test edilmedi...</pre>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 2: Backend Health Check (With CORS)</h2>
+        <p>Bu test CORS ile backend'e bağlanmayı dener (normal durum).</p>
+        <button onclick="testBackendWithCors()">Test Et</button>
+        <pre id="result2">Henüz test edilmedi...</pre>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 3: Backend Render URL'si</h2>
+        <p>Backend'in Render URL'sini yeni sekmede açar.</p>
+        <button onclick="openBackend()">Backend'i Aç</button>
+        <p class="warning">Not: Eğer 404 alırsanız, backend çalışmıyor demektir.</p>
+    </div>
+
+    <div class="test-box">
+        <h2>📋 Sonuç ve Öneriler</h2>
+        <div id="recommendations">
+            <p>Testleri çalıştırın...</p>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'https://roomapp-backend.onrender.com';
+
+        async function testBackendNoCors() {
+            const resultEl = document.getElementById('result1');
+            resultEl.textContent = '⏳ Test ediliyor...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`, {
+                    method: 'GET',
+                    mode: 'no-cors' // CORS bypass
+                });
+                
+                resultEl.innerHTML = `<span class="warning">⚠️ UYARI: no-cors mode</span>\n\n` +
+                    `Status: ${response.status} (opaque response)\n` +
+                    `Type: ${response.type}\n\n` +
+                    `Bu sonuç backend'in çalıştığını gösterir ama CORS ayarlarını test edemez.\n` +
+                    `Eğer bu başarılı ise, backend çalışıyor ama CORS ayarları yanlış.`;
+                
+                updateRecommendations('no-cors-success');
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">❌ HATA</span>\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Backend'e hiç ulaşılamıyor. Backend servisi çalışmıyor olabilir.`;
+                
+                updateRecommendations('no-cors-fail');
+            }
+        }
+
+        async function testBackendWithCors() {
+            const resultEl = document.getElementById('result2');
+            resultEl.textContent = '⏳ Test ediliyor...';
+            
+            console.log('🔍 Testing with CORS...');
+            console.log('Origin:', window.location.origin);
+            console.log('Backend URL:', BACKEND_URL);
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                resultEl.innerHTML = `<span class="success">✅ BAŞARILI!</span>\n\n` +
+                    `Status: ${response.status}\n` +
+                    `Response:\n${JSON.stringify(data, null, 2)}\n\n` +
+                    `CORS çalışıyor! Backend doğru yapılandırılmış.`;
+                
+                updateRecommendations('cors-success');
+            } catch (error) {
+                console.error('❌ CORS Test Failed:', error);
+                
+                resultEl.innerHTML = `<span class="error">❌ CORS HATASI!</span>\n\n` +
+                    `Error: ${error.message}\n` +
+                    `Error Type: ${error.constructor.name}\n\n` +
+                    `Origin: ${window.location.origin}\n` +
+                    `Backend: ${BACKEND_URL}\n\n` +
+                    `Bu hata, backend'in CORS ayarlarının yanlış olduğunu gösterir.\n` +
+                    `Backend'in origin '${window.location.origin}' adresine izin vermesi gerekiyor.`;
+                
+                updateRecommendations('cors-fail');
+            }
+        }
+
+        function openBackend() {
+            window.open(`${BACKEND_URL}/health`, '_blank');
+        }
+
+        function updateRecommendations(testResult) {
+            const recEl = document.getElementById('recommendations');
+            
+            switch(testResult) {
+                case 'no-cors-success':
+                    recEl.innerHTML = `
+                        <p class="warning"><strong>⚠️ Backend çalışıyor ama CORS testi gerekli</strong></p>
+                        <p>Test 2'yi çalıştırın (With CORS).</p>
+                    `;
+                    break;
+                    
+                case 'no-cors-fail':
+                    recEl.innerHTML = `
+                        <p class="error"><strong>❌ Backend çalışmıyor!</strong></p>
+                        <ol>
+                            <li>Render.com'a gidin: <a href="https://dashboard.render.com" target="_blank">https://dashboard.render.com</a></li>
+                            <li>Backend servisini bulun (roomapp-backend)</li>
+                            <li>Servis durumunu kontrol edin (Live/Failed?)</li>
+                            <li>Eğer Failed ise, logları kontrol edin</li>
+                            <li>"Manual Deploy" → "Deploy latest commit" yapın</li>
+                        </ol>
+                    `;
+                    break;
+                    
+                case 'cors-success':
+                    recEl.innerHTML = `
+                        <p class="success"><strong>✅ HER ŞEY ÇALIŞIYOR!</strong></p>
+                        <p>Backend doğru yapılandırılmış ve CORS çalışıyor.</p>
+                        <p>Eğer ana uygulamada hala sorun varsa, frontend'i kontrol edin.</p>
+                    `;
+                    break;
+                    
+                case 'cors-fail':
+                    recEl.innerHTML = `
+                        <p class="error"><strong>❌ CORS AYARLARI YANLIŞ!</strong></p>
+                        <p><strong>Sorun:</strong> Backend çalışıyor ama origin '${window.location.origin}' adresine izin vermiyor.</p>
+                        <p><strong>Çözüm:</strong></p>
+                        <ol>
+                            <li>Backend kodu GitHub'da güncel mi kontrol edin (Commit: 5d4b6c1 veya a5aef33)</li>
+                            <li>Render.com'da backend'i yeniden deploy edin</li>
+                            <li>Deploy sonrası backend loglarını kontrol edin:
+                                <ul>
+                                    <li>Şunu görmeli: "🔍 CORS: Checking origin: ${window.location.origin}"</li>
+                                    <li>Şunu görmeli: "✅ CORS: Allowed origin ${window.location.origin}"</li>
+                                </ul>
+                            </li>
+                        </ol>
+                        <p class="warning"><strong>ÖNEMLİ:</strong> Backend'i Render.com'da deploy etmeyi unutmayın!</p>
+                    `;
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>

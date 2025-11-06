@@ -160,6 +160,27 @@ app.use(compression())
 // Logging
 app.use(morgan('combined'))
 
+// Root route - API information
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
+    message: 'RoomApp Backend API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      auth: '/api/auth',
+      menu: '/api/menu',
+      rooms: '/api/rooms',
+      guests: '/api/guests',
+      requests: '/api/requests',
+      orders: '/api/orders'
+    },
+    documentation: 'https://github.com/XezMetITSolutions/roomapp-unified',
+    timestamp: new Date().toISOString()
+  })
+})
+
 // Health check
 app.get('/health', async (req: Request, res: Response) => {
   try {
