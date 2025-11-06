@@ -38,6 +38,13 @@ export default function TenantManagement() {
   const [showModal, setShowModal] = useState(false);
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   const [showBulkFeatureModal, setShowBulkFeatureModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newTenant, setNewTenant] = useState({
+    name: '',
+    slug: '',
+    domain: '',
+    isActive: true
+  });
   const [tenants, setTenants] = useState<any[]>([]);
   const [availableFeatures, setAvailableFeatures] = useState<any[]>([]);
   const [tenantFeatures, setTenantFeatures] = useState<any[]>([]);
@@ -105,6 +112,31 @@ export default function TenantManagement() {
       setBulkFeatureEnabled(false);
     } catch (error) {
       console.error('Error bulk updating features:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateTenant = async () => {
+    if (!newTenant.name || !newTenant.slug) {
+      alert('İşletme adı ve slug gerekli');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await adminApiClient.createTenant(newTenant);
+      await loadTenants();
+      setShowCreateModal(false);
+      setNewTenant({
+        name: '',
+        slug: '',
+        domain: '',
+        isActive: true
+      });
+    } catch (error) {
+      console.error('Error creating tenant:', error);
+      alert('İşletme oluşturulurken hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -208,10 +240,13 @@ export default function TenantManagement() {
               <Settings className="w-4 h-4 mr-2" />
               Toplu Özellik Yönetimi
             </button>
-            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Yeni İşletme
-        </button>
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Yeni İşletme
+            </button>
           </div>
         </div>
       </div>
@@ -672,6 +707,101 @@ export default function TenantManagement() {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? 'Güncelleniyor...' : 'Güncelle'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Tenant Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Yeni İşletme Ekle</h3>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    İşletme Adı *
+                  </label>
+                  <input
+                    type="text"
+                    value={newTenant.name}
+                    onChange={(e) => setNewTenant({ ...newTenant, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Örn: Grand Hotel Istanbul"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Slug *
+                  </label>
+                  <input
+                    type="text"
+                    value={newTenant.slug}
+                    onChange={(e) => setNewTenant({ ...newTenant, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Örn: grand-hotel-istanbul"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">URL'de kullanılacak benzersiz tanımlayıcı</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Domain (Opsiyonel)
+                  </label>
+                  <input
+                    type="text"
+                    value={newTenant.domain}
+                    onChange={(e) => setNewTenant({ ...newTenant, domain: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Örn: grandhotel.com"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={newTenant.isActive}
+                    onChange={(e) => setNewTenant({ ...newTenant, isActive: e.target.checked })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label className="ml-2 text-sm text-gray-700">Aktif</label>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 mt-4">
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setNewTenant({
+                      name: '',
+                      slug: '',
+                      domain: '',
+                      isActive: true
+                    });
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleCreateTenant}
+                  disabled={loading || !newTenant.name || !newTenant.slug}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? 'Oluşturuluyor...' : 'Oluştur'}
                 </button>
               </div>
             </div>
