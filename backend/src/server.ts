@@ -230,6 +230,51 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 })
 
+// Debug endpoint - Tenant ve User durumunu kontrol et
+app.get('/debug/tenants', async (req: Request, res: Response) => {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    const systemAdminTenant = tenants.find(t => t.slug === 'system-admin')
+    const systemAdminUser = systemAdminTenant ? await prisma.user.findFirst({
+      where: {
+        tenantId: systemAdminTenant.id,
+        role: 'SUPER_ADMIN'
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true
+      }
+    }) : null
+
+    res.status(200).json({
+      tenants,
+      systemAdminTenant: systemAdminTenant || null,
+      systemAdminUser: systemAdminUser || null,
+      totalTenants: tenants.length
+    })
+  } catch (error) {
+    console.error('Debug tenants error:', error)
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    })
+  }
+})
+
 // Auth Routes
 // OPTIONS request'lerini tenant middleware'den önce handle et
 app.options('/api/auth/login', (req: Request, res: Response) => {
