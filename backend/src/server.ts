@@ -140,7 +140,30 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions))
 
 // Explicitly handle preflight requests for all routes
-app.options('*', cors(corsOptions))
+app.options('*', (req: Request, res: Response) => {
+  // CORS preflight için özel handler
+  const origin = req.headers.origin
+  if (origin) {
+    const normalizedOrigin = origin.replace(/\/$/, '')
+    const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'localhost']
+    
+    for (const domain of allowedDomains) {
+      if (normalizedOrigin.includes(domain)) {
+        res.setHeader('Access-Control-Allow-Origin', origin)
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, x-tenant, X-Tenant')
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+        res.setHeader('Access-Control-Max-Age', '86400')
+        return res.status(200).end()
+      }
+    }
+  }
+  
+  // CORS middleware'i de uygula
+  cors(corsOptions)(req, res, () => {
+    res.status(200).end()
+  })
+})
 
 // Rate limiting
 const limiter = rateLimit({

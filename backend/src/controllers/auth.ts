@@ -16,6 +16,8 @@ export async function login(req: Request, res: Response) {
       return
     }
 
+    console.log('🔍 Login attempt:', { email, tenant: req.tenant?.slug })
+
     // Kullanıcıyı bul
     const user = await prisma.user.findUnique({
       where: { email },
@@ -38,6 +40,8 @@ export async function login(req: Request, res: Response) {
         }
       }
     })
+
+    console.log('👤 User found:', user ? { id: user.id, email: user.email, role: user.role, tenantId: user.tenantId } : 'NOT FOUND')
 
     if (!user) {
       res.status(401).json({ 
@@ -113,14 +117,20 @@ export async function login(req: Request, res: Response) {
       } : null
     }
 
+    console.log('✅ Login successful:', { email: user.email, role: user.role })
+
     res.json({
       message: 'Giriş başarılı',
       token,
       user: userResponse
     })
   } catch (error) {
-    console.error('Login error:', error)
-    res.status(500).json({ message: 'Sunucu hatası' })
+    console.error('❌ Login error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    res.status(500).json({ 
+      message: 'Sunucu hatası',
+      error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+    })
   }
 }
 
