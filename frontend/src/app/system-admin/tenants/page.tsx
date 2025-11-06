@@ -182,15 +182,21 @@ export default function TenantManagement() {
     return feature ? feature.description : '';
   };
 
+  // İstatistikler
+  const totalTenants = tenants.length;
+  const activeTenants = tenants.filter(t => t.isActive).length;
+  const totalUsers = tenants.reduce((sum, t) => sum + (t._count?.users || 0), 0);
+  const monthlyRevenue = 0; // TODO: API'den gelecek
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">İşletme Yönetimi</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Restoran Yönetimi</h1>
             <p className="mt-2 text-sm text-gray-600">
-              Tüm işletmeleri yönetin, özelliklerini kontrol edin ve toplu işlemler yapın
+              Tüm restoranları yönetin, özelliklerini kontrol edin ve toplu işlemler yapın
             </p>
         </div>
           <div className="mt-4 sm:mt-0 flex space-x-3">
@@ -204,8 +210,71 @@ export default function TenantManagement() {
             </button>
             <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
           <Plus className="w-4 h-4 mr-2" />
-          Yeni İşletme
+          Restoran Ekle
         </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-white" />
+            </div>
+            <div className="ml-4 flex-1">
+              <p className="text-sm font-medium text-gray-600">Toplam Restoran</p>
+              <div className="flex items-baseline">
+                <p className="text-2xl font-bold text-gray-900">{totalTenants}</p>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{totalTenants} restoran kayıtlı</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+              <Activity className="w-6 h-6 text-white" />
+            </div>
+            <div className="ml-4 flex-1">
+              <p className="text-sm font-medium text-gray-600">Aktif Restoran</p>
+              <div className="flex items-baseline">
+                <p className="text-2xl font-bold text-gray-900">{activeTenants}</p>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{activeTenants} aktif restoran</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div className="ml-4 flex-1">
+              <p className="text-sm font-medium text-gray-600">Toplam Kullanıcı</p>
+              <div className="flex items-baseline">
+                <p className="text-2xl font-bold text-gray-900">{totalUsers}</p>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{totalUsers} kullanıcı</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-white" />
+            </div>
+            <div className="ml-4 flex-1">
+              <p className="text-sm font-medium text-gray-600">Aylık Gelir</p>
+              <div className="flex items-baseline">
+                <p className="text-2xl font-bold text-gray-900">₺{monthlyRevenue.toLocaleString()}</p>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Henüz veri yok</p>
+            </div>
           </div>
         </div>
       </div>
@@ -246,7 +315,7 @@ export default function TenantManagement() {
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
-              İşletmeler ({filteredTenants.length})
+              Restoranlar ({filteredTenants.length})
             </h3>
             <div className="flex items-center space-x-2">
               <input
