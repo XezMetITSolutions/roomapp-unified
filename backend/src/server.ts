@@ -34,6 +34,7 @@ const io = new Server(server, {
       if (normalizedOrigin.includes('roomxqr.com') || 
           normalizedOrigin.includes('roomxr.com') ||
           normalizedOrigin.includes('onrender.com') ||
+          normalizedOrigin.includes('netlify.app') ||
           normalizedOrigin.includes('localhost')) {
         return callback(null, true)
       }
@@ -112,7 +113,7 @@ const corsOptions: cors.CorsOptions = {
     console.log(`🔍 CORS: Checking origin: ${normalizedOrigin}`)
     
     // Check if origin contains allowed domains
-    const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'localhost']
+    const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'netlify.app', 'localhost']
     
     for (const domain of allowedDomains) {
       if (normalizedOrigin.includes(domain)) {
@@ -145,7 +146,7 @@ app.options('*', (req: Request, res: Response) => {
   const origin = req.headers.origin
   if (origin) {
     const normalizedOrigin = origin.replace(/\/$/, '')
-    const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'localhost']
+    const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'netlify.app', 'localhost']
     
     for (const domain of allowedDomains) {
       if (normalizedOrigin.includes(domain)) {
@@ -309,7 +310,7 @@ app.options('/api/auth/login', (req: Request, res: Response) => {
   
   if (origin) {
     const normalizedOrigin = origin.replace(/\/$/, '')
-    const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'localhost']
+    const allowedDomains = ['roomxqr.com', 'roomxr.com', 'onrender.com', 'netlify.app', 'localhost']
     
     for (const domain of allowedDomains) {
       if (normalizedOrigin.includes(domain)) {
