@@ -25,7 +25,7 @@ interface User {
   lastName: string;
   email: string;
   phone?: string;
-  role: 'ADMIN' | 'STAFF' | 'RECEPTION' | 'KITCHEN';
+  role: 'ADMIN' | 'MANAGER' | 'STAFF' | 'RECEPTION' | 'KITCHEN' | 'WAITER';
   isActive: boolean;
   lastLogin?: string;
   createdAt: string;
@@ -119,19 +119,25 @@ export default function UsersManagement() {
   const roles = [
     { value: 'all', label: 'Tüm Roller' },
     { value: 'ADMIN', label: 'Yönetici' },
+    { value: 'MANAGER', label: 'Müdür' },
     { value: 'STAFF', label: 'Personel' },
     { value: 'RECEPTION', label: 'Resepsiyon' },
     { value: 'KITCHEN', label: 'Mutfak' },
+    { value: 'WAITER', label: 'Garson' },
   ];
 
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'ADMIN':
         return <Shield className="w-4 h-4 text-red-600" />;
+      case 'MANAGER':
+        return <UserCheck className="w-4 h-4 text-blue-600" />;
       case 'RECEPTION':
         return <User className="w-4 h-4 text-green-600" />;
       case 'KITCHEN':
         return <User className="w-4 h-4 text-orange-600" />;
+      case 'WAITER':
+        return <User className="w-4 h-4 text-purple-600" />;
       case 'STAFF':
         return <User className="w-4 h-4 text-blue-600" />;
       default:
@@ -143,10 +149,14 @@ export default function UsersManagement() {
     switch (role) {
       case 'ADMIN':
         return 'bg-red-100 text-red-800';
+      case 'MANAGER':
+        return 'bg-blue-100 text-blue-800';
       case 'RECEPTION':
         return 'bg-green-100 text-green-800';
       case 'KITCHEN':
         return 'bg-orange-100 text-orange-800';
+      case 'WAITER':
+        return 'bg-purple-100 text-purple-800';
       case 'STAFF':
         return 'bg-blue-100 text-blue-800';
       default:
