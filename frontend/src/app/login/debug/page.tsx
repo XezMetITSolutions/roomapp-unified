@@ -209,7 +209,7 @@ export default function LoginDebug() {
     await new Promise(resolve => setTimeout(resolve, 300));
 
     // 7) Kullanıcı sorgusu (eğer admin token varsa)
-    const adminToken = localStorage.getItem('admin_token');
+    // adminToken zaten satır 70'te tanımlanmış, tekrar tanımlamaya gerek yok
     if (adminToken) {
       try {
         const res = await fetch(`${API_BASE_URL}/api/admin/tenants`, {
