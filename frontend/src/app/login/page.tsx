@@ -189,10 +189,39 @@ export default function LoginPage() {
 
             <div className="mt-6 space-y-3">
               <div className="text-sm text-gray-600">
-                <p className="font-medium">Test Hesapları:</p>
-                <p>• Admin: admin@hotel.com / admin123</p>
-                <p>• Müdür: manager@hotel.com / manager123</p>
-                <p>• Resepsiyon: reception@hotel.com / reception123</p>
+                <p className="font-medium mb-2">Test Hesapları:</p>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('admin@hotel.com');
+                      setPassword('admin123');
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
+                  >
+                    <span className="font-medium">Admin:</span> admin@hotel.com / admin123
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('manager@hotel.com');
+                      setPassword('manager123');
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
+                  >
+                    <span className="font-medium">Müdür:</span> manager@hotel.com / manager123
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('reception@hotel.com');
+                      setPassword('reception123');
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
+                  >
+                    <span className="font-medium">Resepsiyon:</span> reception@hotel.com / reception123
+                  </button>
+                </div>
               </div>
             </div>
           </div>

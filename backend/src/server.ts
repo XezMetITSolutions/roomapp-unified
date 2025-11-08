@@ -1762,54 +1762,115 @@ app.use('*', (req: Request, res: Response) => {
 async function createDemoTenant() {
   try {
     // Demo tenant'ı kontrol et
-    const existingTenant = await prisma.tenant.findUnique({
+    let tenant = await prisma.tenant.findUnique({
       where: { slug: 'demo' }
     })
 
-    if (existingTenant) {
+    if (!tenant) {
+      console.log('🌱 Demo tenant oluşturuluyor...')
+
+      // Demo tenant oluştur
+      tenant = await prisma.tenant.create({
+        data: {
+          name: 'Demo İşletme',
+          slug: 'demo',
+          domain: 'demo.roomxr.com',
+          isActive: true,
+          settings: {
+            theme: {
+              primaryColor: '#D4AF37',
+              secondaryColor: '#f3f4f6'
+            },
+            currency: 'TRY',
+            language: 'tr'
+          }
+        }
+      })
+
+      console.log('✅ Demo tenant oluşturuldu:', tenant.name)
+    } else {
       console.log('✅ Demo tenant zaten mevcut')
-      return existingTenant
     }
 
-    console.log('🌱 Demo tenant oluşturuluyor...')
-
-    // Demo tenant oluştur
-    const tenant = await prisma.tenant.create({
-      data: {
-        name: 'Demo İşletme',
-        slug: 'demo',
-        domain: 'demo.roomxr.com',
-        isActive: true,
-        settings: {
-          theme: {
-            primaryColor: '#D4AF37',
-            secondaryColor: '#f3f4f6'
-          },
-          currency: 'TRY',
-          language: 'tr'
-        }
-      }
-    })
-
-    console.log('✅ Demo tenant oluşturuldu:', tenant.name)
-
     // Demo hotel oluştur
-    const hotel = await prisma.hotel.upsert({
-      where: { id: 'demo-hotel' },
-      update: {},
-      create: {
-        id: 'demo-hotel',
-        name: 'Demo Otel',
-        address: 'Demo Adres, İstanbul',
-        phone: '+90 212 555 0123',
-        email: 'info@demo-otel.com',
-        website: 'https://demo-otel.com',
-        isActive: true,
-        tenantId: tenant.id
-      }
+    let hotel = await prisma.hotel.findFirst({
+      where: { tenantId: tenant.id }
     })
 
-    console.log('✅ Demo hotel oluşturuldu:', hotel.name)
+    if (!hotel) {
+      hotel = await prisma.hotel.create({
+        data: {
+          name: 'Demo Otel',
+          address: 'Demo Adres, İstanbul',
+          phone: '+90 212 555 0123',
+          email: 'info@demo-otel.com',
+          website: 'https://demo-otel.com',
+          isActive: true,
+          tenantId: tenant.id
+        }
+      })
+
+      console.log('✅ Demo hotel oluşturuldu:', hotel.name)
+    }
+
+    // Test kullanıcılarını oluştur
+    const testUsers = [
+      {
+        email: 'admin@hotel.com',
+        password: 'admin123',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'ADMIN' as const
+      },
+      {
+        email: 'manager@hotel.com',
+        password: 'manager123',
+        firstName: 'Manager',
+        lastName: 'User',
+        role: 'MANAGER' as const
+      },
+      {
+        email: 'reception@hotel.com',
+        password: 'reception123',
+        firstName: 'Reception',
+        lastName: 'User',
+        role: 'RECEPTION' as const
+      }
+    ]
+
+    for (const userData of testUsers) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: userData.email }
+      })
+
+      if (!existingUser) {
+        const hashedPassword = await bcrypt.hash(userData.password, 10)
+        await prisma.user.create({
+          data: {
+            email: userData.email,
+            password: hashedPassword,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            role: userData.role,
+            tenantId: tenant.id,
+            hotelId: hotel!.id
+          }
+        })
+        console.log(`✅ Test kullanıcı oluşturuldu: ${userData.email}`)
+      } else {
+        // Mevcut kullanıcının şifresini güncelle
+        const hashedPassword = await bcrypt.hash(userData.password, 10)
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            password: hashedPassword,
+            tenantId: tenant.id,
+            hotelId: hotel!.id
+          }
+        })
+        console.log(`✅ Test kullanıcı güncellendi: ${userData.email}`)
+      }
+    }
 
     return tenant
   } catch (error) {
@@ -1862,12 +1923,13 @@ server.listen(PORT, async () => {
     console.error('❌ Super admin oluşturma hatası:', error)
   }
 
-  // Demo tenant oluşturma devre dışı (test verileri temizlendi)
-  // try {
-  //   await createDemoTenant()
-  // } catch (error) {
-  //   console.error('❌ Demo tenant oluşturma hatası:', error)
-  // }
+  // Demo tenant ve test kullanıcıları oluştur
+  try {
+    await createDemoTenant()
+    console.log('✅ Demo tenant ve test kullanıcıları hazır')
+  } catch (error) {
+    console.error('❌ Demo tenant oluşturma hatası:', error)
+  }
 })
 
 // Graceful shutdown
