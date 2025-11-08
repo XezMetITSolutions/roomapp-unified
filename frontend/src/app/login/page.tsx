@@ -39,7 +39,20 @@ export default function LoginPage() {
       const success = await login(email, password);
       
       if (success) {
-        router.push('/isletme');
+        // State'in güncellenmesi için kısa bir süre bekle
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Token'ın localStorage'da olduğunu kontrol et
+        const savedToken = localStorage.getItem('auth_token');
+        const savedUser = localStorage.getItem('user_data');
+        
+        if (savedToken && savedUser) {
+          console.log('✅ Login successful, redirecting to /isletme');
+          router.push('/isletme');
+        } else {
+          console.error('❌ Login successful but token/user not saved');
+          setError('Giriş başarılı ancak oturum kaydedilemedi. Lütfen tekrar deneyin.');
+        }
       } else {
         setError('Geçersiz email veya şifre');
       }

@@ -198,13 +198,13 @@ export async function getCurrentUser(req: Request, res: Response) {
         name: user.tenant.name,
         slug: user.tenant.slug
       },
-      hotel: {
+      hotel: user.hotel ? {
         id: user.hotel.id,
         name: user.hotel.name
-      }
+      } : null
     }
 
-    res.json(userResponse)
+    res.json({ user: userResponse })
   } catch (error) {
     console.error('Get current user error:', error)
     res.status(500).json({ message: 'Sunucu hatası' })

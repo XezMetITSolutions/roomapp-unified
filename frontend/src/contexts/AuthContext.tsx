@@ -76,13 +76,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.message || 'Geçersiz email veya şifre');
       }
 
+      // Token ve user'ın var olduğunu kontrol et
+      if (!data.token || !data.user) {
+        console.error('Login response missing token or user:', data);
+        throw new Error('Giriş yanıtı eksik veri içeriyor');
+      }
+
       // Token ve kullanıcı bilgilerini kaydet
-      setToken(data.token);
-      setUser(data.user);
+      const tokenValue = data.token;
+      const userValue = data.user;
+      
+      // State'i güncelle
+      setToken(tokenValue);
+      setUser(userValue);
       
       // LocalStorage'a kaydet
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('user_data', JSON.stringify(data.user));
+      localStorage.setItem('auth_token', tokenValue);
+      localStorage.setItem('user_data', JSON.stringify(userValue));
+      
+      console.log('✅ Login successful, token and user saved:', { 
+        hasToken: !!tokenValue, 
+        hasUser: !!userValue,
+        userEmail: userValue.email 
+      });
       
       return true;
     } catch (error: any) {
@@ -133,8 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (response.ok) {
               const userData = await response.json();
+              // Backend'den gelen response formatı: { user: {...} }
+              const userFromResponse = userData.user || userData;
               setToken(savedToken);
-              setUser(userData.user || JSON.parse(savedUser));
+              setUser(userFromResponse || JSON.parse(savedUser));
             } else {
               // Token geçersizse temizle
               logout();
