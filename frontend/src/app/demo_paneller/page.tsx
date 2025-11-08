@@ -44,7 +44,7 @@ export default function DemoPanelsIndexPage() {
       icon: Hotel,
       color: 'bg-hotel-gold',
       hoverColor: 'hover:bg-yellow-500',
-      route: '/reception'
+      route: '/demo_reception'
     },
     {
       id: 'kitchen',
@@ -53,7 +53,7 @@ export default function DemoPanelsIndexPage() {
       icon: ChefHat,
       color: 'bg-hotel-sage',
       hoverColor: 'hover:bg-green-600',
-      route: '/kitchen'
+      route: '/demo_kitchen'
     },
     {
       id: 'qr-menu',
@@ -62,7 +62,7 @@ export default function DemoPanelsIndexPage() {
       icon: ScanLine,
       color: 'bg-purple-600',
       hoverColor: 'hover:bg-purple-700',
-      route: '/qr-menu'
+      route: '/demo_qr-menu'
     },
     {
       id: 'guest-demo',
@@ -71,7 +71,7 @@ export default function DemoPanelsIndexPage() {
       icon: Users,
       color: 'bg-emerald-600',
       hoverColor: 'hover:bg-emerald-700',
-      route: '/guest/demo'
+      route: '/demo_guest/demo'
     },
     {
       id: 'admin',
@@ -80,7 +80,7 @@ export default function DemoPanelsIndexPage() {
       icon: Settings,
       color: 'bg-red-600',
       hoverColor: 'hover:bg-red-700',
-      route: '/isletme'
+      route: '/demo_isletme'
     },
     {
       id: 'system-admin',
@@ -89,7 +89,7 @@ export default function DemoPanelsIndexPage() {
       icon: BarChart3,
       color: 'bg-indigo-600',
       hoverColor: 'hover:bg-indigo-700',
-      route: '/system-admin'
+      route: '/demo_system-admin'
     }
   ];
 
