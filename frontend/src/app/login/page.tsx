@@ -173,9 +173,6 @@ export default function LoginPage() {
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-hotel-gold focus:border-hotel-gold sm:text-sm"
                   placeholder="ornek@email.com veya kullaniciadi"
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  Kullanıcı adı girerseniz otomatik olarak email formatına çevrilecektir (örn: admin → admin@subdomain.roomxqr.com)
-                </p>
               </div>
             </div>
 
@@ -248,55 +245,6 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo Hesaplar</span>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <div className="text-sm text-gray-600">
-                <p className="font-medium mb-2">Test Hesapları:</p>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('admin@hotel.com');
-                      setPassword('admin123');
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
-                  >
-                    <span className="font-medium">Admin:</span> admin@hotel.com / admin123
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('manager@hotel.com');
-                      setPassword('manager123');
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
-                  >
-                    <span className="font-medium">Müdür:</span> manager@hotel.com / manager123
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('reception@hotel.com');
-                      setPassword('reception123');
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
-                  >
-                    <span className="font-medium">Resepsiyon:</span> reception@hotel.com / reception123
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
