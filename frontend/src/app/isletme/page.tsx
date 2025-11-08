@@ -315,22 +315,27 @@ export default function AdminDashboard() {
               </div>
             ) : recentOrders.length > 0 ? (
               recentOrders.map((order) => (
-              <div key={order.id} className="px-6 py-4 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-gray-900">#{order.id}</span>
-                    <span className="text-sm text-gray-500">Oda {order.room}</span>
+                <div key={order.id} className="px-6 py-4 flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-900">#{order.id}</span>
+                      <span className="text-sm text-gray-500">Oda {order.room}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{order.items}</p>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{order.items}</p>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-sm font-medium text-gray-900">{order.amount}</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <span className="text-sm font-medium text-gray-900">{order.amount}</span>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </div>
+              ))
+            ) : (
+              <div className="px-6 py-8 text-center text-gray-500">
+                <p>Henüz sipariş bulunmuyor</p>
               </div>
-            ))}
+            )}
           </div>
           <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
             <a href="/isletme/orders" className="text-sm font-medium text-hotel-gold hover:text-hotel-navy">
