@@ -795,16 +795,33 @@ app.put('/api/orders/:id', tenantMiddleware, authMiddleware, async (req: Request
     const { id } = req.params
     const { status, notes } = req.body
 
+    // Status'u enum değerine dönüştür
+    let orderStatus: 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED' | undefined
+    if (status) {
+      const statusUpper = status.toUpperCase()
+      if (['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED'].includes(statusUpper)) {
+        orderStatus = statusUpper as any
+      }
+    }
+
+    const updateData: any = {
+      updatedAt: new Date()
+    }
+    
+    if (orderStatus) {
+      updateData.status = orderStatus
+    }
+    
+    if (notes !== undefined) {
+      updateData.notes = notes
+    }
+
     const order = await prisma.order.updateMany({
       where: { 
         id,
         tenantId
       },
-      data: {
-        ...(status && { status }),
-        ...(notes !== undefined && { notes }),
-        updatedAt: new Date()
-      }
+      data: updateData
     })
 
     if (order.count === 0) {
@@ -826,6 +843,10 @@ app.put('/api/orders/:id', tenantMiddleware, authMiddleware, async (req: Request
         }
       }
     })
+
+    if (!updatedOrder) {
+      res.status(404).json({ message: 'Order not found after update' }); return;
+    }
 
     // Emit real-time notification
     io.emit('order-updated', updatedOrder)
