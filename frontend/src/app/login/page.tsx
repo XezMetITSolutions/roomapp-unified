@@ -36,11 +36,12 @@ export default function LoginPage() {
       } else {
         localStorage.removeItem('remembered_email');
       }
+      
       const success = await login(email, password);
       
       if (success) {
         // State'in güncellenmesi için kısa bir süre bekle
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         // Token'ın localStorage'da olduğunu kontrol et
         const savedToken = localStorage.getItem('auth_token');
@@ -70,23 +71,27 @@ export default function LoginPage() {
             }
             
             console.log('🔄 Redirecting to:', redirectPath);
+            setIsLoading(false); // Yönlendirmeden önce loading'i kapat
             router.push(redirectPath);
           } catch (error) {
             console.error('❌ Error parsing user data:', error);
+            setIsLoading(false);
             // Hata durumunda varsayılan yönlendirme
             router.push('/isletme');
           }
         } else {
           console.error('❌ Login successful but token/user not saved');
+          setIsLoading(false);
           setError('Giriş başarılı ancak oturum kaydedilemedi. Lütfen tekrar deneyin.');
         }
       } else {
+        setIsLoading(false);
         setError('Geçersiz email veya şifre');
       }
     } catch (err: any) {
-      setError(err?.message || 'Giriş sırasında bir hata oluştu');
-    } finally {
+      console.error('Login error in handleSubmit:', err);
       setIsLoading(false);
+      setError(err?.message || 'Giriş sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     }
   };
 

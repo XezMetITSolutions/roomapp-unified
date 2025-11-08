@@ -60,52 +60,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
 
-      // Backend'e login isteği gönder
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-tenant': tenantSlug
-        },
-        body: JSON.stringify({ email, password })
-      });
+      // Timeout ile fetch isteği
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
 
-      const data = await response.json();
+      try {
+        // Backend'e login isteği gönder
+        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant': tenantSlug
+          },
+          body: JSON.stringify({ email, password }),
+          signal: controller.signal
+        });
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Geçersiz email veya şifre');
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          let errorMessage = 'Geçersiz email veya şifre';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // JSON parse hatası, varsayılan mesajı kullan
+          }
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+
+        // Token ve user'ın var olduğunu kontrol et
+        if (!data.token || !data.user) {
+          console.error('Login response missing token or user:', data);
+          throw new Error('Giriş yanıtı eksik veri içeriyor');
+        }
+
+        // Token ve kullanıcı bilgilerini kaydet
+        const tokenValue = data.token;
+        const userValue = data.user;
+        
+        // State'i güncelle
+        setToken(tokenValue);
+        setUser(userValue);
+        
+        // LocalStorage'a kaydet
+        localStorage.setItem('auth_token', tokenValue);
+        localStorage.setItem('user_data', JSON.stringify(userValue));
+        
+        console.log('✅ Login successful, token and user saved:', { 
+          hasToken: !!tokenValue, 
+          hasUser: !!userValue,
+          userEmail: userValue.email 
+        });
+        
+        setIsLoading(false);
+        return true;
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.');
+        }
+        throw fetchError;
       }
-
-      // Token ve user'ın var olduğunu kontrol et
-      if (!data.token || !data.user) {
-        console.error('Login response missing token or user:', data);
-        throw new Error('Giriş yanıtı eksik veri içeriyor');
-      }
-
-      // Token ve kullanıcı bilgilerini kaydet
-      const tokenValue = data.token;
-      const userValue = data.user;
-      
-      // State'i güncelle
-      setToken(tokenValue);
-      setUser(userValue);
-      
-      // LocalStorage'a kaydet
-      localStorage.setItem('auth_token', tokenValue);
-      localStorage.setItem('user_data', JSON.stringify(userValue));
-      
-      console.log('✅ Login successful, token and user saved:', { 
-        hasToken: !!tokenValue, 
-        hasUser: !!userValue,
-        userEmail: userValue.email 
-      });
-      
-      return true;
     } catch (error: any) {
       console.error('Login error:', error);
-      throw error; // Hata mesajını yukarı fırlat
-    } finally {
       setIsLoading(false);
+      throw error; // Hata mesajını yukarı fırlat
     }
   };
 
