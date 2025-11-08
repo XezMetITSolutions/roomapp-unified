@@ -48,95 +48,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Mock authentication - gerçek API yerine
-      const mockUsers = [
-        {
-          email: 'admin@hotel.com',
-          password: 'admin123',
-          user: {
-            id: '1',
-            email: 'admin@hotel.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'ADMIN',
-            permissions: ['dashboard', 'analytics', 'menu', 'users', 'announcements', 'qr-kod', 'notifications', 'settings', 'support'],
-            tenant: {
-              id: 'demo-tenant',
-              name: 'Demo İşletme',
-              slug: 'demo'
-            },
-            hotel: {
-              id: 'demo-hotel',
-              name: 'Demo Otel'
-            }
-          }
-        },
-        {
-          email: 'manager@hotel.com',
-          password: 'manager123',
-          user: {
-            id: '2',
-            email: 'manager@hotel.com',
-            firstName: 'Manager',
-            lastName: 'User',
-            role: 'MANAGER',
-            permissions: ['dashboard', 'menu', 'announcements', 'qr-kod', 'notifications'],
-            tenant: {
-              id: 'demo-tenant',
-              name: 'Demo İşletme',
-              slug: 'demo'
-            },
-            hotel: {
-              id: 'demo-hotel',
-              name: 'Demo Otel'
-            }
-          }
-        },
-        {
-          email: 'reception@hotel.com',
-          password: 'reception123',
-          user: {
-            id: '3',
-            email: 'reception@hotel.com',
-            firstName: 'Reception',
-            lastName: 'User',
-            role: 'RECEPTION',
-            permissions: ['dashboard', 'qr-kod', 'notifications'],
-            tenant: {
-              id: 'demo-tenant',
-              name: 'Demo İşletme',
-              slug: 'demo'
-            },
-            hotel: {
-              id: 'demo-hotel',
-              name: 'Demo Otel'
-            }
-          }
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo'; // Varsayılan
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
         }
-      ];
-
-      // Mock kullanıcıyı bul
-      const mockUser = mockUsers.find(u => u.email === email && u.password === password);
-      
-      if (!mockUser) {
-        throw new Error('Geçersiz email veya şifre');
       }
 
-      // Mock token oluştur
-      const mockToken = `mock-token-${Date.now()}`;
-      
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+
+      // Backend'e login isteği gönder
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant': tenantSlug
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Geçersiz email veya şifre');
+      }
+
       // Token ve kullanıcı bilgilerini kaydet
-      setToken(mockToken);
-      setUser(mockUser.user);
+      setToken(data.token);
+      setUser(data.user);
       
       // LocalStorage'a kaydet
-      localStorage.setItem('auth_token', mockToken);
-      localStorage.setItem('user_data', JSON.stringify(mockUser.user));
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('user_data', JSON.stringify(data.user));
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      return false;
+      throw error; // Hata mesajını yukarı fırlat
     } finally {
       setIsLoading(false);
     }
@@ -159,13 +110,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const savedUser = localStorage.getItem('user_data');
         
         if (savedToken && savedUser) {
-          setToken(savedToken);
-          setUser(JSON.parse(savedUser));
-          
-          // Mock token kontrolü - her zaman geçerli
-          if (!savedToken.startsWith('mock-token-')) {
-            // Token geçersizse temizle
-            logout();
+          // Token'ı doğrula (backend'den mevcut kullanıcı bilgilerini al)
+          try {
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+            let tenantSlug = 'demo';
+            if (typeof window !== 'undefined') {
+              const hostname = window.location.hostname;
+              const subdomain = hostname.split('.')[0];
+              if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+                tenantSlug = subdomain;
+              }
+            }
+
+            const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${savedToken}`,
+                'x-tenant': tenantSlug
+              }
+            });
+
+            if (response.ok) {
+              const userData = await response.json();
+              setToken(savedToken);
+              setUser(userData.user || JSON.parse(savedUser));
+            } else {
+              // Token geçersizse temizle
+              logout();
+            }
+          } catch (error) {
+            // Token doğrulama hatası, localStorage'dan yükle
+            setToken(savedToken);
+            setUser(JSON.parse(savedUser));
           }
         }
       } catch (error) {

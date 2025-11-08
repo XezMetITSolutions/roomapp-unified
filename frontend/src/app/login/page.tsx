@@ -43,8 +43,8 @@ export default function LoginPage() {
       } else {
         setError('Geçersiz email veya şifre');
       }
-    } catch (err) {
-      setError('Giriş sırasında bir hata oluştu');
+    } catch (err: any) {
+      setError(err?.message || 'Giriş sırasında bir hata oluştu');
     } finally {
       setIsLoading(false);
     }
