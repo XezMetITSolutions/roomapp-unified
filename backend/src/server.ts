@@ -925,7 +925,6 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
       district,
       postalCode,
       // Admin Kullanıcı Bilgileri
-      adminUsername,
       adminPassword,
       adminPasswordConfirm,
       // Plan ve Durum
@@ -1002,10 +1001,10 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
     // Admin email'i sahip email'inden al (yeni email üretme)
     const adminEmail = ownerEmail
 
-    // Admin ad soyad'ı owner'dan al veya adminUsername'den oluştur
+    // Admin ad soyad'ı owner'dan al
     const adminNameParts = ownerName.split(' ')
-    const adminFirstName = adminNameParts[0] || adminUsername
-    const adminLastName = adminNameParts.slice(1).join(' ') || 'Admin'
+    const adminFirstName = adminNameParts[0] || 'Admin'
+    const adminLastName = adminNameParts.slice(1).join(' ') || 'User'
 
     // Tenant oluştur
     const tenant = await prisma.tenant.create({
