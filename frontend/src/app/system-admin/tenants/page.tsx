@@ -59,7 +59,6 @@ export default function TenantManagement() {
     district: '',
     postalCode: '',
     // Admin Kullanıcı Bilgileri
-    adminUsername: '',
     adminPassword: '',
     adminPasswordConfirm: '',
     // Plan ve Durum
