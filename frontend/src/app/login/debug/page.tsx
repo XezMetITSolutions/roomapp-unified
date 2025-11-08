@@ -66,35 +66,51 @@ export default function LoginDebug() {
     }
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    // 3) Tenant kontrolü
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/tenants`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-tenant': 'system-admin',
-          'Authorization': `Bearer ${localStorage.getItem('admin_token') || ''}`
+    // 3) Tenant kontrolü (admin token olmadan da çalışabilir)
+    const adminToken = localStorage.getItem('admin_token');
+    if (adminToken) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/tenants`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant': 'system-admin',
+            'Authorization': `Bearer ${adminToken}`
+          }
+        });
+        const data = await res.json().catch(() => ({}));
+        const tenant = data.tenants?.find((t: any) => t.slug === tenantSlug);
+        const allTenants = data.tenants?.map((t: any) => ({ name: t.name, slug: t.slug, isActive: t.isActive })) || [];
+        push({ 
+          name: `Tenant Kontrolü (${tenantSlug})`, 
+          ok: !!tenant, 
+          status: res.status, 
+          data: {
+            tenantFound: !!tenant,
+            tenant: tenant ? {
+              id: tenant.id,
+              name: tenant.name,
+              slug: tenant.slug,
+              isActive: tenant.isActive
+            } : null,
+            allTenants: allTenants,
+            suggestion: !tenant ? `Bulunamadı. Mevcut tenant'lar: ${allTenants.map((t: any) => t.slug).join(', ')}` : null
+          },
+          warning: !tenant
+        });
+      } catch (e: any) {
+        push({ name: 'Tenant Kontrolü', ok: false, error: e?.message || String(e) });
+      }
+    } else {
+      push({
+        name: `Tenant Kontrolü (${tenantSlug})`,
+        ok: false,
+        warning: true,
+        data: {
+          message: 'Admin token bulunamadı. Tenant kontrolü için admin token gerekli.',
+          suggestion: 'Lütfen önce admin paneline giriş yapın veya tenant slug\'ını manuel olarak kontrol edin.'
         }
       });
-      const data = await res.json().catch(() => ({}));
-      const tenant = data.tenants?.find((t: any) => t.slug === tenantSlug);
-      push({ 
-        name: `Tenant Kontrolü (${tenantSlug})`, 
-        ok: !!tenant, 
-        status: res.status, 
-        data: {
-          tenantFound: !!tenant,
-          tenant: tenant ? {
-            id: tenant.id,
-            name: tenant.name,
-            slug: tenant.slug,
-            isActive: tenant.isActive
-          } : null
-        },
-        warning: !tenant
-      });
-    } catch (e: any) {
-      push({ name: 'Tenant Kontrolü', ok: false, error: e?.message || String(e) });
     }
     await new Promise(resolve => setTimeout(resolve, 300));
 
