@@ -326,6 +326,68 @@ app.post('/debug/cleanup-test-data', adminAuthMiddleware, async (req: Request, r
   }
 })
 
+// Debug endpoint - Super admin'leri listele
+app.get('/debug/super-admins', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const superAdmins = await prisma.user.findMany({
+      where: {
+        role: 'SUPER_ADMIN'
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            isActive: true
+          }
+        },
+        hotel: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true
+          }
+        },
+        permissions: {
+          select: {
+            pageName: true,
+            grantedAt: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    res.status(200).json({
+      success: true,
+      count: superAdmins.length,
+      superAdmins: superAdmins.map(admin => ({
+        id: admin.id,
+        email: admin.email,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        role: admin.role,
+        isActive: admin.isActive,
+        lastLogin: admin.lastLogin,
+        createdAt: admin.createdAt,
+        tenant: admin.tenant,
+        hotel: admin.hotel,
+        permissions: admin.permissions.map(p => p.pageName)
+      }))
+    })
+  } catch (error) {
+    console.error('Debug super admins error:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    })
+  }
+})
+
 // Debug endpoint - Tenant ve User durumunu kontrol et
 app.get('/debug/tenants', async (req: Request, res: Response) => {
   try {

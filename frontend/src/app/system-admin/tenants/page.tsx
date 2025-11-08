@@ -52,6 +52,8 @@ export default function TenantManagement() {
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
   const [bulkFeatureKey, setBulkFeatureKey] = useState('');
   const [bulkFeatureEnabled, setBulkFeatureEnabled] = useState(false);
+  const [showSuperAdminsModal, setShowSuperAdminsModal] = useState(false);
+  const [superAdmins, setSuperAdmins] = useState<any[]>([]);
 
   // Tenant'ları yükle
   useEffect(() => {
@@ -155,6 +157,20 @@ export default function TenantManagement() {
     } catch (error) {
       console.error('Error cleaning up test data:', error);
       alert('Test verileri temizlenirken hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSuperAdmins = async () => {
+    try {
+      setLoading(true);
+      const data = await adminApiClient.getSuperAdmins();
+      setSuperAdmins(data.superAdmins || []);
+      setShowSuperAdminsModal(true);
+    } catch (error) {
+      console.error('Error loading super admins:', error);
+      alert('Super admin\'ler yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -272,6 +288,14 @@ export default function TenantManagement() {
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Test Verilerini Temizle
+            </button>
+            <button 
+              onClick={loadSuperAdmins}
+              disabled={loading}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Super Admin'ler
             </button>
           </div>
         </div>
@@ -828,6 +852,100 @@ export default function TenantManagement() {
                   className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? 'Oluşturuluyor...' : 'Oluştur'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admins Modal */}
+      {showSuperAdminsModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Super Admin'ler</h3>
+                <button
+                  onClick={() => setShowSuperAdminsModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              {loading ? (
+                <div className="p-8 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="mt-2 text-gray-600">Yükleniyor...</p>
+                </div>
+              ) : superAdmins.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-gray-600">Super admin bulunamadı</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ad Soyad
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Durum
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Son Giriş
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Oluşturulma
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tenant
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {superAdmins.map((admin) => (
+                        <tr key={admin.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{admin.email}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{admin.firstName} {admin.lastName}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              admin.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {admin.isActive ? 'Aktif' : 'Pasif'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {admin.lastLogin ? new Date(admin.lastLogin).toLocaleDateString('tr-TR') : 'Henüz giriş yapmadı'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(admin.createdAt).toLocaleDateString('tr-TR')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {admin.tenant?.name || 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4 border-t border-gray-200 mt-4">
+                <button
+                  onClick={() => setShowSuperAdminsModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Kapat
                 </button>
               </div>
             </div>

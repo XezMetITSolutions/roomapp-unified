@@ -226,5 +226,10 @@ export const adminApiClient = {
     return this.request('/debug/cleanup-test-data', {
       method: 'POST'
     });
+  },
+
+  // Debug endpoints
+  async getSuperAdmins() {
+    return this.request('/debug/super-admins');
   }
 };
