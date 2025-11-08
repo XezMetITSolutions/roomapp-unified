@@ -67,7 +67,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <Rocket className="h-6 w-6 text-white" />
               </div>
               <div className="ml-3">
-                <span className="text-lg font-bold text-gray-900">RestXQr</span>
+                <span className="text-lg font-bold text-gray-900">roomxqr</span>
                 <p className="text-xs text-gray-600">Süper Yönetici</p>
               </div>
                 </div>
@@ -119,7 +119,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <Rocket className="h-6 w-6 text-white" />
               </div>
               <div className="ml-3">
-                <span className="text-lg font-bold text-purple-200">RestXQr</span>
+                <span className="text-lg font-bold text-purple-200">roomxqr</span>
                 <p className="text-xs text-purple-300">Süper Yönetici</p>
               </div>
             </div>
