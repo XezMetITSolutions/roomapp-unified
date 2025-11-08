@@ -11,16 +11,24 @@ export async function login(req: Request, res: Response) {
 
     if (!email || !password) {
       res.status(400).json({ 
-        message: 'Email ve şifre gerekli' 
+        message: 'Email/Username ve şifre gerekli' 
       })
       return
     }
 
     console.log('🔍 Login attempt:', { email, tenant: req.tenant?.slug })
 
+    // Eğer email formatında değilse (username), tenant slug'ına göre email formatına çevir
+    let loginEmail = email
+    if (!email.includes('@') && req.tenant?.slug) {
+      // Username girilmiş, email formatına çevir
+      loginEmail = `${email}@${req.tenant.slug}.roomxqr.com`
+      console.log('📧 Username detected, converted to email:', loginEmail)
+    }
+
     // Kullanıcıyı bul
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: loginEmail },
       include: {
         permissions: true,
         tenant: {
