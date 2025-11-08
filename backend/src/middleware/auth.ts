@@ -95,6 +95,13 @@ export function requirePermission(pageName: string) {
       return
     }
 
+    // ADMIN rolüne sahip kullanıcılar tüm permission'lara erişebilir
+    if (req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN') {
+      next()
+      return
+    }
+
+    // Diğer kullanıcılar için permission kontrolü
     if (!req.user.permissions.includes(pageName)) {
       res.status(403).json({ 
         message: `Bu sayfaya erişim yetkiniz yok: ${pageName}` 
