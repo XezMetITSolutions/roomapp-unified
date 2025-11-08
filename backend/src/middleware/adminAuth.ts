@@ -70,21 +70,21 @@ export async function createSuperAdmin() {
 
     if (!superTenant) {
       superTenant = await prisma.tenant.create({
-        data: {
-          name: 'System Admin',
-          slug: 'system-admin',
-          domain: 'admin.roomxr.com',
-          isActive: true,
-          settings: {
-            theme: {
-              primaryColor: '#1f2937',
-              secondaryColor: '#f3f4f6'
-            },
-            currency: 'TRY',
-            language: 'tr'
-          }
+      data: {
+        name: 'System Admin',
+        slug: 'system-admin',
+        domain: 'admin.roomxr.com',
+        isActive: true,
+        settings: {
+          theme: {
+            primaryColor: '#1f2937',
+            secondaryColor: '#f3f4f6'
+          },
+          currency: 'TRY',
+          language: 'tr'
         }
-      })
+      }
+    })
       console.log('✅ System admin tenant oluşturuldu')
     }
 
@@ -95,14 +95,14 @@ export async function createSuperAdmin() {
 
     if (!superHotel) {
       superHotel = await prisma.hotel.create({
-        data: {
-          name: 'System Hotel',
-          address: 'System Address',
-          phone: '000-000-0000',
-          email: 'admin@system.com',
-          tenantId: superTenant.id
-        }
-      })
+      data: {
+        name: 'System Hotel',
+        address: 'System Address',
+        phone: '000-000-0000',
+        email: 'admin@system.com',
+        tenantId: superTenant.id
+      }
+    })
       console.log('✅ System admin hotel oluşturuldu')
     }
 
@@ -122,7 +122,7 @@ export async function createSuperAdmin() {
       // Mevcut super admin'i güncelle
       superAdmin = await prisma.user.update({
         where: { id: existingSuperAdmin.id },
-        data: {
+      data: {
           email: 'roomxqr-admin@roomxqr.com',
           password: hashedPassword,
           firstName: 'RoomXQR',
@@ -140,12 +140,12 @@ export async function createSuperAdmin() {
           email: 'roomxqr-admin@roomxqr.com',
           password: hashedPassword,
           firstName: 'RoomXQR',
-          lastName: 'Admin',
-          role: 'SUPER_ADMIN',
-          tenantId: superTenant.id,
-          hotelId: superHotel.id
-        }
-      })
+        lastName: 'Admin',
+        role: 'SUPER_ADMIN',
+        tenantId: superTenant.id,
+        hotelId: superHotel.id
+      }
+    })
       console.log('✅ Super admin oluşturuldu:', superAdmin.email)
     }
 

@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -40,15 +40,42 @@ export default function LoginPage() {
       
       if (success) {
         // State'in güncellenmesi için kısa bir süre bekle
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Token'ın localStorage'da olduğunu kontrol et
         const savedToken = localStorage.getItem('auth_token');
-        const savedUser = localStorage.getItem('user_data');
+        const savedUserData = localStorage.getItem('user_data');
         
-        if (savedToken && savedUser) {
-          console.log('✅ Login successful, redirecting to /isletme');
-          router.push('/isletme');
+        if (savedToken && savedUserData) {
+          try {
+            const userData = JSON.parse(savedUserData);
+            const userRole = userData.role;
+            const userPermissions = userData.permissions || [];
+            
+            console.log('✅ Login successful, user role:', userRole, 'permissions:', userPermissions);
+            
+            // Kullanıcının role'üne veya permissions'ına göre yönlendir
+            let redirectPath = '/isletme'; // Varsayılan
+            
+            // Role'e göre yönlendirme
+            if (userRole === 'RECEPTION' || userPermissions.includes('reception')) {
+              redirectPath = '/reception';
+            } else if (userRole === 'KITCHEN' || userPermissions.includes('kitchen')) {
+              redirectPath = '/kitchen';
+            } else if (userRole === 'STAFF' || userRole === 'WAITER' || userPermissions.includes('staff') || userPermissions.includes('waiter')) {
+              // Personel ve garson için resepsiyon paneline yönlendir
+              redirectPath = '/reception';
+            } else if (userRole === 'ADMIN' || userRole === 'MANAGER' || userPermissions.includes('dashboard')) {
+              redirectPath = '/isletme';
+            }
+            
+            console.log('🔄 Redirecting to:', redirectPath);
+            router.push(redirectPath);
+          } catch (error) {
+            console.error('❌ Error parsing user data:', error);
+            // Hata durumunda varsayılan yönlendirme
+            router.push('/isletme');
+          }
         } else {
           console.error('❌ Login successful but token/user not saved');
           setError('Giriş başarılı ancak oturum kaydedilemedi. Lütfen tekrar deneyin.');
