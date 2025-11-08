@@ -949,8 +949,8 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
       return
     }
 
-    if (!adminUsername || !adminPassword || !adminPasswordConfirm) {
-      res.status(400).json({ message: 'Admin kullanıcı bilgileri gerekli' })
+    if (!adminPassword || !adminPasswordConfirm) {
+      res.status(400).json({ message: 'Admin şifre bilgileri gerekli' })
       return
     }
 
