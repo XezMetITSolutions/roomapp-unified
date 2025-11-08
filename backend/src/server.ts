@@ -1180,7 +1180,16 @@ app.post('/api/notifications', tenantMiddleware, async (req: Request, res: Respo
 app.post('/api/menu', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
-    const { name, description, price, category, image, allergens, calories, preparationTime, rating, isAvailable } = req.body
+    const { name, description, price, category, image, allergens, calories, isAvailable } = req.body
+
+    // Get hotel ID from tenant
+    const hotel = await prisma.hotel.findFirst({
+      where: { tenantId }
+    })
+
+    if (!hotel) {
+      res.status(404).json({ message: 'Hotel not found' }); return;
+    }
 
     const menuItem = await prisma.menuItem.create({
       data: {
@@ -1191,11 +1200,10 @@ app.post('/api/menu', tenantMiddleware, authMiddleware, async (req: Request, res
         image: image || '',
         allergens: allergens || [],
         calories: calories ? parseInt(calories) : null,
-        preparationTime: preparationTime ? parseInt(preparationTime) : null,
-        rating: rating ? parseFloat(rating) : 4.0,
         isAvailable: isAvailable !== false,
         isActive: true,
-        tenantId
+        tenantId,
+        hotelId: hotel.id
       }
     })
 
@@ -1211,7 +1219,7 @@ app.put('/api/menu/:id', tenantMiddleware, authMiddleware, async (req: Request, 
   try {
     const tenantId = getTenantId(req)
     const { id } = req.params
-    const { name, description, price, category, image, allergens, calories, preparationTime, rating, isAvailable } = req.body
+    const { name, description, price, category, image, allergens, calories, isAvailable } = req.body
 
     const menuItem = await prisma.menuItem.updateMany({
       where: { 
@@ -1226,8 +1234,6 @@ app.put('/api/menu/:id', tenantMiddleware, authMiddleware, async (req: Request, 
         ...(image !== undefined && { image }),
         ...(allergens !== undefined && { allergens }),
         ...(calories !== undefined && { calories: calories ? parseInt(calories) : null }),
-        ...(preparationTime !== undefined && { preparationTime: preparationTime ? parseInt(preparationTime) : null }),
-        ...(rating !== undefined && { rating: rating ? parseFloat(rating) : 4.0 }),
         ...(isAvailable !== undefined && { isAvailable })
       }
     })
@@ -1278,11 +1284,11 @@ app.get('/api/announcements', tenantMiddleware, authMiddleware, async (req: Requ
     const tenantId = getTenantId(req)
     const { limit } = req.query
     
-    // Announcements are stored as notifications with type 'announcement'
+    // Announcements are stored as notifications with type 'SYSTEM'
     const announcements = await prisma.notification.findMany({
       where: { 
         tenantId,
-        type: 'announcement'
+        type: 'SYSTEM'
       },
       orderBy: { createdAt: 'desc' },
       take: limit ? parseInt(limit as string) : undefined
@@ -1312,7 +1318,7 @@ app.post('/api/announcements', tenantMiddleware, authMiddleware, async (req: Req
 
     const announcement = await prisma.notification.create({
       data: {
-        type: 'announcement',
+        type: 'SYSTEM',
         title: title || '',
         message: content || '',
         roomId: null,
@@ -1341,7 +1347,7 @@ app.put('/api/announcements/:id', tenantMiddleware, authMiddleware, async (req: 
       where: { 
         id,
         tenantId,
-        type: 'announcement'
+        type: 'SYSTEM'
       },
       data: {
         ...(title && { title }),
@@ -1374,7 +1380,7 @@ app.delete('/api/announcements/:id', tenantMiddleware, authMiddleware, async (re
       where: { 
         id,
         tenantId,
-        type: 'announcement'
+        type: 'SYSTEM'
       }
     })
 
