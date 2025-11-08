@@ -308,12 +308,6 @@ export default function TenantManagement() {
     try {
       const adminData = await adminApiClient.getTenantAdminUser(tenant.id);
       setAdminUser(adminData.adminUser);
-      if (adminData.adminUser) {
-        setNewTenant(prev => ({
-          ...prev,
-          adminUsername: adminData.adminUser.email || ''
-        }));
-      }
     } catch (error: any) {
       console.error('Error loading admin user:', error);
       // 404 hatası admin kullanıcı bulunamadığı anlamına gelir
