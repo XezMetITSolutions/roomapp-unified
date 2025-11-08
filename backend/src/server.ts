@@ -1945,13 +1945,13 @@ server.listen(PORT, async () => {
     console.error('❌ Super admin oluşturma hatası:', error)
   }
 
-  // Demo tenant ve test kullanıcıları oluştur
-  try {
-    await createDemoTenant()
-    console.log('✅ Demo tenant ve test kullanıcıları hazır')
-  } catch (error) {
-    console.error('❌ Demo tenant oluşturma hatası:', error)
-  }
+  // Demo tenant ve test kullanıcıları oluştur (devre dışı - kullanıcılar kendi verilerini kullanacak)
+  // try {
+  //   await createDemoTenant()
+  //   console.log('✅ Demo tenant ve test kullanıcıları hazır')
+  // } catch (error) {
+  //   console.error('❌ Demo tenant oluşturma hatası:', error)
+  // }
 })
 
 // Graceful shutdown
