@@ -80,6 +80,19 @@ export async function login(req: Request, res: Response) {
       return
     }
 
+    // Kullanıcının tenant'ının, request'teki tenant ile eşleşip eşleşmediğini kontrol et
+    if (req.tenant && user.tenant.slug !== req.tenant.slug) {
+      console.log('❌ Tenant mismatch:', { 
+        userTenant: user.tenant.slug, 
+        requestTenant: req.tenant.slug,
+        userEmail: user.email
+      })
+      res.status(403).json({ 
+        message: 'Bu kullanıcı bu işletmeye ait değil' 
+      })
+      return
+    }
+
     // Hotel kontrolü (opsiyonel - super admin için olmayabilir)
     if (user.hotel && !user.hotel.isActive) {
       res.status(403).json({ 
