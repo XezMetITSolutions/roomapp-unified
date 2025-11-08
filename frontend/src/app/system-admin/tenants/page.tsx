@@ -315,9 +315,15 @@ export default function TenantManagement() {
           adminUsername: adminData.adminUser.email || ''
         }));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading admin user:', error);
-      setAdminUser(null);
+      // 404 hatası admin kullanıcı bulunamadığı anlamına gelir
+      if (error.message?.includes('404') || error.message?.includes('Admin kullanıcı bulunamadı')) {
+        setAdminUser(null); // Admin kullanıcı yok, null olarak ayarla
+        console.log('⚠️ Bu tenant için admin kullanıcı bulunamadı');
+      } else {
+        setAdminUser(null);
+      }
     }
 
     setShowEditModal(true);
@@ -1428,7 +1434,19 @@ export default function TenantManagement() {
               {/* Admin Kullanıcı Bilgileri */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Kullanıcı Bilgileri</h3>
-                {adminUser ? (
+                {adminUser === null && !loading ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                    <div className="flex items-start">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 mr-3" />
+                      <div>
+                        <h4 className="text-sm font-medium text-yellow-900 mb-1">Admin Kullanıcı Bulunamadı</h4>
+                        <p className="text-sm text-yellow-700">
+                          Bu işletme için henüz bir admin kullanıcı oluşturulmamış. Admin kullanıcı oluşturmak için işletmeyi yeniden oluşturmanız veya manuel olarak eklemeniz gerekebilir.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : adminUser ? (
                   <div className="space-y-4">
                     <div className="bg-white rounded-md p-4 border border-gray-200">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
