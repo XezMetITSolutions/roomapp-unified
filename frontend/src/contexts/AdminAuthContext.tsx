@@ -171,7 +171,22 @@ export const adminApiClient = {
         localStorage.removeItem('admin_user');
         window.location.href = '/admin-login';
       }
-      throw new Error(`API Error: ${response.status}`);
+      
+      // Hata mesajını al
+      let errorMessage = `API Error: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.message) {
+          errorMessage = errorData.message;
+          if (errorData.details) {
+            errorMessage += ` (Detaylar: ${JSON.stringify(errorData.details)})`;
+          }
+        }
+      } catch (e) {
+        // JSON parse hatası, varsayılan mesajı kullan
+      }
+      
+      throw new Error(errorMessage);
     }
 
     return response.json();

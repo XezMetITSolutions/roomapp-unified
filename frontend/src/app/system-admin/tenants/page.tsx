@@ -223,9 +223,10 @@ export default function TenantManagement() {
         planId: '',
         status: 'pending'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating tenant:', error);
-      alert('İşletme oluşturulurken hata oluştu');
+      const errorMessage = error?.message || 'İşletme oluşturulurken hata oluştu';
+      alert(`Hata: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
