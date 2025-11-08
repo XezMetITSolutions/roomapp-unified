@@ -27,7 +27,10 @@ import {
   Save,
   X,
   Check,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft,
+  Crown,
+  Star
 } from 'lucide-react';
 import { adminApiClient } from '@/contexts/AdminAuthContext';
 
@@ -43,8 +46,71 @@ export default function TenantManagement() {
     name: '',
     slug: '',
     domain: '',
-    isActive: true
+    isActive: true,
+    // Sahip Bilgileri
+    ownerName: '',
+    ownerEmail: '',
+    ownerPhone: '',
+    // Adres Bilgileri
+    address: '',
+    city: '',
+    district: '',
+    postalCode: '',
+    // Admin Kullanıcı Bilgileri
+    adminUsername: '',
+    adminPassword: '',
+    adminPasswordConfirm: '',
+    // Plan ve Durum
+    planId: '',
+    status: 'pending'
   });
+  const [plans, setPlans] = useState([
+    {
+      id: '1',
+      name: '6 Aylık Paket',
+      price: 430,
+      originalPrice: 470,
+      discount: 8,
+      duration: 6,
+      durationType: 'month',
+      isPopular: true,
+      limits: {
+        maxRooms: null,
+        maxMenuItems: null,
+        maxStaff: null
+      }
+    },
+    {
+      id: '2',
+      name: '1 Yıllık Paket',
+      price: 390,
+      originalPrice: 470,
+      discount: 17,
+      duration: 12,
+      durationType: 'month',
+      isPopular: false,
+      limits: {
+        maxRooms: null,
+        maxMenuItems: null,
+        maxStaff: null
+      }
+    },
+    {
+      id: '3',
+      name: 'Çoklu Şube Paketi',
+      price: 350,
+      originalPrice: 470,
+      discount: 25,
+      duration: null,
+      durationType: 'custom',
+      isPopular: false,
+      limits: {
+        maxRooms: null,
+        maxMenuItems: null,
+        maxStaff: null
+      }
+    }
+  ]);
   const [tenants, setTenants] = useState<any[]>([]);
   const [availableFeatures, setAvailableFeatures] = useState<any[]>([]);
   const [tenantFeatures, setTenantFeatures] = useState<any[]>([]);
@@ -125,6 +191,16 @@ export default function TenantManagement() {
       return;
     }
 
+    if (newTenant.adminPassword !== newTenant.adminPasswordConfirm) {
+      alert('Şifreler eşleşmiyor');
+      return;
+    }
+
+    if (newTenant.adminPassword && newTenant.adminPassword.length < 6) {
+      alert('Şifre en az 6 karakter olmalıdır');
+      return;
+    }
+
     try {
       setLoading(true);
       await adminApiClient.createTenant(newTenant);
@@ -134,7 +210,19 @@ export default function TenantManagement() {
         name: '',
         slug: '',
         domain: '',
-        isActive: true
+        isActive: true,
+        ownerName: '',
+        ownerEmail: '',
+        ownerPhone: '',
+        address: '',
+        city: '',
+        district: '',
+        postalCode: '',
+        adminUsername: '',
+        adminPassword: '',
+        adminPasswordConfirm: '',
+        planId: '',
+        status: 'pending'
       });
     } catch (error) {
       console.error('Error creating tenant:', error);
@@ -143,6 +231,8 @@ export default function TenantManagement() {
       setLoading(false);
     }
   };
+
+  const selectedPlan = plans.find(p => p.id === newTenant.planId);
 
   const handleCleanupTestData = async () => {
     if (!confirm('Test verilerini temizlemek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
@@ -767,93 +857,339 @@ export default function TenantManagement() {
       {/* Create Tenant Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Yeni İşletme Ekle</h3>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
+          <div className="relative top-10 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-md bg-white my-10">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Yeni İşletme Oluştur</h2>
+                <p className="text-sm text-gray-600 mt-1">Yeni işletme ve subdomain oluştur</p>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    İşletme Adı *
-                  </label>
-                  <input
-                    type="text"
-                    value={newTenant.name}
-                    onChange={(e) => setNewTenant({ ...newTenant, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Örn: Grand Hotel Istanbul"
-                  />
-                </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </button>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Slug *
-                  </label>
-                  <input
-                    type="text"
-                    value={newTenant.slug}
-                    onChange={(e) => setNewTenant({ ...newTenant, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Örn: grand-hotel-istanbul"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">URL'de kullanılacak benzersiz tanımlayıcı</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Domain (Opsiyonel)
-                  </label>
-                  <input
-                    type="text"
-                    value={newTenant.domain}
-                    onChange={(e) => setNewTenant({ ...newTenant, domain: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Örn: grandhotel.com"
-                  />
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={newTenant.isActive}
-                    onChange={(e) => setNewTenant({ ...newTenant, isActive: e.target.checked })}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <label className="ml-2 text-sm text-gray-700">Aktif</label>
+            <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
+              {/* Temel Bilgiler */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Temel Bilgiler</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      İşletme Adı *
+                    </label>
+                    <input
+                      type="text"
+                      value={newTenant.name}
+                      onChange={(e) => {
+                        setNewTenant({ 
+                          ...newTenant, 
+                          name: e.target.value,
+                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Örn: Grand Hotel Istanbul"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subdomain *
+                    </label>
+                    <div className="flex items-center">
+                      <input
+                        type="text"
+                        value={newTenant.slug}
+                        onChange={(e) => setNewTenant({ ...newTenant, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="isletme-adi"
+                      />
+                      <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md text-gray-600">
+                        .roomxqr.com
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 mt-4">
-                <button
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setNewTenant({
-                      name: '',
-                      slug: '',
-                      domain: '',
-                      isActive: true
-                    });
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  İptal
-                </button>
-                <button
-                  onClick={handleCreateTenant}
-                  disabled={loading || !newTenant.name || !newTenant.slug}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                >
-                  {loading ? 'Oluşturuluyor...' : 'Oluştur'}
-                </button>
+              {/* Sahip Bilgileri */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Sahip Bilgileri</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ad Soyad *
+                    </label>
+                    <input
+                      type="text"
+                      value={newTenant.ownerName}
+                      onChange={(e) => setNewTenant({ ...newTenant, ownerName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={newTenant.ownerEmail}
+                      onChange={(e) => setNewTenant({ ...newTenant, ownerEmail: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Telefon *
+                    </label>
+                    <input
+                      type="tel"
+                      value={newTenant.ownerPhone}
+                      onChange={(e) => setNewTenant({ ...newTenant, ownerPhone: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* Adres Bilgileri */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Adres Bilgileri</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Adres *
+                    </label>
+                    <textarea
+                      value={newTenant.address}
+                      onChange={(e) => setNewTenant({ ...newTenant, address: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        İl *
+                      </label>
+                      <input
+                        type="text"
+                        value={newTenant.city}
+                        onChange={(e) => setNewTenant({ ...newTenant, city: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        İlçe *
+                      </label>
+                      <input
+                        type="text"
+                        value={newTenant.district}
+                        onChange={(e) => setNewTenant({ ...newTenant, district: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Posta Kodu
+                      </label>
+                      <input
+                        type="text"
+                        value={newTenant.postalCode}
+                        onChange={(e) => setNewTenant({ ...newTenant, postalCode: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Admin Kullanıcı Bilgileri */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Kullanıcı Bilgileri</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  İşletme için otomatik olarak bir admin kullanıcısı oluşturulacaktır.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Kullanıcı Adı *
+                    </label>
+                    <input
+                      type="text"
+                      value={newTenant.adminUsername}
+                      onChange={(e) => setNewTenant({ ...newTenant, adminUsername: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="admin veya işletme adı"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Şifre *
+                    </label>
+                    <input
+                      type="password"
+                      value={newTenant.adminPassword}
+                      onChange={(e) => setNewTenant({ ...newTenant, adminPassword: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="En az 6 karakter"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Şifre Tekrar *
+                    </label>
+                    <input
+                      type="password"
+                      value={newTenant.adminPasswordConfirm}
+                      onChange={(e) => setNewTenant({ ...newTenant, adminPasswordConfirm: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Şifreyi tekrar girin"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Plan ve Durum */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan ve Durum</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Abonelik Planı
+                    </label>
+                    <select
+                      value={newTenant.planId}
+                      onChange={(e) => setNewTenant({ ...newTenant, planId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Plan seçin</option>
+                      {plans.map(plan => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} - {plan.price} TL/oda/ay
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Durum
+                    </label>
+                    <select
+                      value={newTenant.status}
+                      onChange={(e) => setNewTenant({ ...newTenant, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="pending">Beklemede</option>
+                      <option value="active">Aktif</option>
+                      <option value="suspended">Askıya Alındı</option>
+                    </select>
+                  </div>
+                </div>
+                {selectedPlan && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-md">
+                    <p className="text-sm font-medium text-gray-900 mb-2">{selectedPlan.name} Limitleri:</p>
+                    <ul className="text-xs text-gray-600 space-y-1">
+                      {selectedPlan.limits.maxRooms && (
+                        <li>• Maksimum Oda: {selectedPlan.limits.maxRooms}</li>
+                      )}
+                      {selectedPlan.limits.maxMenuItems && (
+                        <li>• Maksimum Menü Ürünü: {selectedPlan.limits.maxMenuItems}</li>
+                      )}
+                      {selectedPlan.limits.maxStaff && (
+                        <li>• Maksimum Personel: {selectedPlan.limits.maxStaff}</li>
+                      )}
+                      {!selectedPlan.limits.maxRooms && !selectedPlan.limits.maxMenuItems && !selectedPlan.limits.maxStaff && (
+                        <li>• Sınırsız kullanım</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Planlar */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Mevcut Planlar</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {plans.map((plan) => (
+                    <div
+                      key={plan.id}
+                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                        newTenant.planId === plan.id
+                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setNewTenant({ ...newTenant, planId: plan.id })}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">{plan.name}</h4>
+                        {plan.isPopular && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <Star className="w-3 h-3 mr-1" />
+                            Popüler
+                          </span>
+                        )}
+                      </div>
+                      <div className="mb-2">
+                        <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
+                        <span className="text-sm text-gray-600"> TL/oda/ay</span>
+                      </div>
+                      {plan.originalPrice > plan.price && (
+                        <div className="text-xs text-gray-500 mb-2">
+                          <span className="line-through">{plan.originalPrice} TL</span>
+                          <span className="ml-2 text-green-600 font-medium">%{plan.discount} İndirim</span>
+                        </div>
+                      )}
+                      {plan.duration && (
+                        <p className="text-xs text-gray-500">
+                          {plan.duration} {plan.durationType === 'month' ? 'aylık' : 'yıllık'} peşin ödeme
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setNewTenant({
+                    name: '',
+                    slug: '',
+                    domain: '',
+                    isActive: true,
+                    ownerName: '',
+                    ownerEmail: '',
+                    ownerPhone: '',
+                    address: '',
+                    city: '',
+                    district: '',
+                    postalCode: '',
+                    adminUsername: '',
+                    adminPassword: '',
+                    adminPasswordConfirm: '',
+                    planId: '',
+                    status: 'pending'
+                  });
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleCreateTenant}
+                disabled={loading || !newTenant.name || !newTenant.slug || !newTenant.ownerName || !newTenant.ownerEmail || !newTenant.ownerPhone || !newTenant.address || !newTenant.city || !newTenant.district || !newTenant.adminUsername || !newTenant.adminPassword || !newTenant.adminPasswordConfirm}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Oluşturuluyor...' : 'İşletme Oluştur'}
+              </button>
             </div>
           </div>
         </div>
