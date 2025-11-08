@@ -62,9 +62,9 @@ export default function LoginPage() {
               redirectPath = '/reception';
             } else if (userRole === 'KITCHEN' || userPermissions.includes('kitchen')) {
               redirectPath = '/kitchen';
-            } else if (userRole === 'STAFF' || userRole === 'WAITER' || userPermissions.includes('staff') || userPermissions.includes('waiter')) {
-              // Personel ve garson için resepsiyon paneline yönlendir
-              redirectPath = '/reception';
+            } else if (userRole === 'STAFF' || userPermissions.includes('staff')) {
+              // Personel için personel paneline yönlendir
+              redirectPath = '/staff';
             } else if (userRole === 'ADMIN' || userRole === 'MANAGER' || userPermissions.includes('dashboard')) {
               redirectPath = '/isletme';
             }

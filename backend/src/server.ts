@@ -789,6 +789,55 @@ app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) =>
   }
 })
 
+app.put('/api/orders/:id', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { id } = req.params
+    const { status, notes } = req.body
+
+    const order = await prisma.order.updateMany({
+      where: { 
+        id,
+        tenantId
+      },
+      data: {
+        ...(status && { status }),
+        ...(notes !== undefined && { notes }),
+        updatedAt: new Date()
+      }
+    })
+
+    if (order.count === 0) {
+      res.status(404).json({ message: 'Order not found' }); return;
+    }
+
+    const updatedOrder = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            menuItem: {
+              select: {
+                name: true,
+                price: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    // Emit real-time notification
+    io.emit('order-updated', updatedOrder)
+
+    res.json(updatedOrder); return;
+  } catch (error) {
+    console.error('Order update error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
 // Statistics API
 app.get('/api/statistics', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
   try {

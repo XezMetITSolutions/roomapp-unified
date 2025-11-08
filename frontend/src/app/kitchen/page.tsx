@@ -27,7 +27,7 @@ export default function KitchenPanel() {
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
   const [orders, setOrders] = useState<Order[]>(sampleOrders);
   const [menu, setMenu] = useState<MenuItem[]>(sampleMenu);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'preparing' | 'delivered' | 'cancelled'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showMenuModal, setShowMenuModal] = useState(false);
@@ -169,43 +169,86 @@ export default function KitchenPanel() {
     });
 
   const handleOrderStatusChange = async (orderId: string, newStatus: Order['status']) => {
-    // Önce local state'i güncelle
-    setOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { 
-            ...order, 
-            status: newStatus,
-            ...(newStatus === 'delivered' && { deliveryTime: new Date() })
-          }
-        : order
-    ));
-
-    // Müşteriye bildirim gönder
-    const order = orders.find(o => o.id === orderId);
-    if (order) {
-      try {
-        if (newStatus === 'preparing') {
-          await ApiService.sendNotificationToGuest(
-            `room-${order.roomId}`,
-            `Siparişiniz hazırlanmaya başlandı. Tahmini süre: ${calculateTotalPreparationTime(order)} dakika.`,
-            'info'
-          );
-        } else if (newStatus === 'delivered') {
-          await ApiService.sendNotificationToGuest(
-            `room-${order.roomId}`,
-            `Siparişiniz teslim edildi! Afiyet olsun.`,
-            'info'
-          );
-        } else if (newStatus === 'cancelled') {
-          await ApiService.sendNotificationToGuest(
-            `room-${order.roomId}`,
-            `Siparişiniz iptal edildi. Resepsiyon ile iletişime geçebilirsiniz.`,
-            'info'
-          );
+    try {
+      // Backend'e sipariş durumunu güncelle
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
         }
-      } catch (error) {
-        console.error('Bildirim gönderme hatası:', error);
       }
+
+      // Token'ı localStorage'dan al
+      const token = localStorage.getItem('auth_token');
+      
+      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': tenantSlug
+        },
+        body: JSON.stringify({ 
+          status: newStatus === 'ready' ? 'READY' : 
+                 newStatus === 'delivered' ? 'DELIVERED' : 
+                 newStatus === 'preparing' ? 'PREPARING' : 
+                 newStatus === 'cancelled' ? 'CANCELLED' : 'PENDING'
+        })
+      });
+
+      if (response.ok) {
+        // Local state'i güncelle
+        setOrders(prev => prev.map(order => 
+          order.id === orderId 
+            ? { 
+                ...order, 
+                status: newStatus,
+                ...(newStatus === 'delivered' && { deliveryTime: new Date() })
+              }
+            : order
+        ));
+
+        // Müşteriye bildirim gönder
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          try {
+            if (newStatus === 'preparing') {
+              await ApiService.sendNotificationToGuest(
+                `room-${order.roomId}`,
+                `Siparişiniz hazırlanmaya başlandı. Tahmini süre: ${calculateTotalPreparationTime(order)} dakika.`,
+                'info'
+              );
+            } else if (newStatus === 'ready') {
+              await ApiService.sendNotificationToGuest(
+                `room-${order.roomId}`,
+                `Siparişiniz hazır! Personel tarafından oda numaranıza teslim edilecek.`,
+                'info'
+              );
+            } else if (newStatus === 'delivered') {
+              await ApiService.sendNotificationToGuest(
+                `room-${order.roomId}`,
+                `Siparişiniz teslim edildi! Afiyet olsun.`,
+                'info'
+              );
+            } else if (newStatus === 'cancelled') {
+              await ApiService.sendNotificationToGuest(
+                `room-${order.roomId}`,
+                `Siparişiniz iptal edildi. Resepsiyon ile iletişime geçebilirsiniz.`,
+                'info'
+              );
+            }
+          } catch (error) {
+            console.error('Bildirim gönderme hatası:', error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Sipariş durumu güncelleme hatası:', error);
     }
   };
 
@@ -214,6 +257,7 @@ export default function KitchenPanel() {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'confirmed': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'preparing': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
       case 'delivered': return 'bg-green-100 text-green-800 border-green-200';
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -225,6 +269,7 @@ export default function KitchenPanel() {
       case 'pending': return <Clock className="w-4 h-4" />;
       case 'confirmed': return <AlertCircle className="w-4 h-4" />;
       case 'preparing': return <Play className="w-4 h-4" />;
+      case 'ready': return <CheckCircle className="w-4 h-4" />;
       case 'delivered': return <CheckCircle className="w-4 h-4" />;
       case 'cancelled': return <Pause className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
@@ -302,6 +347,7 @@ export default function KitchenPanel() {
                 { id: 'all', label: 'Tümü', count: orders.length },
                 { id: 'pending', label: 'Bekleyen', count: orders.filter(o => o.status === 'pending').length },
                 { id: 'preparing', label: 'Hazırlanan', count: orders.filter(o => o.status === 'preparing').length },
+                { id: 'ready', label: 'Hazır', count: orders.filter(o => o.status === 'ready').length },
                 { id: 'delivered', label: 'Teslim Edilen', count: orders.filter(o => o.status === 'delivered').length },
                 { id: 'cancelled', label: 'İptal Edilen', count: orders.filter(o => o.status === 'cancelled').length }
               ].map((filterOption) => (
@@ -337,6 +383,7 @@ export default function KitchenPanel() {
                         {order.status === 'pending' ? 'BEKLEMEDE' :
                          order.status === 'confirmed' ? 'ONAYLANDI' :
                          order.status === 'preparing' ? 'HAZIRLANIYOR' :
+                         order.status === 'ready' ? 'HAZIR' :
                          order.status === 'delivered' ? 'TESLİM EDİLDİ' : 'İPTAL'}
                       </span>
                     </span>
@@ -416,7 +463,7 @@ export default function KitchenPanel() {
                   {order.status === 'preparing' && (
                     <div className="flex items-center space-x-2">
                         <button
-                      onClick={() => handleOrderStatusChange(order.id, 'delivered')}
+                      onClick={() => handleOrderStatusChange(order.id, 'ready')}
                       className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm flex items-center space-x-2"
                         >
                       <CheckCircle className="w-4 h-4" />
@@ -431,6 +478,12 @@ export default function KitchenPanel() {
                         </button>
                     </div>
                       )}
+                  
+                  {order.status === 'ready' && (
+                    <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium text-center">
+                      ✅ Hazır - Personel Bekleniyor
+                    </div>
+                  )}
                   
                   {order.status === 'delivered' && (
                     <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium text-center">
