@@ -257,6 +257,75 @@ app.post('/debug/migrate', async (req: Request, res: Response) => {
   }
 })
 
+// Debug endpoint - Test verilerini temizle
+app.post('/debug/cleanup-test-data', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    console.log('🧹 Test verileri temizleniyor...')
+    
+    // Demo tenant'ı bul
+    const demoTenant = await prisma.tenant.findUnique({
+      where: { slug: 'demo' },
+      include: {
+        hotels: true,
+        users: true,
+        rooms: true,
+        guests: true,
+        orders: true,
+        menuItems: true,
+        guestRequests: true,
+        notifications: true
+      }
+    })
+
+    if (!demoTenant) {
+      res.status(200).json({
+        success: true,
+        message: 'Demo tenant bulunamadı, temizlenecek veri yok'
+      })
+      return
+    }
+
+    // İlişkili tüm verileri sil (cascade delete sayesinde otomatik silinecek)
+    // Önce order items'ı sil
+    const orders = await prisma.order.findMany({
+      where: { tenantId: demoTenant.id }
+    })
+    
+    for (const order of orders) {
+      await prisma.orderItem.deleteMany({
+        where: { orderId: order.id }
+      })
+    }
+
+    // Demo tenant'ı sil (cascade delete ile tüm ilişkili veriler silinecek)
+    await prisma.tenant.delete({
+      where: { id: demoTenant.id }
+    })
+
+    console.log('✅ Test verileri temizlendi')
+    res.status(200).json({
+      success: true,
+      message: 'Test verileri başarıyla temizlendi',
+      deleted: {
+        tenant: demoTenant.name,
+        hotels: demoTenant.hotels.length,
+        users: demoTenant.users.length,
+        rooms: demoTenant.rooms.length,
+        guests: demoTenant.guests.length,
+        orders: demoTenant.orders.length,
+        menuItems: demoTenant.menuItems.length
+      }
+    })
+  } catch (error) {
+    console.error('❌ Test verileri temizleme hatası:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    })
+  }
+})
+
 // Debug endpoint - Tenant ve User durumunu kontrol et
 app.get('/debug/tenants', async (req: Request, res: Response) => {
   try {
@@ -1249,12 +1318,12 @@ server.listen(PORT, async () => {
     console.error('❌ Super admin oluşturma hatası:', error)
   }
 
-  // Demo tenant oluştur (test için)
-  try {
-    await createDemoTenant()
-  } catch (error) {
-    console.error('❌ Demo tenant oluşturma hatası:', error)
-  }
+  // Demo tenant oluşturma devre dışı (test verileri temizlendi)
+  // try {
+  //   await createDemoTenant()
+  // } catch (error) {
+  //   console.error('❌ Demo tenant oluşturma hatası:', error)
+  // }
 })
 
 // Graceful shutdown
