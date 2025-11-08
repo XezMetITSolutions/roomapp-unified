@@ -87,20 +87,23 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                E-posta Adresi
+                E-posta Adresi veya Kullanıcı Adı
               </label>
               <div className="mt-1">
                 <input
                   id="email"
                   name="email"
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  autoComplete="username"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-hotel-gold focus:border-hotel-gold sm:text-sm"
-                  placeholder="ornek@hotel.com"
+                  placeholder="ornek@email.com veya kullaniciadi"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Kullanıcı adı girerseniz otomatik olarak email formatına çevrilecektir (örn: admin → admin@subdomain.roomxqr.com)
+                </p>
               </div>
             </div>
 
