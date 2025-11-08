@@ -326,8 +326,8 @@ app.post('/debug/cleanup-test-data', adminAuthMiddleware, async (req: Request, r
   }
 })
 
-// Debug endpoint - Super admin'leri listele
-app.get('/debug/super-admins', adminAuthMiddleware, async (req: Request, res: Response) => {
+// Debug endpoint - Super admin'leri listele (login gerektirmez - sadece email gösterir)
+app.get('/debug/super-admins', async (req: Request, res: Response) => {
   try {
     const superAdmins = await prisma.user.findMany({
       where: {
