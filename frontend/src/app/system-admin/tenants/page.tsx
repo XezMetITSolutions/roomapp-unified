@@ -142,6 +142,24 @@ export default function TenantManagement() {
     }
   };
 
+  const handleCleanupTestData = async () => {
+    if (!confirm('Test verilerini temizlemek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await adminApiClient.cleanupTestData();
+      alert(result.message || 'Test verileri başarıyla temizlendi');
+      await loadTenants();
+    } catch (error) {
+      console.error('Error cleaning up test data:', error);
+      alert('Test verileri temizlenirken hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleTenantSelect = (tenantId: string, checked: boolean) => {
     if (checked) {
       setSelectedTenants([...selectedTenants, tenantId]);
@@ -231,7 +249,7 @@ export default function TenantManagement() {
               Tüm işletmeleri yönetin, özelliklerini kontrol edin ve toplu işlemler yapın
             </p>
         </div>
-          <div className="mt-4 sm:mt-0 flex space-x-3">
+          <div className="mt-4 sm:mt-0 flex flex-wrap gap-3">
             <button
               onClick={() => setShowBulkFeatureModal(true)}
               disabled={selectedTenants.length === 0}
@@ -246,6 +264,14 @@ export default function TenantManagement() {
             >
               <Plus className="w-4 h-4 mr-2" />
               Yeni İşletme
+            </button>
+            <button 
+              onClick={handleCleanupTestData}
+              disabled={loading}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Test Verilerini Temizle
             </button>
           </div>
         </div>

@@ -219,5 +219,12 @@ export const adminApiClient = {
 
   async getAvailableFeatures() {
     return this.request('/api/admin/features/available');
+  },
+
+  // Cleanup endpoints
+  async cleanupTestData() {
+    return this.request('/debug/cleanup-test-data', {
+      method: 'POST'
+    });
   }
 };
