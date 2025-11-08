@@ -911,6 +911,8 @@ app.post('/api/notifications', tenantMiddleware, async (req: Request, res: Respo
 // Admin Routes (Tenant Management) - Admin yetkilendirmesi gerekli
 app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
+    console.log('🔍 POST /api/admin/tenants - Request body:', JSON.stringify(req.body, null, 2))
+    
     const { 
       name, 
       slug, 
@@ -934,22 +936,26 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
 
     // Validasyon
     if (!name || !slug) {
-      res.status(400).json({ message: 'İşletme adı ve slug gerekli' })
+      console.log('❌ Validation failed: name or slug missing', { name, slug })
+      res.status(400).json({ message: 'İşletme adı ve slug gerekli', details: { name: !!name, slug: !!slug } })
       return
     }
 
     if (!ownerName || !ownerEmail || !ownerPhone) {
-      res.status(400).json({ message: 'Sahip bilgileri gerekli' })
+      console.log('❌ Validation failed: owner info missing', { ownerName: !!ownerName, ownerEmail: !!ownerEmail, ownerPhone: !!ownerPhone })
+      res.status(400).json({ message: 'Sahip bilgileri gerekli', details: { ownerName: !!ownerName, ownerEmail: !!ownerEmail, ownerPhone: !!ownerPhone } })
       return
     }
 
     if (!address || !city || !district) {
-      res.status(400).json({ message: 'Adres bilgileri gerekli' })
+      console.log('❌ Validation failed: address info missing', { address: !!address, city: !!city, district: !!district })
+      res.status(400).json({ message: 'Adres bilgileri gerekli', details: { address: !!address, city: !!city, district: !!district } })
       return
     }
 
     if (!adminPassword || !adminPasswordConfirm) {
-      res.status(400).json({ message: 'Admin şifre bilgileri gerekli' })
+      console.log('❌ Validation failed: admin password missing', { adminPassword: !!adminPassword, adminPasswordConfirm: !!adminPasswordConfirm })
+      res.status(400).json({ message: 'Admin şifre bilgileri gerekli', details: { adminPassword: !!adminPassword, adminPasswordConfirm: !!adminPasswordConfirm } })
       return
     }
 
