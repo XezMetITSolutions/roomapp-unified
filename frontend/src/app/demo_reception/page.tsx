@@ -27,7 +27,7 @@ import {
   X
 } from 'lucide-react';
 
-export default function ReceptionPanel() {
+export default function DemoReceptionPanel() {
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
   const [requests, setRequests] = useState<GuestRequest[]>([]);
   const [filter, setFilter] = useState<'all' | 'urgent' | 'pending' | 'in_progress'>('all');
@@ -323,7 +323,7 @@ export default function ReceptionPanel() {
       const newStatus = 'completed';
       
       // Önce talep durumunu güncelle
-      await ApiService.updateRequestStatus(requestId, newStatus as any, response.text);
+      await DemoApiService.updateRequestStatus(requestId, newStatus as any, response.text);
       
       // Müşteriye bildirim gönder
       const request = requests.find(req => req.id === requestId);

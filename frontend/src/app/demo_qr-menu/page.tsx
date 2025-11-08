@@ -4,6 +4,7 @@ import { Clock, Star, Image as ImageIcon, Minus, Plus, X, ArrowLeft, Info, Alert
 import NextImage from 'next/image';
 import { FaBell, FaTimes } from 'react-icons/fa';
 import { ApiService } from '@/services/api';
+import { DemoApiService } from '@/services/demoApi';
 import { useAnnouncementStore } from '@/store/announcementStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -319,7 +320,7 @@ export default function QRMenuPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const roomId = urlParams.get('roomId') || '101';
     
-    const ws = ApiService.connectWebSocket(roomId, (data) => {
+    const ws = DemoApiService.connectWebSocket(roomId, (data) => {
       console.log('QR Menü bildirimi alındı:', data);
       
       if (data.type === 'guest_notification') {

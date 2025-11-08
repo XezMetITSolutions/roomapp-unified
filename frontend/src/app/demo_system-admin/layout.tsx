@@ -1,22 +1,41 @@
 "use client";
 
-import { AdminAuthProvider, useAdminAuth } from '@/contexts/AdminAuthContext';
+// Demo için özel auth - demo token kullan
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Building2, Users, Settings, LogOut, Menu, X, BarChart3, Crown, Sparkles, Bell, CreditCard, Headphones, Rocket, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
-function AdminLayoutContent({ children }: { children: React.ReactNode }) {
-  const { user, logout, isLoading, isAdmin } = useAdminAuth();
+function DemoAdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Demo kullanıcı bilgilerini yükle
+  useEffect(() => {
+    const demoUserData = localStorage.getItem('demo_user_data');
+    const demoToken = localStorage.getItem('demo_auth_token');
+    
+    if (demoUserData && demoToken) {
+      try {
+        const parsedUser = JSON.parse(demoUserData);
+        setUser(parsedUser);
+        // Demo için super admin kontrolü yapma, herkes giriş yapabilir
+      } catch (error) {
+        console.error('Demo user data parse error:', error);
+      }
+    }
+    
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
-    if (!isLoading && !isAdmin) {
-      router.push('/admin-login');
+    if (!isLoading && !user) {
+      router.push('/demo_login');
     }
-  }, [isLoading, isAdmin, router]);
+  }, [isLoading, user, router]);
 
   if (isLoading) {
     return (
@@ -29,21 +48,27 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAdmin) {
+  if (!user) {
     return null;
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('demo_auth_token');
+    localStorage.removeItem('demo_user_data');
+    router.push('/demo_login');
+  };
+
   const mainMenu = [
-    { name: 'Dashboard', href: '/system-admin', icon: BarChart3 },
-    { name: 'İşletme Yönetimi', href: '/system-admin/tenants', icon: Building2 },
-    { name: 'Plan Yönetimi', href: '/system-admin/plans', icon: Crown },
-    { name: 'Özellik Yönetimi', href: '/system-admin/features', icon: Sparkles },
-    { name: 'Bildirimler', href: '/system-admin/notifications', icon: Bell },
+    { name: 'Dashboard', href: '/demo_system-admin', icon: BarChart3 },
+    { name: 'İşletme Yönetimi', href: '/demo_system-admin/tenants', icon: Building2 },
+    { name: 'Plan Yönetimi', href: '/demo_system-admin/plans', icon: Crown },
+    { name: 'Özellik Yönetimi', href: '/demo_system-admin/features', icon: Sparkles },
+    { name: 'Bildirimler', href: '/demo_system-admin/notifications', icon: Bell },
   ];
 
   const reportsMenu = [
-    { name: 'Abonelik Yönetimi', href: '/system-admin/subscriptions', icon: CreditCard },
-    { name: 'Destek Talepleri', href: '/system-admin/support', icon: Headphones },
+    { name: 'Abonelik Yönetimi', href: '/demo_system-admin/subscriptions', icon: CreditCard },
+    { name: 'Destek Talepleri', href: '/demo_system-admin/support', icon: Headphones },
   ];
 
   return (
@@ -194,7 +219,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <p className="text-xs text-gray-400">{user?.email}</p>
               </div>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="ml-auto flex items-center text-sm text-gray-300 hover:text-white transition-colors"
               >
                 <LogOut className="h-4 w-4" />
@@ -223,10 +248,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function DemoAdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AdminAuthProvider>
-      <AdminLayoutContent>{children}</AdminLayoutContent>
-    </AdminAuthProvider>
+    <DemoAdminLayoutContent>{children}</DemoAdminLayoutContent>
   );
 }

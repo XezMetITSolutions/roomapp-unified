@@ -6,6 +6,7 @@ import { sampleOrders, sampleMenu } from '@/lib/sampleData';
 import { translate } from '@/lib/translations';
 import { Language, Order, MenuItem } from '@/types';
 import { ApiService } from '@/services/api';
+import { DemoApiService } from '@/services/demoApi';
 import { 
   ChefHat, 
   Clock, 
@@ -23,7 +24,7 @@ import {
   X
 } from 'lucide-react';
 
-export default function KitchenPanel() {
+export default function DemoKitchenPanel() {
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
   const [orders, setOrders] = useState<Order[]>(sampleOrders);
   const [menu, setMenu] = useState<MenuItem[]>(sampleMenu);
@@ -63,7 +64,7 @@ export default function KitchenPanel() {
       try {
         setIsLoading(true);
         // Yemek siparişlerini al (type: 'food_order' olanlar)
-        const requests = await ApiService.getGuestRequests();
+        const requests = await DemoApiService.getGuestRequests();
         const foodOrders = requests
           .filter(req => req.type === 'food_order')
           .map(req => {
@@ -185,19 +186,19 @@ export default function KitchenPanel() {
     if (order) {
       try {
         if (newStatus === 'preparing') {
-          await ApiService.sendNotificationToGuest(
+          await DemoApiService.sendNotificationToGuest(
             `room-${order.roomId}`,
             `Siparişiniz hazırlanmaya başlandı. Tahmini süre: ${calculateTotalPreparationTime(order)} dakika.`,
             'info'
           );
         } else if (newStatus === 'delivered') {
-          await ApiService.sendNotificationToGuest(
+          await DemoApiService.sendNotificationToGuest(
             `room-${order.roomId}`,
             `Siparişiniz teslim edildi! Afiyet olsun.`,
             'info'
           );
         } else if (newStatus === 'cancelled') {
-          await ApiService.sendNotificationToGuest(
+          await DemoApiService.sendNotificationToGuest(
             `room-${order.roomId}`,
             `Siparişiniz iptal edildi. Resepsiyon ile iletişime geçebilirsiniz.`,
             'info'

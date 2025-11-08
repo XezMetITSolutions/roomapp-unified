@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
+// Demo için özel auth - demo token kullan
 import { 
   LayoutDashboard, 
   Menu, 
@@ -25,27 +25,44 @@ interface AdminLayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/isletme', icon: LayoutDashboard, key: 'dashboard', color: 'text-blue-600' },
-  { name: 'QR Kod Oluşturucu', href: '/isletme/qr-kod', icon: QrCode, key: 'qr-kod', color: 'text-emerald-600' },
-  { name: 'Menü Yönetimi', href: '/isletme/menu', icon: Menu, key: 'menu', color: 'text-purple-600' },
-  { name: 'Duyurular', href: '/isletme/announcements', icon: Megaphone, key: 'announcements', color: 'text-orange-600' },
-  { name: 'Kullanıcılar', href: '/isletme/users', icon: Users, key: 'users', color: 'text-green-600' },
-  { name: 'Bildirimler', href: '/isletme/notifications', icon: Bell, key: 'notifications', color: 'text-pink-600' },
-  { name: 'Analitik', href: '/isletme/analytics', icon: BarChart3, key: 'analytics', color: 'text-indigo-600' },
-  { name: 'Ayarlar', href: '/isletme/settings', icon: Settings, key: 'settings', color: 'text-gray-600' },
+  { name: 'Dashboard', href: '/demo_isletme', icon: LayoutDashboard, key: 'dashboard', color: 'text-blue-600' },
+  { name: 'QR Kod Oluşturucu', href: '/demo_isletme/qr-kod', icon: QrCode, key: 'qr-kod', color: 'text-emerald-600' },
+  { name: 'Menü Yönetimi', href: '/demo_isletme/menu', icon: Menu, key: 'menu', color: 'text-purple-600' },
+  { name: 'Duyurular', href: '/demo_isletme/announcements', icon: Megaphone, key: 'announcements', color: 'text-orange-600' },
+  { name: 'Kullanıcılar', href: '/demo_isletme/users', icon: Users, key: 'users', color: 'text-green-600' },
+  { name: 'Bildirimler', href: '/demo_isletme/notifications', icon: Bell, key: 'notifications', color: 'text-pink-600' },
+  { name: 'Analitik', href: '/demo_isletme/analytics', icon: BarChart3, key: 'analytics', color: 'text-indigo-600' },
+  { name: 'Ayarlar', href: '/demo_isletme/settings', icon: Settings, key: 'settings', color: 'text-gray-600' },
 ];
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default function DemoAdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout, isLoading, hasPermission } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Demo kullanıcı bilgilerini yükle
+  useEffect(() => {
+    const demoUserData = localStorage.getItem('demo_user_data');
+    const demoToken = localStorage.getItem('demo_auth_token');
+    
+    if (demoUserData && demoToken) {
+      try {
+        setUser(JSON.parse(demoUserData));
+      } catch (error) {
+        console.error('Demo user data parse error:', error);
+      }
+    }
+    
+    setIsLoading(false);
+  }, []);
 
   // Auth kontrolü
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/login');
+      router.push('/demo_login');
     }
   }, [user, isLoading, router]);
 
@@ -66,14 +83,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return null;
   }
 
-  // Kullanıcının yetkili olduğu sayfaları filtrele
-  // Eğer kullanıcının permissions'ı yoksa veya boşsa, tüm menü öğelerini göster
-  const filteredNavigation = user?.permissions && user.permissions.length > 0
-    ? navigation.filter(item => hasPermission(item.key))
-    : navigation;
+  // Demo için tüm menü öğelerini göster
+  const filteredNavigation = navigation;
 
   const handleLogout = () => {
-    logout();
+    localStorage.removeItem('demo_auth_token');
+    localStorage.removeItem('demo_user_data');
+    router.push('/demo_login');
   };
 
   return (
