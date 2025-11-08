@@ -43,6 +43,7 @@ export default function TenantManagement() {
   const [showBulkFeatureModal, setShowBulkFeatureModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [adminUser, setAdminUser] = useState<any>(null);
   const [newTenant, setNewTenant] = useState({
     name: '',
     slug: '',
@@ -330,12 +331,28 @@ export default function TenantManagement() {
       city: address.city || '',
       district: address.district || '',
       postalCode: address.postalCode || '',
-      adminUsername: '', // Admin bilgileri düzenlenemez
+      adminUsername: '',
       adminPassword: '',
       adminPasswordConfirm: '',
       planId: settings.planId || '',
       status: settings.status || (tenant.isActive ? 'active' : 'pending')
     });
+
+    // Admin kullanıcı bilgilerini yükle
+    try {
+      const adminData = await adminApiClient.getTenantAdminUser(tenant.id);
+      setAdminUser(adminData.adminUser);
+      if (adminData.adminUser) {
+        setNewTenant(prev => ({
+          ...prev,
+          adminUsername: adminData.adminUser.email || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading admin user:', error);
+      setAdminUser(null);
+    }
+
     setShowEditModal(true);
   };
 
@@ -365,9 +382,30 @@ export default function TenantManagement() {
         planId: newTenant.planId,
         status: newTenant.status
       });
+
+      // Eğer şifre değiştirilmek isteniyorsa
+      if (newTenant.adminPassword && newTenant.adminPasswordConfirm) {
+        if (newTenant.adminPassword !== newTenant.adminPasswordConfirm) {
+          alert('Şifreler eşleşmiyor');
+          setLoading(false);
+          return;
+        }
+        if (newTenant.adminPassword.length < 6) {
+          alert('Şifre en az 6 karakter olmalıdır');
+          setLoading(false);
+          return;
+        }
+        await adminApiClient.updateTenantAdminPassword(
+          selectedTenant.id,
+          newTenant.adminPassword,
+          newTenant.adminPasswordConfirm
+        );
+      }
+
       alert('İşletme başarıyla güncellendi');
       setShowEditModal(false);
       setSelectedTenant(null);
+      setAdminUser(null);
       await loadTenants();
     } catch (error) {
       console.error('Error updating tenant:', error);
@@ -1474,6 +1512,85 @@ export default function TenantManagement() {
                 </div>
               </div>
 
+              {/* Admin Kullanıcı Bilgileri */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Kullanıcı Bilgileri</h3>
+                {adminUser ? (
+                  <div className="space-y-4">
+                    <div className="bg-white rounded-md p-4 border border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                          <p className="text-sm font-medium text-gray-900">{adminUser.email}</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Ad Soyad</label>
+                          <p className="text-sm font-medium text-gray-900">{adminUser.firstName} {adminUser.lastName}</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Rol</label>
+                          <p className="text-sm font-medium text-gray-900">{adminUser.role}</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Durum</label>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            adminUser.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {adminUser.isActive ? 'Aktif' : 'Pasif'}
+                          </span>
+                        </div>
+                        {adminUser.lastLogin && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Son Giriş</label>
+                            <p className="text-sm text-gray-600">{new Date(adminUser.lastLogin).toLocaleDateString('tr-TR')}</p>
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Oluşturulma</label>
+                          <p className="text-sm text-gray-600">{new Date(adminUser.createdAt).toLocaleDateString('tr-TR')}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border-t border-gray-200 pt-4">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Şifre Değiştir</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Yeni Şifre
+                          </label>
+                          <input
+                            type="password"
+                            value={newTenant.adminPassword}
+                            onChange={(e) => setNewTenant({ ...newTenant, adminPassword: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Yeni şifre (boş bırakılırsa değişmez)"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">En az 6 karakter</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Şifre Tekrar
+                          </label>
+                          <input
+                            type="password"
+                            value={newTenant.adminPasswordConfirm}
+                            onChange={(e) => setNewTenant({ ...newTenant, adminPasswordConfirm: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Şifreyi tekrar girin"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Not: Şifre alanlarını boş bırakırsanız şifre değişmez.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <p className="text-sm text-gray-500 mt-2">Admin kullanıcı bilgileri yükleniyor...</p>
+                  </div>
+                )}
+              </div>
+
               {/* Plan ve Durum */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan ve Durum</h3>
@@ -1538,6 +1655,25 @@ export default function TenantManagement() {
                 onClick={() => {
                   setShowEditModal(false);
                   setSelectedTenant(null);
+                  setAdminUser(null);
+                  setNewTenant({
+                    name: '',
+                    slug: '',
+                    domain: '',
+                    isActive: true,
+                    ownerName: '',
+                    ownerEmail: '',
+                    ownerPhone: '',
+                    address: '',
+                    city: '',
+                    district: '',
+                    postalCode: '',
+                    adminUsername: '',
+                    adminPassword: '',
+                    adminPasswordConfirm: '',
+                    planId: '',
+                    status: 'pending'
+                  });
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >

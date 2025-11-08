@@ -202,6 +202,17 @@ export const adminApiClient = {
     });
   },
 
+  async getTenantAdminUser(tenantId: string) {
+    return this.request(`/api/admin/tenants/${tenantId}/admin-user`);
+  },
+
+  async updateTenantAdminPassword(tenantId: string, password: string, passwordConfirm: string) {
+    return this.request(`/api/admin/tenants/${tenantId}/admin-user/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ password, passwordConfirm })
+    });
+  },
+
   // Feature endpoints
   async getTenantFeatures(tenantId: string) {
     return this.request(`/api/admin/tenants/${tenantId}/features`);

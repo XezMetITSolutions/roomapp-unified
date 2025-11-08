@@ -1203,6 +1203,137 @@ app.get('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Res
   }
 })
 
+// Tenant'ın admin kullanıcısını getir
+app.get('/api/admin/tenants/:id/admin-user', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+
+    if (!id) {
+      res.status(400).json({ message: 'Tenant ID gerekli' })
+      return
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id }
+    })
+
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant bulunamadı' })
+      return
+    }
+
+    // Tenant'ın admin kullanıcısını bul
+    const adminUser = await prisma.user.findFirst({
+      where: {
+        tenantId: id,
+        role: 'ADMIN'
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        lastLogin: true
+      }
+    })
+
+    if (!adminUser) {
+      res.status(404).json({ message: 'Admin kullanıcı bulunamadı' })
+      return
+    }
+
+    res.json({
+      adminUser
+    })
+    return
+  } catch (error) {
+    console.error('Get admin user error:', error)
+    res.status(500).json({ message: 'Veritabanı hatası' })
+    return
+  }
+})
+
+// Tenant'ın admin kullanıcı şifresini güncelle
+app.put('/api/admin/tenants/:id/admin-user/password', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const { password, passwordConfirm } = req.body
+
+    if (!id) {
+      res.status(400).json({ message: 'Tenant ID gerekli' })
+      return
+    }
+
+    if (!password || !passwordConfirm) {
+      res.status(400).json({ message: 'Şifre ve şifre tekrarı gerekli' })
+      return
+    }
+
+    if (password !== passwordConfirm) {
+      res.status(400).json({ message: 'Şifreler eşleşmiyor' })
+      return
+    }
+
+    if (password.length < 6) {
+      res.status(400).json({ message: 'Şifre en az 6 karakter olmalıdır' })
+      return
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id }
+    })
+
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant bulunamadı' })
+      return
+    }
+
+    // Tenant'ın admin kullanıcısını bul
+    const adminUser = await prisma.user.findFirst({
+      where: {
+        tenantId: id,
+        role: 'ADMIN'
+      }
+    })
+
+    if (!adminUser) {
+      res.status(404).json({ message: 'Admin kullanıcı bulunamadı' })
+      return
+    }
+
+    // Şifreyi hash'le
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Admin kullanıcı şifresini güncelle
+    const updatedUser = await prisma.user.update({
+      where: { id: adminUser.id },
+      data: {
+        password: hashedPassword
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true
+      }
+    })
+
+    res.json({
+      message: 'Admin kullanıcı şifresi başarıyla güncellendi',
+      adminUser: updatedUser
+    })
+    return
+  } catch (error) {
+    console.error('Update admin user password error:', error)
+    res.status(500).json({ message: 'Veritabanı hatası' })
+    return
+  }
+})
+
 // Tenant güncelleme endpoint'i
 app.put('/api/admin/tenants/:id', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
