@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -20,51 +20,150 @@ export default function AdminDashboard() {
   const { token, user } = useAuth();
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanupMessage, setCleanupMessage] = useState<string | null>(null);
-  
-  // Mock data - bu veriler gerçek API'den gelecek
-  const stats = [
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState([
     {
       name: 'Toplam Misafir',
-      value: '124',
-      change: '+12%',
+      value: '0',
+      change: '0%',
       changeType: 'positive',
       icon: Users,
     },
     {
       name: 'Aktif Siparişler',
-      value: '23',
-      change: '+5%',
+      value: '0',
+      change: '0%',
       changeType: 'positive',
       icon: ShoppingCart,
     },
     {
       name: 'Bekleyen Talepler',
-      value: '7',
-      change: '-2%',
+      value: '0',
+      change: '0%',
       changeType: 'negative',
       icon: Bell,
     },
     {
       name: 'Günlük Gelir',
-      value: '₺2,450',
-      change: '+18%',
+      value: '₺0',
+      change: '0%',
       changeType: 'positive',
       icon: DollarSign,
     },
-  ];
+  ]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
 
-  const recentOrders = [
-    { id: 'ORD-001', room: '101', items: '2x Pizza, 1x Cola', amount: '₺85', status: 'Preparing' },
-    { id: 'ORD-002', room: '205', items: '1x Burger, 2x Fries', amount: '₺65', status: 'Ready' },
-    { id: 'ORD-003', room: '312', items: '3x Coffee, 2x Cake', amount: '₺45', status: 'Delivered' },
-    { id: 'ORD-004', room: '118', items: '1x Pasta, 1x Wine', amount: '₺120', status: 'Pending' },
-  ];
+  // Gerçek verileri API'den yükle
+  useEffect(() => {
+    const loadData = async () => {
+      if (!token || !user) return;
+      
+      try {
+        setIsLoading(true);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
 
-  const recentRequests = [
-    { id: 'REQ-001', room: '205', type: 'Temizlik', priority: 'High', time: '5 dk önce' },
-    { id: 'REQ-002', room: '312', type: 'Bakım', priority: 'Medium', time: '12 dk önce' },
-    { id: 'REQ-003', room: '101', type: 'Konuk Hizmetleri', priority: 'Low', time: '18 dk önce' },
-  ];
+        // Statistics, Orders ve Requests'i paralel olarak yükle
+        const [statsRes, ordersRes, requestsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/statistics`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'x-tenant': tenantSlug
+            }
+          }).catch(() => null),
+          fetch(`${API_BASE_URL}/api/orders?limit=5`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'x-tenant': tenantSlug
+            }
+          }).catch(() => null),
+          fetch(`${API_BASE_URL}/api/requests?limit=5`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'x-tenant': tenantSlug
+            }
+          }).catch(() => null)
+        ]);
+
+        // Statistics
+        if (statsRes && statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats([
+            {
+              name: 'Toplam Misafir',
+              value: String(statsData.totalGuests || 0),
+              change: '0%',
+              changeType: 'positive',
+              icon: Users,
+            },
+            {
+              name: 'Aktif Siparişler',
+              value: String(statsData.activeOrders || 0),
+              change: '0%',
+              changeType: 'positive',
+              icon: ShoppingCart,
+            },
+            {
+              name: 'Bekleyen Talepler',
+              value: String(statsData.pendingRequests || 0),
+              change: '0%',
+              changeType: 'negative',
+              icon: Bell,
+            },
+            {
+              name: 'Günlük Gelir',
+              value: `₺${(statsData.dailyRevenue || 0).toLocaleString('tr-TR')}`,
+              change: '0%',
+              changeType: 'positive',
+              icon: DollarSign,
+            },
+          ]);
+        }
+
+        // Orders
+        if (ordersRes && ordersRes.ok) {
+          const ordersData = await ordersRes.json();
+          const orders = Array.isArray(ordersData) ? ordersData : (ordersData.orders || []);
+          setRecentOrders(orders.slice(0, 4).map((order: any) => ({
+            id: order.id || `ORD-${order.number || ''}`,
+            room: order.roomId?.replace('room-', '') || order.roomNumber || '',
+            items: order.items?.map((item: any) => `${item.quantity}x ${item.name}`).join(', ') || '',
+            amount: `₺${(order.totalAmount || 0).toLocaleString('tr-TR')}`,
+            status: order.status || 'Pending'
+          })));
+        }
+
+        // Requests
+        if (requestsRes && requestsRes.ok) {
+          const requestsData = await requestsRes.json();
+          const requests = Array.isArray(requestsData) ? requestsData : (requestsData.requests || []);
+          setRecentRequests(requests.slice(0, 3).map((req: any) => ({
+            id: req.id || `REQ-${req.number || ''}`,
+            room: req.roomId?.replace('room-', '') || req.roomNumber || '',
+            type: req.type || req.description || '',
+            priority: req.priority || 'Medium',
+            time: req.createdAt ? new Date(req.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : ''
+          })));
+        }
+      } catch (error) {
+        console.error('Veri yükleme hatası:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [token, user]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -207,7 +306,15 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-medium text-gray-900">Son Siparişler</h3>
           </div>
           <div className="divide-y divide-gray-200">
-            {recentOrders.map((order) => (
+            {isLoading ? (
+              <div className="px-6 py-4">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            ) : recentOrders.length > 0 ? (
+              recentOrders.map((order) => (
               <div key={order.id} className="px-6 py-4 flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
@@ -238,7 +345,15 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-medium text-gray-900">Son Talepler</h3>
           </div>
           <div className="divide-y divide-gray-200">
-            {recentRequests.map((request) => (
+            {isLoading ? (
+              <div className="px-6 py-4">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            ) : recentRequests.length > 0 ? (
+              recentRequests.map((request) => (
               <div key={request.id} className="px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -254,7 +369,12 @@ export default function AdminDashboard() {
                   </span>
                 </div>
               </div>
-            ))}
+            ))
+            ) : (
+              <div className="px-6 py-8 text-center text-gray-500">
+                <p>Henüz talep bulunmuyor</p>
+              </div>
+            )}
           </div>
           <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
             <a href="/isletme/requests" className="text-sm font-medium text-hotel-gold hover:text-hotel-navy">

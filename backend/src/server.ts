@@ -630,11 +630,76 @@ app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) =>
   }
 })
 
+// Statistics API
+app.get('/api/statistics', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    
+    // Toplam misafir sayısı
+    const totalGuests = await prisma.guest.count({
+      where: { 
+        tenantId,
+        isActive: true 
+      }
+    })
+    
+    // Aktif sipariş sayısı
+    const activeOrders = await prisma.order.count({
+      where: { 
+        tenantId,
+        status: { in: ['pending', 'preparing', 'ready'] }
+      }
+    })
+    
+    // Bekleyen talep sayısı
+    const pendingRequests = await prisma.guestRequest.count({
+      where: { 
+        tenantId,
+        status: { in: ['pending', 'in_progress'] },
+        isActive: true 
+      }
+    })
+    
+    // Bugünkü gelir
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    const todayOrders = await prisma.order.findMany({
+      where: {
+        tenantId,
+        createdAt: {
+          gte: today,
+          lt: tomorrow
+        },
+        status: 'completed'
+      },
+      select: {
+        totalAmount: true
+      }
+    })
+    
+    const dailyRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+    
+    res.json({
+      totalGuests,
+      activeOrders,
+      pendingRequests,
+      dailyRevenue
+    }); return;
+  } catch (error) {
+    console.error('Statistics error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
 // Guest Requests API
 app.get('/api/requests', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
-    const { roomId } = req.query
+    const { roomId, limit } = req.query
     const where = roomId ? { roomId: `room-${roomId}` } : {}
     
     const requests = await prisma.guestRequest.findMany({
@@ -643,7 +708,8 @@ app.get('/api/requests', tenantMiddleware, async (req: Request, res: Response) =
         ...where, 
         isActive: true 
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: limit ? parseInt(limit as string) : undefined
     })
     
     res.json(requests); return;
