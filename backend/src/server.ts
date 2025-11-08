@@ -258,10 +258,10 @@ app.post('/debug/migrate', async (req: Request, res: Response) => {
   }
 })
 
-// Debug endpoint - Test verilerini temizle
-app.post('/debug/cleanup-test-data', adminAuthMiddleware, async (req: Request, res: Response) => {
+// Demo verilerini temizleme fonksiyonu
+async function cleanupDemoData() {
   try {
-    console.log('🧹 Test verileri temizleniyor...')
+    console.log('🧹 Demo verileri temizleniyor...')
     
     // Demo tenant'ı bul
     const demoTenant = await prisma.tenant.findUnique({
@@ -279,11 +279,8 @@ app.post('/debug/cleanup-test-data', adminAuthMiddleware, async (req: Request, r
     })
 
     if (!demoTenant) {
-      res.status(200).json({
-        success: true,
-        message: 'Demo tenant bulunamadı, temizlenecek veri yok'
-      })
-      return
+      console.log('✅ Demo tenant bulunamadı, temizlenecek veri yok')
+      return { success: true, message: 'Demo tenant bulunamadı' }
     }
 
     // İlişkili tüm verileri sil (cascade delete sayesinde otomatik silinecek)
@@ -303,10 +300,10 @@ app.post('/debug/cleanup-test-data', adminAuthMiddleware, async (req: Request, r
       where: { id: demoTenant.id }
     })
 
-    console.log('✅ Test verileri temizlendi')
-    res.status(200).json({
+    console.log('✅ Demo verileri temizlendi')
+    return {
       success: true,
-      message: 'Test verileri başarıyla temizlendi',
+      message: 'Demo verileri başarıyla temizlendi',
       deleted: {
         tenant: demoTenant.name,
         hotels: demoTenant.hotels.length,
@@ -316,13 +313,38 @@ app.post('/debug/cleanup-test-data', adminAuthMiddleware, async (req: Request, r
         orders: demoTenant.orders.length,
         menuItems: demoTenant.menuItems.length
       }
-    })
+    }
+  } catch (error) {
+    console.error('❌ Demo verileri temizleme hatası:', error)
+    throw error
+  }
+}
+
+// Debug endpoint - Test verilerini temizle (admin yetkisi gerekli)
+app.post('/debug/cleanup-test-data', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await cleanupDemoData()
+    res.status(200).json(result)
   } catch (error) {
     console.error('❌ Test verileri temizleme hatası:', error)
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    })
+  }
+})
+
+// Demo verilerini temizle endpoint'i (herhangi bir authenticated kullanıcı için)
+app.post('/api/cleanup-demo-data', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await cleanupDemoData()
+    res.status(200).json(result)
+  } catch (error) {
+    console.error('❌ Demo verileri temizleme hatası:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     })
   }
 })

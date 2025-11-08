@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Users, 
   Menu, 
@@ -9,11 +11,15 @@ import {
   TrendingUp, 
   DollarSign,
   Globe,
-  QrCode
+  QrCode,
+  Trash2
 } from 'lucide-react';
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const { token, user } = useAuth();
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleanupMessage, setCleanupMessage] = useState<string | null>(null);
   
   // Mock data - bu veriler gerçek API'den gelecek
   const stats = [
@@ -88,12 +94,81 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCleanupDemoData = async () => {
+    if (!confirm('Demo verilerini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+      return;
+    }
+
+    setIsCleaning(true);
+    setCleanupMessage(null);
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/cleanup-demo-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': tenantSlug
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setCleanupMessage('✅ Demo verileri başarıyla temizlendi!');
+        // Sayfayı yenile
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        setCleanupMessage(`❌ Hata: ${data.error || data.message || 'Bilinmeyen hata'}`);
+      }
+    } catch (error: any) {
+      setCleanupMessage(`❌ Hata: ${error.message || 'Bağlantı hatası'}`);
+    } finally {
+      setIsCleaning(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Otel yönetim paneline hoş geldiniz</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">Otel yönetim paneline hoş geldiniz</p>
+          </div>
+          <button
+            onClick={handleCleanupDemoData}
+            disabled={isCleaning}
+            className="flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            {isCleaning ? 'Temizleniyor...' : 'Demo Verilerini Temizle'}
+          </button>
+        </div>
+        {cleanupMessage && (
+          <div className={`mt-4 p-3 rounded-lg ${
+            cleanupMessage.startsWith('✅') 
+              ? 'bg-green-50 text-green-800 border border-green-200' 
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {cleanupMessage}
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}
