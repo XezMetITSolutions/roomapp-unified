@@ -7,6 +7,7 @@ import { translate } from '@/lib/translations';
 import { Language, Request } from '@/types';
 import { ApiService, GuestRequest } from '@/services/api';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Hotel, 
   Clock, 
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function ReceptionPanel() {
+  const { user } = useAuth();
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
   const [requests, setRequests] = useState<GuestRequest[]>([]);
   const [filter, setFilter] = useState<'all' | 'urgent' | 'pending' | 'in_progress'>('all');
@@ -621,7 +623,7 @@ export default function ReceptionPanel() {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
-                  Grand Hotel Resepsiyon
+                  {user?.hotel?.name || 'Otel'} Resepsiyon
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600">
                   Misafir taleplerini yönetin ve takip edin
