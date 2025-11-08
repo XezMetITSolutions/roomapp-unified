@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Hotel, 
@@ -8,13 +8,33 @@ import {
   ChefHat, 
   Settings, 
   BarChart3,
-  ScanLine
+  ScanLine,
+  LogOut
 } from 'lucide-react';
 import { Language } from '@/types';
 
 export default function DemoPanelsIndexPage() {
   const router = useRouter();
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
+  const [demoUser, setDemoUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Demo kullanıcı bilgilerini yükle
+    const demoUserData = localStorage.getItem('demo_user_data');
+    if (demoUserData) {
+      try {
+        setDemoUser(JSON.parse(demoUserData));
+      } catch (error) {
+        console.error('Demo user data parse error:', error);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('demo_auth_token');
+    localStorage.removeItem('demo_user_data');
+    router.push('/demo_login');
+  };
 
   const panels = [
     {
@@ -100,18 +120,46 @@ export default function DemoPanelsIndexPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Demo Paneller</h1>
-                <p className="text-gray-600">Demo verilerle tüm yönetim panellerine buradan erişin</p>
+                <p className="text-gray-600">
+                  {demoUser 
+                    ? `Hoş geldiniz, ${demoUser.firstName} ${demoUser.lastName} - Demo verilerle tüm yönetim panellerine buradan erişin`
+                    : 'Demo verilerle tüm yönetim panellerine buradan erişin'
+                  }
+                </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <select
-                value={currentLanguage}
-                onChange={(e) => setCurrentLanguage(e.target.value as Language)}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-1 bg-white"
-              >
-                <option value="tr">🇹🇷 Türkçe</option>
-                <option value="de">🇩🇪 Deutsch</option>
-              </select>
+            <div className="flex items-center space-x-4">
+              {demoUser && (
+                <div className="flex items-center space-x-2">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center shadow-sm">
+                    <span className="text-sm font-medium text-white">
+                      {demoUser.firstName[0]}{demoUser.lastName[0]}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">
+                    {demoUser.firstName} {demoUser.lastName}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center space-x-2">
+                <select
+                  value={currentLanguage}
+                  onChange={(e) => setCurrentLanguage(e.target.value as Language)}
+                  className="text-sm border border-gray-300 rounded-lg px-3 py-1 bg-white"
+                >
+                  <option value="tr">🇹🇷 Türkçe</option>
+                  <option value="de">🇩🇪 Deutsch</option>
+                </select>
+                {demoUser && (
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center px-3 py-1 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Çıkış
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
