@@ -349,6 +349,137 @@ app.post('/api/cleanup-demo-data', tenantMiddleware, authMiddleware, async (req:
   }
 })
 
+// Belirli bir kullanıcıya ait tüm test verilerini temizleme fonksiyonu
+async function cleanupUserTestData(userEmail: string) {
+  try {
+    console.log(`🧹 ${userEmail} kullanıcısına ait test verileri temizleniyor...`)
+    
+    // Kullanıcıyı bul
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      include: {
+        tenant: true,
+        hotel: true
+      }
+    })
+
+    if (!user) {
+      console.log(`✅ ${userEmail} kullanıcısı bulunamadı`)
+      return { success: true, message: `Kullanıcı bulunamadı: ${userEmail}` }
+    }
+
+    const tenantId = user.tenantId
+    const deletedData: any = {
+      orders: 0,
+      orderItems: 0,
+      guestRequests: 0,
+      notifications: 0,
+      menuItems: 0,
+      guests: 0,
+      rooms: 0
+    }
+
+    // Kullanıcının tenant'ına ait tüm test verilerini temizle
+    // Orders ve OrderItems
+    const orders = await prisma.order.findMany({
+      where: { tenantId }
+    })
+    deletedData.orders = orders.length
+    
+    for (const order of orders) {
+      await prisma.orderItem.deleteMany({
+        where: { orderId: order.id }
+      })
+      deletedData.orderItems += await prisma.orderItem.count({
+        where: { orderId: order.id }
+      })
+    }
+    await prisma.order.deleteMany({
+      where: { tenantId }
+    })
+
+    // Guest Requests
+    deletedData.guestRequests = await prisma.guestRequest.count({
+      where: { tenantId }
+    })
+    await prisma.guestRequest.deleteMany({
+      where: { tenantId }
+    })
+
+    // Notifications (announcements dahil)
+    deletedData.notifications = await prisma.notification.count({
+      where: { tenantId }
+    })
+    await prisma.notification.deleteMany({
+      where: { tenantId }
+    })
+
+    // Menu Items
+    deletedData.menuItems = await prisma.menuItem.count({
+      where: { tenantId }
+    })
+    await prisma.menuItem.deleteMany({
+      where: { tenantId }
+    })
+
+    // Guests
+    deletedData.guests = await prisma.guest.count({
+      where: { tenantId }
+    })
+    await prisma.guest.deleteMany({
+      where: { tenantId }
+    })
+
+    // Rooms
+    deletedData.rooms = await prisma.room.count({
+      where: { tenantId }
+    })
+    await prisma.room.deleteMany({
+      where: { tenantId }
+    })
+
+    console.log(`✅ ${userEmail} kullanıcısına ait test verileri temizlendi`)
+    return {
+      success: true,
+      message: `${userEmail} kullanıcısına ait test verileri başarıyla temizlendi`,
+      deleted: deletedData,
+      tenant: {
+        id: user.tenant?.id,
+        name: user.tenant?.name,
+        slug: user.tenant?.slug
+      }
+    }
+  } catch (error) {
+    console.error(`❌ ${userEmail} kullanıcısına ait test verileri temizleme hatası:`, error)
+    throw error
+  }
+}
+
+// Belirli bir kullanıcıya ait test verilerini temizle endpoint'i (admin yetkisi gerekli)
+app.post('/debug/cleanup-user-test-data', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: 'Email gerekli'
+      })
+      return
+    }
+
+    const result = await cleanupUserTestData(email)
+    res.status(200).json(result)
+  } catch (error) {
+    console.error('❌ Kullanıcı test verileri temizleme hatası:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    })
+  }
+})
+
 // Debug endpoint - Super admin'leri listele (login gerektirmez - sadece email gösterir)
 app.get('/debug/super-admins', async (req: Request, res: Response) => {
   try {
@@ -675,7 +806,7 @@ app.get('/api/statistics', tenantMiddleware, authMiddleware, async (req: Request
     const activeOrders = await prisma.order.count({
       where: { 
         tenantId,
-        status: { in: ['pending', 'preparing', 'ready'] }
+        status: { in: ['PENDING', 'PREPARING', 'READY'] }
       }
     })
     
@@ -683,7 +814,7 @@ app.get('/api/statistics', tenantMiddleware, authMiddleware, async (req: Request
     const pendingRequests = await prisma.guestRequest.count({
       where: { 
         tenantId,
-        status: { in: ['pending', 'in_progress'] },
+        status: { in: ['PENDING', 'IN_PROGRESS'] },
         isActive: true 
       }
     })
@@ -701,14 +832,14 @@ app.get('/api/statistics', tenantMiddleware, authMiddleware, async (req: Request
           gte: today,
           lt: tomorrow
         },
-        status: 'completed'
+        status: 'DELIVERED'
       },
       select: {
         totalAmount: true
       }
     })
     
-    const dailyRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+    const dailyRevenue = todayOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0)
     
     res.json({
       totalGuests,
@@ -997,6 +1128,27 @@ app.get('/api/crm/guest/:roomId', tenantMiddleware, async (req: Request, res: Re
   }
 })
 
+app.get('/api/notifications', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { limit } = req.query
+    
+    const notifications = await prisma.notification.findMany({
+      where: { 
+        tenantId
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit ? parseInt(limit as string) : undefined
+    })
+    
+    res.json(notifications); return;
+  } catch (error) {
+    console.error('Notifications error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
 app.post('/api/notifications', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
@@ -1019,6 +1171,220 @@ app.post('/api/notifications', tenantMiddleware, async (req: Request, res: Respo
     res.status(201).json({ message: 'Notification sent successfully', notification }); return;
   } catch (error) {
     console.error('Notification error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
+// Menu endpoints
+app.post('/api/menu', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { name, description, price, category, image, allergens, calories, preparationTime, rating, isAvailable } = req.body
+
+    const menuItem = await prisma.menuItem.create({
+      data: {
+        name,
+        description: description || '',
+        price: parseFloat(price) || 0,
+        category: category || 'Diğer',
+        image: image || '',
+        allergens: allergens || [],
+        calories: calories ? parseInt(calories) : null,
+        preparationTime: preparationTime ? parseInt(preparationTime) : null,
+        rating: rating ? parseFloat(rating) : 4.0,
+        isAvailable: isAvailable !== false,
+        isActive: true,
+        tenantId
+      }
+    })
+
+    res.status(201).json(menuItem); return;
+  } catch (error) {
+    console.error('Menu create error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
+app.put('/api/menu/:id', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { id } = req.params
+    const { name, description, price, category, image, allergens, calories, preparationTime, rating, isAvailable } = req.body
+
+    const menuItem = await prisma.menuItem.updateMany({
+      where: { 
+        id,
+        tenantId
+      },
+      data: {
+        ...(name && { name }),
+        ...(description !== undefined && { description }),
+        ...(price !== undefined && { price: parseFloat(price) }),
+        ...(category && { category }),
+        ...(image !== undefined && { image }),
+        ...(allergens !== undefined && { allergens }),
+        ...(calories !== undefined && { calories: calories ? parseInt(calories) : null }),
+        ...(preparationTime !== undefined && { preparationTime: preparationTime ? parseInt(preparationTime) : null }),
+        ...(rating !== undefined && { rating: rating ? parseFloat(rating) : 4.0 }),
+        ...(isAvailable !== undefined && { isAvailable })
+      }
+    })
+
+    if (menuItem.count === 0) {
+      res.status(404).json({ message: 'Menu item not found' }); return;
+    }
+
+    const updatedItem = await prisma.menuItem.findUnique({
+      where: { id }
+    })
+
+    res.json(updatedItem); return;
+  } catch (error) {
+    console.error('Menu update error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
+app.delete('/api/menu/:id', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { id } = req.params
+
+    const menuItem = await prisma.menuItem.deleteMany({
+      where: { 
+        id,
+        tenantId
+      }
+    })
+
+    if (menuItem.count === 0) {
+      res.status(404).json({ message: 'Menu item not found' }); return;
+    }
+
+    res.json({ message: 'Menu item deleted successfully' }); return;
+  } catch (error) {
+    console.error('Menu delete error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
+// Announcements endpoints (using Notification model)
+app.get('/api/announcements', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { limit } = req.query
+    
+    // Announcements are stored as notifications with type 'announcement'
+    const announcements = await prisma.notification.findMany({
+      where: { 
+        tenantId,
+        type: 'announcement'
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit ? parseInt(limit as string) : undefined
+    })
+    
+    res.json(announcements); return;
+  } catch (error) {
+    console.error('Announcements error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
+app.post('/api/announcements', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { title, content, type, category, startDate, endDate, isActive, linkUrl, linkText, icon, translations } = req.body
+
+    // Get hotel ID from user or use first hotel
+    const hotel = await prisma.hotel.findFirst({
+      where: { tenantId }
+    })
+
+    if (!hotel) {
+      res.status(404).json({ message: 'Hotel not found' }); return;
+    }
+
+    const announcement = await prisma.notification.create({
+      data: {
+        type: 'announcement',
+        title: title || '',
+        message: content || '',
+        roomId: null,
+        tenantId,
+        hotelId: hotel.id,
+        // Store additional data in a JSON field if needed
+        // For now, we'll use the message field for content
+      }
+    })
+
+    res.status(201).json(announcement); return;
+  } catch (error) {
+    console.error('Announcement create error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
+app.put('/api/announcements/:id', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { id } = req.params
+    const { title, content, type, category, startDate, endDate, isActive, linkUrl, linkText, icon, translations } = req.body
+
+    const announcement = await prisma.notification.updateMany({
+      where: { 
+        id,
+        tenantId,
+        type: 'announcement'
+      },
+      data: {
+        ...(title && { title }),
+        ...(content !== undefined && { message: content })
+      }
+    })
+
+    if (announcement.count === 0) {
+      res.status(404).json({ message: 'Announcement not found' }); return;
+    }
+
+    const updatedAnnouncement = await prisma.notification.findUnique({
+      where: { id }
+    })
+
+    res.json(updatedAnnouncement); return;
+  } catch (error) {
+    console.error('Announcement update error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
+app.delete('/api/announcements/:id', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { id } = req.params
+
+    const announcement = await prisma.notification.deleteMany({
+      where: { 
+        id,
+        tenantId,
+        type: 'announcement'
+      }
+    })
+
+    if (announcement.count === 0) {
+      res.status(404).json({ message: 'Announcement not found' }); return;
+    }
+
+    res.json({ message: 'Announcement deleted successfully' }); return;
+  } catch (error) {
+    console.error('Announcement delete error:', error)
     res.status(500).json({ message: 'Database error' })
     return;
   }

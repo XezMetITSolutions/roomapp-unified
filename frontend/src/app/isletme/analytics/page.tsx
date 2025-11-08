@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -43,38 +44,129 @@ interface CategoryData {
 
 export default function AnalyticsPage() {
   const router = useRouter();
+  const { token, user } = useAuth();
   const [dateRange, setDateRange] = useState('7d');
   const [selectedMetric, setSelectedMetric] = useState('revenue');
+  const [isLoading, setIsLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
+    totalRevenue: 0,
+    totalOrders: 0,
+    averageOrderValue: 0,
+    activeGuests: 0,
+    revenueChange: 0,
+    ordersChange: 0,
+    aovChange: 0,
+    guestsChange: 0,
+  });
+  const [orderData, setOrderData] = useState<OrderData[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
 
-  // Mock data
-  const analyticsData: AnalyticsData = {
-    totalRevenue: 24500,
-    totalOrders: 156,
-    averageOrderValue: 157,
-    activeGuests: 89,
-    revenueChange: 12.5,
-    ordersChange: 8.3,
-    aovChange: -2.1,
-    guestsChange: 15.2,
-  };
+  // Verileri API'den yükle
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      if (!token || !user) return;
+      
+      try {
+        setIsLoading(true);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
 
-  const orderData: OrderData[] = [
-    { date: '2024-01-09', orders: 23, revenue: 3450 },
-    { date: '2024-01-10', orders: 28, revenue: 4200 },
-    { date: '2024-01-11', orders: 31, revenue: 4650 },
-    { date: '2024-01-12', orders: 19, revenue: 2850 },
-    { date: '2024-01-13', orders: 35, revenue: 5250 },
-    { date: '2024-01-14', orders: 27, revenue: 4050 },
-    { date: '2024-01-15', orders: 32, revenue: 4800 },
-  ];
+        // Statistics ve Orders'i paralel olarak yükle
+        const [statsRes, ordersRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/statistics`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'x-tenant': tenantSlug
+            }
+          }).catch(() => null),
+          fetch(`${API_BASE_URL}/api/orders?limit=100`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'x-tenant': tenantSlug
+            }
+          }).catch(() => null)
+        ]);
 
-  const categoryData: CategoryData[] = [
-    { category: 'Pizza', orders: 45, revenue: 6750, percentage: 27.5 },
-    { category: 'Burger', orders: 38, revenue: 5320, percentage: 21.7 },
-    { category: 'İçecek', orders: 42, revenue: 2940, percentage: 12.0 },
-    { category: 'Salata', orders: 21, revenue: 3150, percentage: 12.9 },
-    { category: 'Tatlı', orders: 10, revenue: 2340, percentage: 9.6 },
-  ];
+        // Statistics
+        if (statsRes && statsRes.ok) {
+          const stats = await statsRes.json();
+          setAnalyticsData({
+            totalRevenue: stats.dailyRevenue || 0,
+            totalOrders: stats.activeOrders || 0,
+            averageOrderValue: stats.activeOrders > 0 ? (stats.dailyRevenue || 0) / stats.activeOrders : 0,
+            activeGuests: stats.totalGuests || 0,
+            revenueChange: 0, // Önceki dönemle karşılaştırma için backend'de hesaplanmalı
+            ordersChange: 0,
+            aovChange: 0,
+            guestsChange: 0
+          });
+        }
+
+        // Orders
+        if (ordersRes && ordersRes.ok) {
+          const orders = await ordersRes.json();
+          const ordersArray = Array.isArray(orders) ? orders : [];
+          
+          // Tarihe göre grupla
+          const ordersByDate: { [key: string]: { orders: number; revenue: number } } = {};
+          ordersArray.forEach((order: any) => {
+            const date = new Date(order.createdAt).toISOString().split('T')[0];
+            if (!ordersByDate[date]) {
+              ordersByDate[date] = { orders: 0, revenue: 0 };
+            }
+            ordersByDate[date].orders += 1;
+            ordersByDate[date].revenue += order.totalAmount || 0;
+          });
+
+          const formattedOrderData: OrderData[] = Object.entries(ordersByDate)
+            .map(([date, data]) => ({ date, ...data }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+          setOrderData(formattedOrderData);
+
+          // Kategori bazında grupla
+          const categoryMap: { [key: string]: { orders: number; revenue: number } } = {};
+          ordersArray.forEach((order: any) => {
+            order.items?.forEach((item: any) => {
+              const category = item.menuItem?.category || 'Diğer';
+              if (!categoryMap[category]) {
+                categoryMap[category] = { orders: 0, revenue: 0 };
+              }
+              categoryMap[category].orders += item.quantity || 1;
+              categoryMap[category].revenue += (item.price || 0) * (item.quantity || 1);
+            });
+          });
+
+          const totalRevenue = Object.values(categoryMap).reduce((sum, cat) => sum + cat.revenue, 0);
+          const formattedCategoryData: CategoryData[] = Object.entries(categoryMap)
+            .map(([category, data]) => ({
+              category,
+              orders: data.orders,
+              revenue: data.revenue,
+              percentage: totalRevenue > 0 ? (data.revenue / totalRevenue) * 100 : 0
+            }))
+            .sort((a, b) => b.revenue - a.revenue);
+
+          setCategoryData(formattedCategoryData);
+        }
+      } catch (error) {
+        console.error('Analitik verileri yüklenirken hata:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAnalytics();
+  }, [token, user, dateRange]);
 
   const timeRanges = [
     { value: '7d', label: 'Son 7 Gün' },

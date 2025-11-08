@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useAnnouncementStore } from '@/store/announcementStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { translateText as translateTextAsync } from '@/lib/translateService';
 
 // Otomatik çeviri tablosu
@@ -364,68 +364,77 @@ export default function AnnouncementsManagement() {
     return <IconComponent className={`w-5 h-5 ${iconOption.color}`} />;
   };
 
-  // Store integration
-  const { 
-    announcements, 
-    addAnnouncement, 
-    updateAnnouncement, 
-    deleteAnnouncement, 
-    toggleAnnouncement 
-  } = useAnnouncementStore();
+  const { token, user } = useAuth();
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data - store'da zaten var, bu kısmı kaldırabiliriz
-  const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>([
-    {
-      id: '1',
-      title: 'Havuz Bakımı',
-      content: 'Havuz bakımı nedeniyle 15-16 Ocak tarihleri arasında havuz kapalı olacaktır.',
-      type: 'maintenance',
-      category: 'hotel',
-      isActive: true,
-      startDate: '2024-01-15',
-      endDate: '2024-01-16',
-      createdAt: '2024-01-10',
-      createdBy: 'Admin',
-      priority: 'HIGH',
-    },
-    {
-      id: '2',
-      title: 'Yeni Menü Öğeleri',
-      content: 'Restoranımızda yeni yemek seçenekleri eklendi. Menüyü inceleyebilirsiniz.',
-      type: 'info',
-      category: 'menu',
-      isActive: true,
-      startDate: '2024-01-12',
-      createdAt: '2024-01-12',
-      createdBy: 'Chef',
-      priority: 'MEDIUM',
-    },
-    {
-      id: '3',
-      title: 'Özel İndirim',
-      content: 'Bu hafta sonu tüm içeceklerde %20 indirim!',
-      type: 'promotion',
-      category: 'promotion',
-      isActive: false,
-      startDate: '2024-01-08',
-      endDate: '2024-01-09',
-      createdAt: '2024-01-07',
-      createdBy: 'Manager',
-      priority: 'LOW',
-    },
-    {
-      id: '4',
-      title: 'Güvenlik Uyarısı',
-      content: 'Gece saatlerinde otel girişlerinde kimlik kontrolü yapılacaktır.',
-      type: 'warning',
-      category: 'general',
-      isActive: true,
-      startDate: '2024-01-14',
-      createdAt: '2024-01-13',
-      createdBy: 'Security',
-      priority: 'URGENT',
-    },
-  ]);
+  // Duyuruları API'den yükle
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      if (!token || !user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/announcements`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': tenantSlug
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const announcementsData = Array.isArray(data) ? data : [];
+          
+          // API'den gelen veriyi formatla
+          const formattedAnnouncements = announcementsData.map((a: any) => ({
+            id: a.id,
+            title: a.title || 'Duyuru',
+            content: a.message || '',
+            type: (a.type === 'announcement' ? 'info' : a.type) as 'info' | 'warning' | 'promotion' | 'maintenance' | 'advertisement',
+            category: 'general' as 'general' | 'menu' | 'hotel' | 'promotion',
+            isActive: true,
+            startDate: a.createdAt ? new Date(a.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            endDate: undefined,
+            targetRooms: [],
+            createdAt: a.createdAt || new Date().toISOString(),
+            createdBy: 'Admin',
+            priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
+            linkUrl: undefined,
+            linkText: undefined,
+            icon: undefined,
+            translations: undefined
+          }));
+          
+          setAnnouncements(formattedAnnouncements);
+        } else {
+          setAnnouncements([]);
+        }
+      } catch (error) {
+        console.error('Duyurular yüklenirken hata:', error);
+        setAnnouncements([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAnnouncements();
+  }, [token, user]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -495,13 +504,81 @@ export default function AnnouncementsManagement() {
     return true;
   });
 
-  const handleToggleActive = (id: string) => {
-    toggleAnnouncement(id);
+  const handleToggleActive = async (id: string) => {
+    if (!token) return;
+    
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      const announcement = announcements.find(a => a.id === id);
+      if (!announcement) return;
+
+      // API'ye güncelleme gönder (isActive durumunu güncelle)
+      const response = await fetch(`${API_BASE_URL}/api/announcements/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': tenantSlug
+        },
+        body: JSON.stringify({
+          isActive: !announcement.isActive
+        })
+      });
+
+      if (response.ok) {
+        setAnnouncements(announcements.map(a => 
+          a.id === id ? { ...a, isActive: !a.isActive } : a
+        ));
+      }
+    } catch (error) {
+      console.error('Duyuru durumu güncellenirken hata:', error);
+    }
   };
 
-  const handleDeleteAnnouncement = (id: string) => {
-    if (confirm('Bu duyuruyu silmek istediğinizden emin misiniz?')) {
-      deleteAnnouncement(id);
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm('Bu duyuruyu silmek istediğinizden emin misiniz?')) {
+      return;
+    }
+
+    if (!token) return;
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/announcements/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': tenantSlug
+        }
+      });
+
+      if (response.ok) {
+        setAnnouncements(announcements.filter(a => a.id !== id));
+      }
+    } catch (error) {
+      console.error('Duyuru silinirken hata:', error);
     }
   };
 
@@ -517,32 +594,111 @@ export default function AnnouncementsManagement() {
     setShowAddModal(true);
   };
 
-  const saveAnnouncement = (announcementData: Partial<Announcement>) => {
-    if (selectedAnnouncement) {
-      // Edit existing announcement
-      updateAnnouncement(selectedAnnouncement.id, announcementData);
-      setShowEditModal(false);
-    } else {
-      // Add new announcement
-      const newAnnouncement: Announcement = {
-        id: Date.now().toString(),
-        title: announcementData.title || '',
-        content: announcementData.content || '',
-        type: announcementData.type || 'info',
-        category: announcementData.category || 'general',
-        isActive: announcementData.isActive ?? true,
-        startDate: announcementData.startDate || new Date().toISOString().split('T')[0],
-        endDate: announcementData.endDate,
-        targetRooms: announcementData.targetRooms || [],
-        createdAt: new Date().toISOString(),
-        createdBy: 'Admin',
-        priority: announcementData.priority || 'MEDIUM',
-        ...announcementData
-      };
-      addAnnouncement(newAnnouncement);
-      setShowAddModal(false);
+  const saveAnnouncement = async (announcementData: Partial<Announcement>) => {
+    if (!token) return;
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      if (selectedAnnouncement) {
+        // Edit existing announcement
+        const response = await fetch(`${API_BASE_URL}/api/announcements/${selectedAnnouncement.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': tenantSlug
+          },
+          body: JSON.stringify({
+            title: announcementData.title,
+            content: announcementData.content,
+            type: announcementData.type,
+            category: announcementData.category,
+            startDate: announcementData.startDate,
+            endDate: announcementData.endDate,
+            isActive: announcementData.isActive,
+            linkUrl: announcementData.linkUrl,
+            linkText: announcementData.linkText,
+            icon: selectedIcon || announcementData.icon,
+            translations: announcementData.translations
+          })
+        });
+
+        if (response.ok) {
+          const updated = await response.json();
+          setAnnouncements(announcements.map(a => 
+            a.id === selectedAnnouncement.id ? {
+              ...a,
+              title: updated.title || a.title,
+              content: updated.message || a.content,
+              ...announcementData
+            } : a
+          ));
+          setShowEditModal(false);
+        }
+      } else {
+        // Add new announcement
+        const response = await fetch(`${API_BASE_URL}/api/announcements`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': tenantSlug
+          },
+          body: JSON.stringify({
+            title: announcementData.title,
+            content: announcementData.content,
+            type: announcementData.type || 'info',
+            category: announcementData.category || 'general',
+            startDate: announcementData.startDate || new Date().toISOString().split('T')[0],
+            endDate: announcementData.endDate,
+            isActive: announcementData.isActive ?? true,
+            linkUrl: announcementData.linkUrl,
+            linkText: announcementData.linkText,
+            icon: selectedIcon || announcementData.icon,
+            translations: announcementData.translations
+          })
+        });
+
+        if (response.ok) {
+          const newAnnouncement = await response.json();
+          const formattedAnnouncement: Announcement = {
+            id: newAnnouncement.id,
+            title: newAnnouncement.title || '',
+            content: newAnnouncement.message || '',
+            type: (newAnnouncement.type === 'announcement' ? 'info' : newAnnouncement.type) as 'info' | 'warning' | 'promotion' | 'maintenance' | 'advertisement',
+            category: 'general' as 'general' | 'menu' | 'hotel' | 'promotion',
+            isActive: true,
+            startDate: newAnnouncement.createdAt ? new Date(newAnnouncement.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            endDate: announcementData.endDate,
+            targetRooms: announcementData.targetRooms || [],
+            createdAt: newAnnouncement.createdAt || new Date().toISOString(),
+            createdBy: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Admin',
+            priority: announcementData.priority || 'MEDIUM',
+            linkUrl: announcementData.linkUrl,
+            linkText: announcementData.linkText,
+            icon: selectedIcon || announcementData.icon,
+            translations: announcementData.translations
+          };
+          setAnnouncements([formattedAnnouncement, ...announcements]);
+          setShowAddModal(false);
+        }
+      }
+      setSelectedAnnouncement(null);
+      setSelectedIcon('');
+    } catch (error) {
+      console.error('Duyuru kaydedilirken hata:', error);
     }
-    setSelectedAnnouncement(null);
   };
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {

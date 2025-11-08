@@ -288,21 +288,87 @@ export default function SettingsPage() {
   };
 
 
+  const { token, user } = useAuth();
   const [hotelSettings, setHotelSettings] = useState<HotelSettings>({
-    name: 'Grand Hotel Istanbul',
-    address: 'Sultanahmet Mah. Divanyolu Cad. No:123, Fatih/İstanbul',
-    phone: '+90 212 555 0123',
-    email: 'info@grandhotel.com',
-    website: 'https://www.grandhotel.com',
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
     logo: '',
-    description: 'İstanbul\'un kalbinde, tarihi yarımadada konumlanmış lüks otelimiz.',
+    description: '',
     socialMedia: {
-      instagram: 'https://www.instagram.com/grandhotelistanbul',
-      facebook: 'https://www.facebook.com/grandhotelistanbul',
-      twitter: 'https://www.twitter.com/grandhotelistanbul',
-      googleMaps: 'https://www.google.com/maps/search/?api=1&query=Grand+Hotel+Istanbul'
+      instagram: '',
+      facebook: '',
+      twitter: '',
+      googleMaps: ''
     }
   });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  // Ayarları API'den yükle
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!token || !user) return;
+      
+      try {
+        setIsLoadingSettings(true);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        // Tenant bilgilerini al (settings tenant içinde)
+        const response = await fetch(`${API_BASE_URL}/api/admin/tenants`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': 'system-admin'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const tenants = Array.isArray(data) ? data : (data.tenants || []);
+          const currentTenant = tenants.find((t: any) => t.slug === tenantSlug);
+          
+          if (currentTenant) {
+            const settings = currentTenant.settings || {};
+            const owner = settings.owner || {};
+            const address = settings.address || {};
+            
+            setHotelSettings({
+              name: currentTenant.name || '',
+              address: address.street || address.full || '',
+              phone: owner.phone || '',
+              email: owner.email || '',
+              website: currentTenant.domain || '',
+              logo: '',
+              description: settings.description || '',
+              socialMedia: {
+                instagram: settings.socialMedia?.instagram || '',
+                facebook: settings.socialMedia?.facebook || '',
+                twitter: settings.socialMedia?.twitter || '',
+                googleMaps: settings.socialMedia?.googleMaps || ''
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Ayarlar yüklenirken hata:', error);
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    loadSettings();
+  }, [token, user]);
 
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>({
     primaryColor: themeStore.primaryColor,
@@ -340,28 +406,87 @@ export default function SettingsPage() {
   ];
 
   const handleSave = async () => {
+    if (!token || !user) return;
+    
     setIsSaving(true);
     try {
-      // Gerçek kaydetme işlemi - localStorage'a kaydet
-      const settingsData = {
-        hotel: hotelSettings,
-        theme: themeSettings,
-        language: languageSettings,
-        socialMedia: links,
-        lastUpdated: new Date().toISOString()
-      };
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
       
-      localStorage.setItem('hotel-settings', JSON.stringify(settingsData));
-      
-      // API call simulation
-    await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      alert('Ayarlar başarıyla kaydedildi!');
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      // Tenant bilgilerini güncelle
+      const response = await fetch(`${API_BASE_URL}/api/admin/tenants`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': 'system-admin'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const tenants = Array.isArray(data) ? data : (data.tenants || []);
+        const currentTenant = tenants.find((t: any) => t.slug === tenantSlug);
+        
+        if (currentTenant) {
+          // Tenant'ı güncelle
+          const updateResponse = await fetch(`${API_BASE_URL}/api/admin/tenants/${currentTenant.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'x-tenant': 'system-admin'
+            },
+            body: JSON.stringify({
+              name: hotelSettings.name,
+              domain: hotelSettings.website,
+              owner: {
+                name: hotelSettings.name,
+                email: hotelSettings.email,
+                phone: hotelSettings.phone
+              },
+              address: {
+                street: hotelSettings.address,
+                full: hotelSettings.address
+              },
+              settings: {
+                description: hotelSettings.description,
+                socialMedia: hotelSettings.socialMedia,
+                theme: themeSettings,
+                language: languageSettings
+              }
+            })
+          });
+
+          if (updateResponse.ok) {
+            // LocalStorage'a da kaydet (fallback)
+            const settingsData = {
+              hotel: hotelSettings,
+              theme: themeSettings,
+              language: languageSettings,
+              socialMedia: links,
+              lastUpdated: new Date().toISOString()
+            };
+            localStorage.setItem('hotel-settings', JSON.stringify(settingsData));
+            
+            alert('Ayarlar başarıyla kaydedildi!');
+          } else {
+            throw new Error('Güncelleme başarısız');
+          }
+        }
+      }
     } catch (error) {
       console.error('Ayarlar kaydedilirken hata oluştu:', error);
       alert('Ayarlar kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
-    setIsSaving(false);
+      setIsSaving(false);
     }
   };
 

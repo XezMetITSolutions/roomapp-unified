@@ -93,91 +93,44 @@ export default function MenuManagement() {
     const loadMenuItems = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/menu');
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/menu`, {
+          headers: {
+            'x-tenant': tenantSlug
+          }
+        });
+        
         if (response.ok) {
           const data = await response.json();
           // API'den gelen veriyi menü yönetimi formatına çevir
-          const formattedItems = data.menu.map((item: any, index: number) => ({
-            id: item.id || `api-${index}`,
+          const formattedItems = (data.menuItems || []).map((item: any) => ({
+            id: item.id,
             name: item.name,
             description: item.description || '',
             price: item.price,
             category: item.category || 'Diğer',
-            isAvailable: item.available !== false,
+            isAvailable: item.isAvailable !== false,
             allergens: item.allergens || [],
             calories: item.calories,
             image: item.image,
+            preparationTime: item.preparationTime,
+            rating: item.rating || 4.0,
           }));
           
-          // Örnek menülerle birleştir
-          const defaultItems = [
-            {
-              id: '1',
-              name: 'Margherita Pizza',
-              description: 'Domates sosu, mozzarella, fesleğen',
-              price: 45,
-              category: 'Pizza',
-              isAvailable: true,
-              allergens: ['Gluten', 'Süt'],
-              calories: 280,
-            },
-            {
-              id: '2',
-              name: 'Cheeseburger',
-              description: 'Dana eti, cheddar peyniri, marul, domates',
-              price: 35,
-              category: 'Burger',
-              isAvailable: true,
-              allergens: ['Gluten', 'Süt', 'Yumurta'],
-              calories: 520,
-            },
-            {
-              id: '3',
-              name: 'Caesar Salad',
-              description: 'Marul, parmesan, kruton, caesar sos',
-              price: 25,
-              category: 'Salata',
-              isAvailable: false,
-              allergens: ['Gluten', 'Süt', 'Yumurta'],
-              calories: 180,
-            },
-            {
-              id: '4',
-              name: 'Cappuccino',
-              description: 'İtalyan kahvesi, buharda ısıtılmış süt',
-              price: 12,
-              category: 'İçecek',
-              isAvailable: true,
-              allergens: ['Süt'],
-              calories: 80,
-            },
-          ];
-          
-          setMenuItems([...defaultItems, ...formattedItems]);
+          setMenuItems(formattedItems);
         } else {
-          // API hatası durumunda varsayılan veriler
-          setMenuItems([
-            {
-              id: '1',
-              name: 'Margherita Pizza',
-              description: 'Domates sosu, mozzarella, fesleğen',
-              price: 45,
-              category: 'Pizza',
-              isAvailable: true,
-              allergens: ['Gluten', 'Süt'],
-              calories: 280,
-            },
-            {
-              id: '2',
-              name: 'Cheeseburger',
-              description: 'Dana eti, cheddar peyniri, marul, domates',
-              price: 35,
-              category: 'Burger',
-              isAvailable: true,
-              allergens: ['Gluten', 'Süt', 'Yumurta'],
-              calories: 520,
-            },
-          ]);
+          setMenuItems([]);
         }
       } catch (error) {
         console.error('Menü yükleme hatası:', error);
@@ -204,25 +157,27 @@ export default function MenuManagement() {
 
       const newAvailability = !item.isAvailable;
       
-      // API'ye güncelleme gönder
-      const response = await fetch('/api/menu/save', {
-        method: 'POST',
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+      
+      // API'ye güncelleme gönder (PUT endpoint kullan)
+      const response = await fetch(`${API_BASE_URL}/api/menu/${id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-tenant': tenantSlug
         },
         body: JSON.stringify({ 
-          items: [{
-            name: item.name,
-            description: item.description,
-            price: item.price,
-            category: item.category,
-            image: item.image || '',
-            allergens: item.allergens || [],
-            calories: item.calories,
-            preparationTime: item.preparationTime,
-            rating: item.rating,
-            available: newAvailability, // Yeni availability durumu
-          }]
+          isAvailable: newAvailability
         }),
       });
 
@@ -259,20 +214,28 @@ export default function MenuManagement() {
       try {
         const itemToDelete = menuItems.find(item => item.id === confirmModal.itemId);
         if (itemToDelete) {
+          const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+          
+          // URL'den tenant slug'ını al
+          let tenantSlug = 'demo';
+          if (typeof window !== 'undefined') {
+            const hostname = window.location.hostname;
+            const subdomain = hostname.split('.')[0];
+            if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+              tenantSlug = subdomain;
+            }
+          }
+          
           // Önce local state'den kaldır (anında UI güncellemesi için)
           setMenuItems(items => items.filter(item => item.id !== confirmModal.itemId));
           
           // Sonra API'ye silme komutu gönder
-          const response = await fetch('/api/menu/delete', {
-            method: 'POST',
+          const response = await fetch(`${API_BASE_URL}/api/menu/${confirmModal.itemId}`, {
+            method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-              id: confirmModal.itemId,
-              name: itemToDelete.name,
-              category: itemToDelete.category 
-            }),
+              'x-tenant': tenantSlug
+            }
           });
 
           if (response.ok) {
@@ -308,6 +271,18 @@ export default function MenuManagement() {
 
   const saveItem = async (itemData: Partial<MenuItem>) => {
     try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
       // API'ye gönderilecek format
       const apiItem = {
         name: itemData.name || '',
@@ -322,32 +297,48 @@ export default function MenuManagement() {
         isAvailable: itemData.isAvailable ?? true,
       };
 
-      // API'ye gönder
-      const response = await fetch('/api/menu/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: [apiItem] }),
-      });
+      let response;
+      if (selectedItem) {
+        // Edit existing item
+        response = await fetch(`${API_BASE_URL}/api/menu/${selectedItem.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant': tenantSlug
+          },
+          body: JSON.stringify(apiItem),
+        });
+      } else {
+        // Add new item
+        response = await fetch(`${API_BASE_URL}/api/menu`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant': tenantSlug
+          },
+          body: JSON.stringify(apiItem),
+        });
+      }
 
       if (!response.ok) {
         throw new Error('API hatası');
       }
+
+      const savedItem = await response.json();
 
       // Başarılı olursa local state'i güncelle
       if (selectedItem) {
         // Edit existing item
         setMenuItems(items => 
           items.map(item => 
-            item.id === selectedItem.id ? { ...item, ...itemData } : item
+            item.id === selectedItem.id ? { ...item, ...itemData, ...savedItem } : item
           )
         );
         setShowEditModal(false);
       } else {
         // Add new item
         const newItem: MenuItem = {
-          id: Date.now().toString(),
+          id: savedItem.id || Date.now().toString(),
           name: itemData.name || '',
           description: itemData.description || '',
           price: itemData.price || 0,
@@ -355,7 +346,8 @@ export default function MenuManagement() {
           isAvailable: itemData.isAvailable ?? true,
           allergens: itemData.allergens || [],
           calories: itemData.calories,
-          ...itemData
+          ...itemData,
+          ...savedItem
         };
         setMenuItems(items => [...items, newItem]);
         setShowAddModal(false);
@@ -485,22 +477,37 @@ export default function MenuManagement() {
     try {
       setLoading(true);
       
-      // API'ye gönder
-      const response = await fetch('/api/menu/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: bulkUploadData.parsedData }),
-      });
-
-      if (!response.ok) {
-        throw new Error('API hatası');
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
       }
+      
+      // Her bir ürünü ayrı ayrı ekle
+      const promises = bulkUploadData.parsedData.map(item => 
+        fetch(`${API_BASE_URL}/api/menu`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant': tenantSlug
+          },
+          body: JSON.stringify(item),
+        })
+      );
+
+      const responses = await Promise.all(promises);
+      const results = await Promise.all(responses.map(r => r.json()));
 
       // Başarılı olursa local state'i güncelle
-      const newItems: MenuItem[] = bulkUploadData.parsedData.map((item, index) => ({
-        id: Date.now().toString() + index,
+      const newItems: MenuItem[] = results.map((item, index) => ({
+        id: item.id || Date.now().toString() + index,
+        ...bulkUploadData.parsedData[index],
         ...item
       }));
 

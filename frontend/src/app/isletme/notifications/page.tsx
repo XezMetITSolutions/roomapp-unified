@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Bell, 
   CheckCircle, 
@@ -23,64 +24,64 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
+  const { token, user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock data - gerçek API'den gelecek
-  const mockNotifications: Notification[] = useMemo(() => [
-    {
-      id: '1',
-      type: 'success',
-      title: 'Yeni Sipariş',
-      message: 'Oda 101\'den pizza siparişi alındı',
-      timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 dakika önce
-      read: false,
-      priority: 'high'
-    },
-    {
-      id: '2',
-      type: 'warning',
-      title: 'Temizlik Talebi',
-      message: 'Oda 205\'ten temizlik talebi geldi',
-      timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 dakika önce
-      read: false,
-      priority: 'medium'
-    },
-    {
-      id: '3',
-      type: 'info',
-      title: 'Misafir Girişi',
-      message: 'Oda 312\'ye yeni misafir kaydı yapıldı',
-      timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 dakika önce
-      read: true,
-      priority: 'low'
-    },
-    {
-      id: '4',
-      type: 'error',
-      title: 'Sistem Uyarısı',
-      message: 'QR kod oluşturma servisi geçici olarak kullanılamıyor',
-      timestamp: new Date(Date.now() - 45 * 60 * 1000), // 45 dakika önce
-      read: true,
-      priority: 'high'
-    },
-    {
-      id: '5',
-      type: 'success',
-      title: 'Ödeme Onayı',
-      message: 'Oda 118\'den ₺120 ödeme alındı',
-      timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 saat önce
-      read: true,
-      priority: 'medium'
-    }
-  ], []);
-
+  // Bildirimleri API'den yükle
   useEffect(() => {
-    // Mock data'yı yükle
-    setNotifications(mockNotifications);
-  }, [mockNotifications]);
+    const loadNotifications = async () => {
+      if (!token || !user) return;
+      
+      try {
+        setIsLoading(true);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': tenantSlug
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const notificationsData = Array.isArray(data) ? data : [];
+          
+          // API'den gelen veriyi formatla
+          const formattedNotifications = notificationsData.map((n: any) => ({
+            id: n.id,
+            type: n.type || 'info',
+            title: n.title || 'Bildirim',
+            message: n.message || n.content || '',
+            timestamp: new Date(n.createdAt || n.timestamp),
+            read: n.read || false,
+            priority: n.priority || 'medium'
+          }));
+          
+          setNotifications(formattedNotifications);
+        }
+      } catch (error) {
+        console.error('Bildirimler yüklenirken hata:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadNotifications();
+  }, [token, user]);
 
   const markAsRead = (id: string) => {
     setNotifications(prev => 
@@ -108,12 +109,51 @@ export default function NotificationsPage() {
     );
   };
 
-  const refreshNotifications = () => {
-    setIsLoading(true);
-    // Simüle edilmiş API çağrısı
-    setTimeout(() => {
+  const refreshNotifications = async () => {
+    if (!token || !user) return;
+    
+    try {
+      setIsLoading(true);
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': tenantSlug
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const notificationsData = Array.isArray(data) ? data : [];
+        
+        const formattedNotifications = notificationsData.map((n: any) => ({
+          id: n.id,
+          type: n.type || 'info',
+          title: n.title || 'Bildirim',
+          message: n.message || n.content || '',
+          timestamp: new Date(n.createdAt || n.timestamp),
+          read: n.read || false,
+          priority: n.priority || 'medium'
+        }));
+        
+        setNotifications(formattedNotifications);
+      }
+    } catch (error) {
+      console.error('Bildirimler yenilenirken hata:', error);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const getTypeIcon = (type: string) => {

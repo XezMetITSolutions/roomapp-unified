@@ -1,54 +1,87 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { QrCode, Download, Printer, Copy, Check } from 'lucide-react';
 import QRCode from 'qrcode.react';
 import QRCodeGenerator from 'qrcode';
 
 export default function QRKodPage() {
-  const [selectedRoom, setSelectedRoom] = useState('101');
+  const { token, user } = useAuth();
+  const [selectedRoom, setSelectedRoom] = useState('');
   const [qrCodeURL, setQRCodeURL] = useState('');
   const [copied, setCopied] = useState(false);
   const [customRoom, setCustomRoom] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [baseURL, setBaseURL] = useState('');
-  const [floorCount, setFloorCount] = useState(4);
-  const [roomsPerFloor, setRoomsPerFloor] = useState(5);
-  const [rooms, setRooms] = useState([]);
-  const [customRooms, setCustomRooms] = useState([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [customRooms, setCustomRooms] = useState<any[]>([]);
   const [selectedCustomRoom, setSelectedCustomRoom] = useState('');
-  
-  // Otomatik oda oluşturma fonksiyonu
-  const generateRooms = (floors, roomsPerFloor) => {
-    const generatedRooms = [];
-    for (let floor = 1; floor <= floors; floor++) {
-      for (let room = 1; room <= roomsPerFloor; room++) {
-        const roomNumber = `${floor}${room.toString().padStart(2, '0')}`;
-        generatedRooms.push({
-          number: roomNumber,
-          floor: floor
-        });
-      }
-    }
-    return generatedRooms;
-  };
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Client-side'da baseURL'i ayarla
     setBaseURL(window.location.origin);
   }, []);
 
+  // Veritabanından odaları yükle
   useEffect(() => {
-    // Kat ve oda sayısı değiştiğinde odaları yeniden oluştur
-    const generatedRooms = generateRooms(floorCount, roomsPerFloor);
-    setRooms(generatedRooms);
-    
-    // İlk odayı seç
-    if (generatedRooms.length > 0) {
-      setSelectedRoom(generatedRooms[0].number);
-      setQRCodeURL(`${baseURL}/guest/${generatedRooms[0].number}`);
-    }
-  }, [floorCount, roomsPerFloor, baseURL]);
+    const loadRooms = async () => {
+      if (!token || !user) return;
+      
+      try {
+        setIsLoading(true);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/rooms`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': tenantSlug
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const roomsData = data.rooms || [];
+          
+          // Oda numaralarına göre sırala ve formatla
+          const formattedRooms = roomsData.map((room: any) => ({
+            number: room.number || room.id,
+            floor: room.floor || Math.floor(parseInt(room.number || '0') / 100) || 1,
+            id: room.id
+          })).sort((a: any, b: any) => {
+            const numA = parseInt(a.number) || 0;
+            const numB = parseInt(b.number) || 0;
+            return numA - numB;
+          });
+          
+          setRooms(formattedRooms);
+          
+          // İlk odayı seç
+          if (formattedRooms.length > 0) {
+            setSelectedRoom(formattedRooms[0].number);
+            setQRCodeURL(`${baseURL}/guest/${formattedRooms[0].number}`);
+          }
+        }
+      } catch (error) {
+        console.error('Odalar yüklenirken hata:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRooms();
+  }, [token, user, baseURL]);
 
   const handleCopy = () => {
     const currentRoom = showCustomInput ? selectedCustomRoom : selectedRoom;
@@ -410,44 +443,6 @@ export default function QRKodPage() {
                 Oda Seçimi
               </label>
               
-              {/* Oda Konfigürasyonu */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-3">Otel Konfigürasyonu</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-blue-700 mb-1">
-                      Kat Sayısı
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={floorCount}
-                      onChange={(e) => setFloorCount(parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-blue-700 mb-1">
-                      Her Katta Oda Sayısı
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={roomsPerFloor}
-                      onChange={(e) => setRoomsPerFloor(parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                <div className="mt-3 text-xs text-blue-600">
-                  <strong>Toplam:</strong> {floorCount * roomsPerFloor} oda oluşturulacak
-                  <br />
-                  <strong>Örnek:</strong> {floorCount} kat × {roomsPerFloor} oda = {generateRooms(floorCount, roomsPerFloor).slice(0, 3).map(r => r.number).join(', ')}...
-                </div>
-              </div>
-
               {/* Toggle Buttons */}
               <div className="flex space-x-2 mb-4">
                 <button
@@ -461,7 +456,7 @@ export default function QRKodPage() {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  Otomatik Odalar ({rooms.length})
+                  Veritabanı Odaları ({isLoading ? '...' : rooms.length})
                 </button>
                 <button
                   onClick={() => setShowCustomInput(true)}
@@ -475,22 +470,34 @@ export default function QRKodPage() {
                 </button>
               </div>
 
-              {/* Otomatik Odalar Dropdown */}
+              {/* Veritabanı Odaları Dropdown */}
               {!showCustomInput && (
-                <select
-                  value={selectedRoom}
-                  onChange={(e) => {
-                    setSelectedRoom(e.target.value);
-                    setQRCodeURL(`${baseURL}/guest/${e.target.value}`);
-                  }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent text-lg"
-                >
-                  {rooms.map((room) => (
-                    <option key={room.number} value={room.number}>
-                      Oda {room.number} - Kat {room.floor}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  {isLoading ? (
+                    <div className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-gray-500">
+                      Odalar yükleniyor...
+                    </div>
+                  ) : rooms.length > 0 ? (
+                    <select
+                      value={selectedRoom}
+                      onChange={(e) => {
+                        setSelectedRoom(e.target.value);
+                        setQRCodeURL(`${baseURL}/guest/${e.target.value}`);
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent text-lg"
+                    >
+                      {rooms.map((room: any) => (
+                        <option key={room.number} value={room.number}>
+                          Oda {room.number} - Kat {room.floor}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-gray-500">
+                      Henüz oda bulunmuyor
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Özel Odalar */}
@@ -706,19 +713,18 @@ export default function QRKodPage() {
       </div>
 
       {/* Quick Room Grid */}
-      {!showCustomInput && rooms.length > 0 && (
+      {!showCustomInput && !isLoading && rooms.length > 0 && (
         <div className="hotel-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">Hızlı Oda Seçimi</h3>
             <div className="text-sm text-gray-500">
-              {rooms.length} oda • {floorCount} kat • Kat başına {roomsPerFloor} oda
+              {rooms.length} oda
             </div>
           </div>
           
           {/* Kat bazında gruplandırma */}
-          {Array.from({ length: floorCount }, (_, floorIndex) => {
-            const floorNumber = floorIndex + 1;
-            const floorRooms = rooms.filter(room => room.floor === floorNumber);
+          {Array.from(new Set(rooms.map((r: any) => r.floor))).sort((a: any, b: any) => a - b).map((floorNumber: any) => {
+            const floorRooms = rooms.filter((room: any) => room.floor === floorNumber);
             
             return (
               <div key={floorNumber} className="mb-6">
@@ -726,7 +732,7 @@ export default function QRKodPage() {
                   {floorNumber}. Kat ({floorRooms.length} oda)
                 </h4>
                 <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                  {floorRooms.map((room) => (
+                  {floorRooms.map((room: any) => (
                     <button
                       key={room.number}
                       onClick={() => {

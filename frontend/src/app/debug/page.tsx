@@ -362,6 +362,67 @@ export default function DebugPage() {
     setIsRunning(false);
   };
 
+  const cleanupUserTestData = async (userEmail: string) => {
+    setIsRunning(true);
+    const startTime = Date.now();
+    
+    try {
+      // Admin token'ı localStorage'dan al (eğer varsa)
+      const adminToken = localStorage.getItem('admin_token') || localStorage.getItem('auth_token');
+      
+      if (!adminToken) {
+        addResult({
+          name: 'Test Verilerini Temizle',
+          status: 'error',
+          message: 'Admin token bulunamadı. Lütfen önce admin olarak giriş yapın.',
+          duration: Date.now() - startTime,
+        });
+        setIsRunning(false);
+        return;
+      }
+
+      const response = await fetch(`${apiBaseUrl}/debug/cleanup-user-test-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ email: userEmail }),
+      });
+
+      const duration = Date.now() - startTime;
+      const data = await response.json();
+
+      if (response.ok) {
+        addResult({
+          name: 'Test Verilerini Temizle',
+          status: 'success',
+          message: `${userEmail} kullanıcısına ait test verileri başarıyla temizlendi`,
+          data: data,
+          duration,
+        });
+      } else {
+        addResult({
+          name: 'Test Verilerini Temizle',
+          status: 'error',
+          message: `Hata: ${data.message || data.error || 'Bilinmeyen hata'}`,
+          data: data,
+          duration,
+        });
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      addResult({
+        name: 'Test Verilerini Temizle',
+        status: 'error',
+        message: `Bağlantı hatası: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        duration,
+      });
+    }
+    
+    setIsRunning(false);
+  };
+
   const getStatusIcon = (status: TestResult['status']) => {
     switch (status) {
       case 'success':
@@ -536,6 +597,18 @@ export default function DebugPage() {
               className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Sonuçları Temizle
+            </button>
+            
+            <button
+              onClick={() => {
+                if (confirm('mete.burcak@gmx.at kullanıcısına ait TÜM test verilerini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+                  cleanupUserTestData('mete.burcak@gmx.at');
+                }
+              }}
+              disabled={isRunning}
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              🗑️ Test Verilerini Temizle (mete.burcak@gmx.at)
             </button>
           </div>
         </div>

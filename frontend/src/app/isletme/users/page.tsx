@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, 
   Edit, 
@@ -34,6 +35,7 @@ interface User {
 }
 
 export default function UsersManagement() {
+  const { token, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -41,6 +43,8 @@ export default function UsersManagement() {
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // İşletme paneli sayfaları
   const availablePages = [
@@ -55,72 +59,62 @@ export default function UsersManagement() {
     { key: 'support', label: 'Destek', description: 'Yardım sayfası' },
   ];
 
-  // Mock data
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      firstName: 'Ahmet',
-      lastName: 'Yılmaz',
-      email: 'ahmet@hotel.com',
-      phone: '+90 555 123 4567',
-      role: 'ADMIN',
-      isActive: true,
-      lastLogin: '2024-01-15T10:30:00Z',
-      createdAt: '2024-01-01T00:00:00Z',
-      hotelId: 'hotel-1',
-      permissions: ['dashboard', 'analytics', 'menu', 'users', 'announcements', 'qr-kod', 'notifications', 'settings', 'support'],
-    },
-    {
-      id: '2',
-      firstName: 'Ayşe',
-      lastName: 'Kaya',
-      email: 'ayse@hotel.com',
-      phone: '+90 555 234 5678',
-      role: 'MANAGER',
-      isActive: true,
-      lastLogin: '2024-01-15T09:15:00Z',
-      createdAt: '2024-01-02T00:00:00Z',
-      hotelId: 'hotel-1',
-      permissions: ['dashboard', 'menu', 'announcements', 'qr-kod', 'notifications'],
-    },
-    {
-      id: '3',
-      firstName: 'Mehmet',
-      lastName: 'Demir',
-      email: 'mehmet@hotel.com',
-      role: 'RECEPTION',
-      isActive: true,
-      lastLogin: '2024-01-15T08:45:00Z',
-      createdAt: '2024-01-03T00:00:00Z',
-      hotelId: 'hotel-1',
-      permissions: ['dashboard', 'qr-kod', 'notifications'],
-    },
-    {
-      id: '4',
-      firstName: 'Fatma',
-      lastName: 'Özkan',
-      email: 'fatma@hotel.com',
-      phone: '+90 555 345 6789',
-      role: 'KITCHEN',
-      isActive: false,
-      lastLogin: '2024-01-10T16:20:00Z',
-      createdAt: '2024-01-04T00:00:00Z',
-      hotelId: 'hotel-1',
-      permissions: ['dashboard', 'menu'],
-    },
-    {
-      id: '5',
-      firstName: 'Ali',
-      lastName: 'Çelik',
-      email: 'ali@hotel.com',
-      role: 'WAITER',
-      isActive: true,
-      lastLogin: '2024-01-15T11:00:00Z',
-      createdAt: '2024-01-05T00:00:00Z',
-      hotelId: 'hotel-1',
-      permissions: ['dashboard', 'notifications'],
-    },
-  ]);
+  // Kullanıcıları API'den yükle
+  useEffect(() => {
+    const loadUsers = async () => {
+      if (!token || !user) return;
+      
+      try {
+        setIsLoading(true);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/users`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': tenantSlug
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const usersData = Array.isArray(data) ? data : (data.users || []);
+          
+          // API'den gelen veriyi formatla
+          const formattedUsers = usersData.map((u: any) => ({
+            id: u.id,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            email: u.email,
+            phone: u.phone,
+            role: u.role,
+            isActive: u.isActive,
+            lastLogin: u.lastLogin,
+            createdAt: u.createdAt,
+            hotelId: u.hotelId,
+            permissions: u.permissions?.map((p: any) => p.pageKey || p) || []
+          }));
+          
+          setUsers(formattedUsers);
+        }
+      } catch (error) {
+        console.error('Kullanıcılar yüklenirken hata:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, [token, user]);
 
   const roles = [
     { value: 'all', label: 'Tüm Roller' },
@@ -180,17 +174,78 @@ export default function UsersManagement() {
     return matchesSearch && matchesRole;
   });
 
-  const toggleActive = (id: string) => {
-    setUsers(users => 
-      users.map(user => 
-        user.id === id ? { ...user, isActive: !user.isActive } : user
-      )
-    );
+  const toggleActive = async (id: string) => {
+    try {
+      const userToToggle = users.find(u => u.id === id);
+      if (!userToToggle) return;
+
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      const newActiveStatus = !userToToggle.isActive;
+      
+      const response = await fetch(`${API_BASE_URL}/api/users/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': tenantSlug
+        },
+        body: JSON.stringify({ isActive: newActiveStatus })
+      });
+
+      if (response.ok) {
+        setUsers(users => 
+          users.map(user => 
+            user.id === id ? { ...user, isActive: newActiveStatus } : user
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Kullanıcı durumu güncellenirken hata:', error);
+    }
   };
 
-  const deleteUser = (id: string) => {
-    if (confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
-      setUsers(users => users.filter(user => user.id !== id));
+  const deleteUser = async (id: string) => {
+    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
+      return;
+    }
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': tenantSlug
+        }
+      });
+
+      if (response.ok) {
+        setUsers(users => users.filter(user => user.id !== id));
+      }
+    } catch (error) {
+      console.error('Kullanıcı silinirken hata:', error);
     }
   };
 
@@ -210,15 +265,43 @@ export default function UsersManagement() {
     setShowPermissionsModal(true);
   };
 
-  const savePermissions = () => {
-    if (selectedUser) {
-      setUsers(users => 
-        users.map(user => 
-          user.id === selectedUser.id ? { ...user, permissions: selectedPermissions } : user
-        )
-      );
-      setShowPermissionsModal(false);
-      setSelectedUser(null);
+  const savePermissions = async () => {
+    if (!selectedUser || !token) return;
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/users/${selectedUser.id}/permissions`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': tenantSlug
+        },
+        body: JSON.stringify({ permissions: selectedPermissions })
+      });
+
+      if (response.ok) {
+        setUsers(users => 
+          users.map(user => 
+            user.id === selectedUser.id ? { ...user, permissions: selectedPermissions } : user
+          )
+        );
+        setShowPermissionsModal(false);
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error('Yetkiler kaydedilirken hata:', error);
     }
   };
 
@@ -231,36 +314,96 @@ export default function UsersManagement() {
     );
   };
 
-  const saveUser = (userData: Partial<User>) => {
-    if (selectedUser) {
-      // Edit existing user
-      setUsers(users => 
-        users.map(user => 
-          user.id === selectedUser.id ? { ...user, ...userData } : user
-        )
-      );
-      setShowEditModal(false);
-    } else {
-      // Add new user
-      const newUser: User = {
-        id: Date.now().toString(),
-        firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        email: userData.email || '',
-        phone: userData.phone,
-        role: userData.role || 'STAFF',
-        isActive: userData.isActive ?? true,
-        lastLogin: undefined,
-        createdAt: new Date().toISOString(),
-        hotelId: 'hotel-1',
-        password: 'temp123', // Gerçek uygulamada hash'lenecek
-        permissions: ['dashboard'], // Varsayılan olarak sadece dashboard
-        ...userData
-      };
-      setUsers(users => [...users, newUser]);
-      setShowAddModal(false);
+  const saveUser = async (userData: Partial<User>) => {
+    if (!token) return;
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      let response;
+      if (selectedUser) {
+        // Edit existing user
+        response = await fetch(`${API_BASE_URL}/api/users/${selectedUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': tenantSlug
+          },
+          body: JSON.stringify({
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            email: userData.email,
+            phone: userData.phone,
+            role: userData.role,
+            isActive: userData.isActive
+          })
+        });
+      } else {
+        // Add new user
+        response = await fetch(`${API_BASE_URL}/api/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': tenantSlug
+          },
+          body: JSON.stringify({
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            email: userData.email,
+            phone: userData.phone,
+            role: userData.role,
+            password: userData.password,
+            isActive: userData.isActive ?? true
+          })
+        });
+      }
+
+      if (response.ok) {
+        const savedUser = await response.json();
+        
+        if (selectedUser) {
+          // Edit existing user
+          setUsers(users => 
+            users.map(user => 
+              user.id === selectedUser.id ? { ...user, ...userData, ...savedUser } : user
+            )
+          );
+          setShowEditModal(false);
+        } else {
+          // Add new user
+          const newUser: User = {
+            id: savedUser.id,
+            firstName: savedUser.firstName,
+            lastName: savedUser.lastName,
+            email: savedUser.email,
+            phone: savedUser.phone,
+            role: savedUser.role,
+            isActive: savedUser.isActive,
+            lastLogin: savedUser.lastLogin,
+            createdAt: savedUser.createdAt,
+            hotelId: savedUser.hotelId,
+            permissions: savedUser.permissions?.map((p: any) => p.pageKey || p) || ['dashboard']
+          };
+          setUsers(users => [...users, newUser]);
+          setShowAddModal(false);
+        }
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error('Kullanıcı kaydedilirken hata:', error);
     }
-    setSelectedUser(null);
   };
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -334,35 +477,41 @@ export default function UsersManagement() {
 
       {/* Users Table */}
       <div className="hotel-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kullanıcı
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rol
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  İletişim
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Son Giriş
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Yetkiler
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Durum
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  İşlemler
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
+        {isLoading ? (
+          <div className="px-6 py-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-hotel-gold mx-auto"></div>
+            <p className="mt-4 text-gray-600">Kullanıcılar yükleniyor...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Kullanıcı
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Rol
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    İletişim
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Son Giriş
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Yetkiler
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Durum
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    İşlemler
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -470,10 +619,11 @@ export default function UsersManagement() {
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {filteredUsers.length === 0 && (
