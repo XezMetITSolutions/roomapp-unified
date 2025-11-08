@@ -62,7 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Timeout ile fetch isteği
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 saniye timeout
+
+      console.log('🔍 Attempting login:', { 
+        email, 
+        tenantSlug, 
+        apiUrl: `${API_BASE_URL}/api/auth/login`
+      });
 
       try {
         // Backend'e login isteği gönder
@@ -78,18 +84,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         clearTimeout(timeoutId);
 
+        console.log('📡 Login response status:', response.status, response.statusText);
+
         if (!response.ok) {
           let errorMessage = 'Geçersiz email veya şifre';
           try {
             const errorData = await response.json();
             errorMessage = errorData.message || errorMessage;
+            console.error('❌ Login error response:', errorData);
           } catch {
             // JSON parse hatası, varsayılan mesajı kullan
+            console.error('❌ Login error - could not parse error response');
           }
           throw new Error(errorMessage);
         }
 
         const data = await response.json();
+        console.log('✅ Login response received:', { hasToken: !!data.token, hasUser: !!data.user });
 
         // Token ve user'ın var olduğunu kontrol et
         if (!data.token || !data.user) {
@@ -119,9 +130,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true;
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
+        console.error('❌ Fetch error:', fetchError);
+        
         if (fetchError.name === 'AbortError') {
-          throw new Error('Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.');
+          throw new Error('Bağlantı zaman aşımına uğradı. Backend yanıt vermiyor. Lütfen tekrar deneyin.');
         }
+        
+        if (fetchError.message && fetchError.message.includes('Failed to fetch')) {
+          throw new Error('Backend\'e bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.');
+        }
+        
         throw fetchError;
       }
     } catch (error: any) {

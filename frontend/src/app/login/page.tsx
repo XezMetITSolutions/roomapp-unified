@@ -37,7 +37,9 @@ export default function LoginPage() {
         localStorage.removeItem('remembered_email');
       }
       
+      console.log('🚀 Starting login process...');
       const success = await login(email, password);
+      console.log('✅ Login function returned:', success);
       
       if (success) {
         // State'in güncellenmesi için kısa bir süre bekle
