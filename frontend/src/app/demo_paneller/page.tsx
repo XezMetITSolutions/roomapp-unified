@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { 
   Hotel, 
   Users, 
@@ -13,49 +12,9 @@ import {
 } from 'lucide-react';
 import { Language } from '@/types';
 
-export default function PanelsIndexPage() {
+export default function DemoPanelsIndexPage() {
   const router = useRouter();
-  const { user, token } = useAuth();
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
-  const [isLoading, setIsLoading] = useState(true);
-  const [tenantInfo, setTenantInfo] = useState<any>(null);
-
-  // Tenant bilgilerini yükle
-  useEffect(() => {
-    const loadTenantInfo = async () => {
-      if (!user || !token) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
-        
-        // URL'den tenant slug'ını al
-        let tenantSlug = user.tenant?.slug || 'demo';
-        if (typeof window !== 'undefined') {
-          const hostname = window.location.hostname;
-          const subdomain = hostname.split('.')[0];
-          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
-            tenantSlug = subdomain;
-          }
-        }
-
-        // Tenant bilgilerini al (eğer backend'de endpoint varsa)
-        // Şimdilik user'dan gelen tenant bilgilerini kullan
-        setTenantInfo({
-          name: user.tenant?.name || 'İşletme',
-          slug: user.tenant?.slug || tenantSlug
-        });
-      } catch (error) {
-        console.error('Tenant bilgileri yüklenirken hata:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadTenantInfo();
-  }, [user, token]);
 
   const panels = [
     {
@@ -65,8 +24,7 @@ export default function PanelsIndexPage() {
       icon: Hotel,
       color: 'bg-hotel-gold',
       hoverColor: 'hover:bg-yellow-500',
-      route: '/reception',
-      requiresAuth: false
+      route: '/reception'
     },
     {
       id: 'kitchen',
@@ -75,8 +33,7 @@ export default function PanelsIndexPage() {
       icon: ChefHat,
       color: 'bg-hotel-sage',
       hoverColor: 'hover:bg-green-600',
-      route: '/kitchen',
-      requiresAuth: false
+      route: '/kitchen'
     },
     {
       id: 'qr-menu',
@@ -85,28 +42,25 @@ export default function PanelsIndexPage() {
       icon: ScanLine,
       color: 'bg-purple-600',
       hoverColor: 'hover:bg-purple-700',
-      route: '/qr-menu',
-      requiresAuth: false
+      route: '/qr-menu'
     },
     {
       id: 'guest-demo',
-      title: 'Misafir Arayüzü',
+      title: 'Misafir Arayüzü Demo',
       description: 'Misafir deneyimini önizleyin',
       icon: Users,
       color: 'bg-emerald-600',
       hoverColor: 'hover:bg-emerald-700',
-      route: '/guest/demo',
-      requiresAuth: false
+      route: '/guest/demo'
     },
     {
       id: 'admin',
       title: 'İşletme Paneli',
-      description: tenantInfo ? `${tenantInfo.name} - Menü yönetimi, duyurular, kullanıcılar ve ayarlar` : 'Menü yönetimi, duyurular, kullanıcılar ve ayarlar',
+      description: 'Menü yönetimi, duyurular, kullanıcılar ve ayarlar',
       icon: Settings,
       color: 'bg-red-600',
       hoverColor: 'hover:bg-red-700',
-      route: '/isletme',
-      requiresAuth: true
+      route: '/isletme'
     },
     {
       id: 'system-admin',
@@ -115,13 +69,9 @@ export default function PanelsIndexPage() {
       icon: BarChart3,
       color: 'bg-indigo-600',
       hoverColor: 'hover:bg-indigo-700',
-      route: '/system-admin',
-      requiresAuth: true
+      route: '/system-admin'
     }
   ];
-
-  // Auth gerektiren panelleri filtrele
-  const availablePanels = panels.filter(panel => !panel.requiresAuth || user);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-hotel-cream via-white to-blue-50">
@@ -149,13 +99,8 @@ export default function PanelsIndexPage() {
                 </div>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Paneller</h1>
-                <p className="text-gray-600">
-                  {tenantInfo 
-                    ? `${tenantInfo.name} - Tüm yönetim panellerine buradan erişin`
-                    : 'Tüm yönetim panellerine buradan erişin'
-                  }
-                </p>
+                <h1 className="text-3xl font-bold text-gray-900">Demo Paneller</h1>
+                <p className="text-gray-600">Demo verilerle tüm yönetim panellerine buradan erişin</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -174,16 +119,8 @@ export default function PanelsIndexPage() {
 
       {/* Panel Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-hotel-gold mx-auto"></div>
-              <p className="mt-4 text-gray-600">Yükleniyor...</p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {availablePanels.map((panel) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {panels.map((panel) => {
             const IconComponent = panel.icon;
             return (
               <button
@@ -202,8 +139,7 @@ export default function PanelsIndexPage() {
               </button>
             );
           })}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
