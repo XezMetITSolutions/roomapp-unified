@@ -1203,7 +1203,8 @@ app.get('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Res
   }
 })
 
-// Tenant'ın admin kullanıcısını getir
+// ÖNEMLİ: Daha spesifik route'lar önce tanımlanmalı
+// Tenant'ın admin kullanıcısını getir (PUT /api/admin/tenants/:id'den önce olmalı)
 app.get('/api/admin/tenants/:id/admin-user', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
