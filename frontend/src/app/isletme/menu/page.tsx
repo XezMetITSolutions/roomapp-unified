@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { MenuTranslator } from '@/components/MenuTranslator';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MenuItem {
   id: string;
@@ -36,6 +37,7 @@ interface MenuItem {
 }
 
 export default function MenuManagement() {
+  const { token, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -107,7 +109,8 @@ export default function MenuManagement() {
 
         const response = await fetch(`${API_BASE_URL}/api/menu`, {
           headers: {
-            'x-tenant': tenantSlug
+            'x-tenant': tenantSlug,
+            ...(token && { 'Authorization': `Bearer ${token}` })
           }
         });
         
@@ -141,7 +144,7 @@ export default function MenuManagement() {
     };
 
     loadMenuItems();
-  }, []);
+  }, [token]);
 
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -174,7 +177,8 @@ export default function MenuManagement() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-tenant': tenantSlug
+          'x-tenant': tenantSlug,
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({ 
           isAvailable: newAvailability
@@ -234,7 +238,8 @@ export default function MenuManagement() {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
-              'x-tenant': tenantSlug
+              'x-tenant': tenantSlug,
+              ...(token && { 'Authorization': `Bearer ${token}` })
             }
           });
 
@@ -304,7 +309,8 @@ export default function MenuManagement() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'x-tenant': tenantSlug
+            'x-tenant': tenantSlug,
+            ...(token && { 'Authorization': `Bearer ${token}` })
           },
           body: JSON.stringify(apiItem),
         });
@@ -314,7 +320,8 @@ export default function MenuManagement() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-tenant': tenantSlug
+            'x-tenant': tenantSlug,
+            ...(token && { 'Authorization': `Bearer ${token}` })
           },
           body: JSON.stringify(apiItem),
         });
@@ -495,7 +502,8 @@ export default function MenuManagement() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-tenant': tenantSlug
+            'x-tenant': tenantSlug,
+            ...(token && { 'Authorization': `Bearer ${token}` })
           },
           body: JSON.stringify(item),
         })
