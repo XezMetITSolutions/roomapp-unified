@@ -41,11 +41,18 @@ export default function LoginPage() {
       
       if (success) {
         // State'in güncellenmesi için kısa bir süre bekle
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Token'ın localStorage'da olduğunu kontrol et
         const savedToken = localStorage.getItem('auth_token');
         const savedUserData = localStorage.getItem('user_data');
+        
+        console.log('🔍 Login check:', { 
+          hasToken: !!savedToken, 
+          hasUserData: !!savedUserData,
+          tokenLength: savedToken?.length,
+          userDataLength: savedUserData?.length
+        });
         
         if (savedToken && savedUserData) {
           try {
@@ -53,34 +60,52 @@ export default function LoginPage() {
             const userRole = userData.role;
             const userPermissions = userData.permissions || [];
             
-            console.log('✅ Login successful, user role:', userRole, 'permissions:', userPermissions);
+            console.log('✅ Login successful, user data:', { 
+              role: userRole, 
+              permissions: userPermissions,
+              fullUserData: userData
+            });
             
             // Kullanıcının role'üne veya permissions'ına göre yönlendir
             let redirectPath = '/isletme'; // Varsayılan
             
-            // Role'e göre yönlendirme
-            if (userRole === 'RECEPTION' || userPermissions.includes('reception')) {
+            // Role'e göre yönlendirme (büyük/küçük harf duyarsız)
+            const roleUpper = (userRole || '').toUpperCase();
+            
+            if (roleUpper === 'RECEPTION' || userPermissions.includes('reception')) {
               redirectPath = '/reception';
-            } else if (userRole === 'KITCHEN' || userPermissions.includes('kitchen')) {
+              console.log('📍 Redirecting to RECEPTION panel');
+            } else if (roleUpper === 'KITCHEN' || userPermissions.includes('kitchen')) {
               redirectPath = '/kitchen';
-            } else if (userRole === 'STAFF' || userRole === 'WAITER' || userPermissions.includes('staff') || userPermissions.includes('waiter')) {
-              // Personel ve garson için resepsiyon paneline yönlendir
+              console.log('📍 Redirecting to KITCHEN panel');
+            } else if (roleUpper === 'STAFF' || roleUpper === 'WAITER' || userPermissions.includes('staff') || userPermissions.includes('waiter')) {
               redirectPath = '/reception';
-            } else if (userRole === 'ADMIN' || userRole === 'MANAGER' || userPermissions.includes('dashboard')) {
+              console.log('📍 Redirecting STAFF/WAITER to RECEPTION panel');
+            } else if (roleUpper === 'ADMIN' || roleUpper === 'MANAGER' || userPermissions.includes('dashboard')) {
+              redirectPath = '/isletme';
+              console.log('📍 Redirecting ADMIN/MANAGER to İŞLETME panel');
+            } else {
+              console.log('⚠️ Unknown role, defaulting to /isletme:', roleUpper);
               redirectPath = '/isletme';
             }
             
-            console.log('🔄 Redirecting to:', redirectPath);
+            console.log('🔄 Final redirect path:', redirectPath);
             setIsLoading(false); // Yönlendirmeden önce loading'i kapat
-            router.push(redirectPath);
+            
+            // Yönlendirmeyi yap
+            window.location.href = redirectPath; // router.push yerine window.location.href kullan
           } catch (error) {
             console.error('❌ Error parsing user data:', error);
+            console.error('Raw user data:', savedUserData);
             setIsLoading(false);
             // Hata durumunda varsayılan yönlendirme
-            router.push('/isletme');
+            window.location.href = '/isletme';
           }
         } else {
-          console.error('❌ Login successful but token/user not saved');
+          console.error('❌ Login successful but token/user not saved', {
+            savedToken: savedToken ? 'exists' : 'missing',
+            savedUserData: savedUserData ? 'exists' : 'missing'
+          });
           setIsLoading(false);
           setError('Giriş başarılı ancak oturum kaydedilemedi. Lütfen tekrar deneyin.');
         }
