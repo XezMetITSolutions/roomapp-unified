@@ -42,6 +42,7 @@ export default function TenantManagement() {
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   const [showBulkFeatureModal, setShowBulkFeatureModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [newTenant, setNewTenant] = useState({
     name: '',
     slug: '',
@@ -310,10 +311,70 @@ export default function TenantManagement() {
   };
 
   const handleEditTenant = async (tenant: any) => {
-    // TODO: Edit modal açılacak
     setSelectedTenant(tenant);
-    // Şimdilik sadece bilgi göster
-    alert(`İşletme düzenleme özelliği yakında eklenecek.\n\nİşletme: ${tenant.name}\nSlug: ${tenant.slug}`);
+    // Tenant bilgilerini form'a yükle
+    // Settings'den owner ve address bilgilerini al
+    const settings = tenant.settings || {};
+    const owner = settings.owner || {};
+    const address = settings.address || {};
+    
+    setNewTenant({
+      name: tenant.name || '',
+      slug: tenant.slug || '',
+      domain: tenant.domain || '',
+      isActive: tenant.isActive !== undefined ? tenant.isActive : true,
+      ownerName: owner.name || '',
+      ownerEmail: owner.email || '',
+      ownerPhone: owner.phone || '',
+      address: address.address || '',
+      city: address.city || '',
+      district: address.district || '',
+      postalCode: address.postalCode || '',
+      adminUsername: '', // Admin bilgileri düzenlenemez
+      adminPassword: '',
+      adminPasswordConfirm: '',
+      planId: settings.planId || '',
+      status: settings.status || (tenant.isActive ? 'active' : 'pending')
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTenant = async () => {
+    if (!selectedTenant || !newTenant.name || !newTenant.slug) {
+      alert('İşletme adı ve slug gerekli');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await adminApiClient.updateTenant(selectedTenant.id, {
+        name: newTenant.name,
+        slug: newTenant.slug,
+        domain: newTenant.domain || null,
+        isActive: newTenant.status === 'active',
+        // Sahip Bilgileri
+        ownerName: newTenant.ownerName,
+        ownerEmail: newTenant.ownerEmail,
+        ownerPhone: newTenant.ownerPhone,
+        // Adres Bilgileri
+        address: newTenant.address,
+        city: newTenant.city,
+        district: newTenant.district,
+        postalCode: newTenant.postalCode,
+        // Plan ve Durum
+        planId: newTenant.planId,
+        status: newTenant.status
+      });
+      alert('İşletme başarıyla güncellendi');
+      setShowEditModal(false);
+      setSelectedTenant(null);
+      await loadTenants();
+    } catch (error) {
+      console.error('Error updating tenant:', error);
+      alert('İşletme güncellenirken hata oluştu');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSuspendTenant = async (tenant: any) => {
@@ -1256,6 +1317,238 @@ export default function TenantManagement() {
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Oluşturuluyor...' : 'İşletme Oluştur'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Tenant Modal */}
+      {showEditModal && selectedTenant && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-md bg-white my-10">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">İşletme Düzenle</h2>
+                <p className="text-sm text-gray-600 mt-1">İşletme bilgilerini güncelle</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedTenant(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
+              {/* Temel Bilgiler */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Temel Bilgiler</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      İşletme Adı *
+                    </label>
+                    <input
+                      type="text"
+                      value={newTenant.name}
+                      onChange={(e) => setNewTenant({ ...newTenant, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Örn: Grand Hotel Istanbul"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subdomain *
+                    </label>
+                    <div className="flex items-center">
+                      <input
+                        type="text"
+                        value={newTenant.slug}
+                        onChange={(e) => setNewTenant({ ...newTenant, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="isletme-adi"
+                      />
+                      <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md text-gray-600">
+                        .roomxqr.com
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sahip Bilgileri */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Sahip Bilgileri</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ad Soyad *
+                    </label>
+                    <input
+                      type="text"
+                      value={newTenant.ownerName}
+                      onChange={(e) => setNewTenant({ ...newTenant, ownerName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={newTenant.ownerEmail}
+                      onChange={(e) => setNewTenant({ ...newTenant, ownerEmail: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Telefon *
+                    </label>
+                    <input
+                      type="tel"
+                      value={newTenant.ownerPhone}
+                      onChange={(e) => setNewTenant({ ...newTenant, ownerPhone: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Adres Bilgileri */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Adres Bilgileri</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Adres *
+                    </label>
+                    <textarea
+                      value={newTenant.address}
+                      onChange={(e) => setNewTenant({ ...newTenant, address: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        İl *
+                      </label>
+                      <input
+                        type="text"
+                        value={newTenant.city}
+                        onChange={(e) => setNewTenant({ ...newTenant, city: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        İlçe *
+                      </label>
+                      <input
+                        type="text"
+                        value={newTenant.district}
+                        onChange={(e) => setNewTenant({ ...newTenant, district: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Posta Kodu
+                      </label>
+                      <input
+                        type="text"
+                        value={newTenant.postalCode}
+                        onChange={(e) => setNewTenant({ ...newTenant, postalCode: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Plan ve Durum */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan ve Durum</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Abonelik Planı
+                    </label>
+                    <select
+                      value={newTenant.planId}
+                      onChange={(e) => setNewTenant({ ...newTenant, planId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Plan seçin</option>
+                      {plans.map(plan => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} - {plan.price} TL/oda/ay
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Durum
+                    </label>
+                    <select
+                      value={newTenant.status}
+                      onChange={(e) => setNewTenant({ ...newTenant, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="pending">Beklemede</option>
+                      <option value="active">Aktif</option>
+                      <option value="suspended">Askıya Alındı</option>
+                    </select>
+                  </div>
+                </div>
+                {selectedPlan && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-md">
+                    <p className="text-sm font-medium text-gray-900 mb-2">{selectedPlan.name} Limitleri:</p>
+                    <ul className="text-xs text-gray-600 space-y-1">
+                      {selectedPlan.limits.maxRooms && (
+                        <li>• Maksimum Oda: {selectedPlan.limits.maxRooms}</li>
+                      )}
+                      {selectedPlan.limits.maxMenuItems && (
+                        <li>• Maksimum Menü Ürünü: {selectedPlan.limits.maxMenuItems}</li>
+                      )}
+                      {selectedPlan.limits.maxStaff && (
+                        <li>• Maksimum Personel: {selectedPlan.limits.maxStaff}</li>
+                      )}
+                      {!selectedPlan.limits.maxRooms && !selectedPlan.limits.maxMenuItems && !selectedPlan.limits.maxStaff && (
+                        <li>• Sınırsız kullanım</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedTenant(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleUpdateTenant}
+                disabled={loading || !newTenant.name || !newTenant.slug}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Güncelleniyor...' : 'Güncelle'}
               </button>
             </div>
           </div>

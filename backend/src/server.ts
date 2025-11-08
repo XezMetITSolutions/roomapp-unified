@@ -1182,7 +1182,9 @@ app.get('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Res
         id: true,
         name: true,
         slug: true,
+        domain: true,
         isActive: true,
+        settings: true,
         createdAt: true,
         _count: {
           select: {
@@ -1205,7 +1207,24 @@ app.get('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Res
 app.put('/api/admin/tenants/:id', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const { name, slug, domain, isActive } = req.body
+    const { 
+      name, 
+      slug, 
+      domain, 
+      isActive,
+      // Sahip Bilgileri
+      ownerName,
+      ownerEmail,
+      ownerPhone,
+      // Adres Bilgileri
+      address,
+      city,
+      district,
+      postalCode,
+      // Plan ve Durum
+      planId,
+      status
+    } = req.body
 
     if (!id) {
       res.status(400).json({ message: 'Tenant ID gerekli' })
@@ -1234,14 +1253,43 @@ app.put('/api/admin/tenants/:id', adminAuthMiddleware, async (req: Request, res:
     }
 
     // Domain kontrolü (eğer değiştiriliyorsa)
-    if (domain && domain !== tenant.domain) {
-      const existingDomain = await prisma.tenant.findUnique({
-        where: { domain }
-      })
-      if (existingDomain) {
-        res.status(400).json({ message: 'Bu domain zaten kullanılıyor' })
-        return
+    if (domain !== undefined && domain !== tenant.domain) {
+      if (domain) {
+        const existingDomain = await prisma.tenant.findUnique({
+          where: { domain }
+        })
+        if (existingDomain) {
+          res.status(400).json({ message: 'Bu domain zaten kullanılıyor' })
+          return
+        }
       }
+    }
+
+    // Mevcut settings'i al
+    const currentSettings = (tenant.settings as any) || {}
+    
+    // Settings'i güncelle
+    const updatedSettings = {
+      ...currentSettings,
+      ...(ownerName || ownerEmail || ownerPhone ? {
+        owner: {
+          ...(currentSettings.owner || {}),
+          ...(ownerName && { name: ownerName }),
+          ...(ownerEmail && { email: ownerEmail }),
+          ...(ownerPhone && { phone: ownerPhone })
+        }
+      } : {}),
+      ...(address || city || district || postalCode !== undefined ? {
+        address: {
+          ...(currentSettings.address || {}),
+          ...(address && { address }),
+          ...(city && { city }),
+          ...(district && { district }),
+          ...(postalCode !== undefined && { postalCode: postalCode || null })
+        }
+      } : {}),
+      ...(planId !== undefined && { planId: planId || null }),
+      ...(status !== undefined && { status: status || 'pending' })
     }
 
     const updatedTenant = await prisma.tenant.update({
@@ -1250,7 +1298,8 @@ app.put('/api/admin/tenants/:id', adminAuthMiddleware, async (req: Request, res:
         ...(name && { name }),
         ...(slug && { slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') }),
         ...(domain !== undefined && { domain: domain || null }),
-        ...(isActive !== undefined && { isActive })
+        ...(isActive !== undefined && { isActive }),
+        ...(Object.keys(updatedSettings).length > 0 && { settings: updatedSettings })
       }
     })
 
