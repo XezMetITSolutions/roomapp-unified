@@ -572,6 +572,34 @@ app.get('/api/guests', tenantMiddleware, async (req: Request, res: Response) => 
   }
 })
 
+app.get('/api/orders', tenantMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { limit } = req.query
+    
+    const orders = await prisma.order.findMany({
+      where: { 
+        tenantId
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit ? parseInt(limit as string) : undefined
+    })
+    
+    res.json(orders); return;
+  } catch (error) {
+    console.error('Orders error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
 app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
