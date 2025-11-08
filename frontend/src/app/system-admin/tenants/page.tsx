@@ -1096,25 +1096,15 @@ export default function TenantManagement() {
               {/* Admin Kullanıcı Bilgileri */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Kullanıcı Bilgileri</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  İşletme için otomatik olarak bir admin kullanıcısı oluşturulacaktır.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Bilgi:</strong> Admin kullanıcısı otomatik olarak <strong>sahip email adresi</strong> ({newTenant.ownerEmail || 'yukarıda girilen email'}) ile oluşturulacaktır. Giriş yaparken bu email adresini kullanabilirsiniz.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Kullanıcı Adı *
-                    </label>
-                    <input
-                      type="text"
-                      value={newTenant.adminUsername}
-                      onChange={(e) => setNewTenant({ ...newTenant, adminUsername: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="admin veya işletme adı"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Şifre *
+                      Admin Şifre *
                     </label>
                     <input
                       type="password"
@@ -1270,7 +1260,7 @@ export default function TenantManagement() {
               </button>
               <button
                 onClick={handleCreateTenant}
-                disabled={loading || !newTenant.name || !newTenant.slug || !newTenant.ownerName || !newTenant.ownerEmail || !newTenant.ownerPhone || !newTenant.address || !newTenant.city || !newTenant.district || !newTenant.adminUsername || !newTenant.adminPassword || !newTenant.adminPasswordConfirm}
+                disabled={loading || !newTenant.name || !newTenant.slug || !newTenant.ownerName || !newTenant.ownerEmail || !newTenant.ownerPhone || !newTenant.address || !newTenant.city || !newTenant.district || !newTenant.adminPassword || !newTenant.adminPasswordConfirm}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Oluşturuluyor...' : 'İşletme Oluştur'}

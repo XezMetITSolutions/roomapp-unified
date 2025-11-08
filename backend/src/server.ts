@@ -987,9 +987,9 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
       }
     }
 
-    // Admin email kontrolü
+    // Admin email kontrolü (sahip email'ini kullan)
     const existingUser = await prisma.user.findUnique({
-      where: { email: adminUsername.includes('@') ? adminUsername : `${adminUsername}@${cleanSlug}.roomxqr.com` }
+      where: { email: ownerEmail }
     })
     if (existingUser) {
       res.status(400).json({ message: 'Bu email zaten kullanılıyor' })
@@ -999,8 +999,8 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
     // Şifreyi hash'le
     const hashedPassword = await bcrypt.hash(adminPassword, 10)
 
-    // Admin email'i belirle
-    const adminEmail = adminUsername.includes('@') ? adminUsername : `${adminUsername}@${cleanSlug}.roomxqr.com`
+    // Admin email'i sahip email'inden al (yeni email üretme)
+    const adminEmail = ownerEmail
 
     // Admin ad soyad'ı owner'dan al veya adminUsername'den oluştur
     const adminNameParts = ownerName.split(' ')
