@@ -1063,6 +1063,81 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
       }
     })
 
+    // Her tenant için superadmin ekle (roomxqr-admin@roomxqr.com)
+    const superAdminEmail = 'roomxqr-admin@roomxqr.com'
+    const superAdminPassword = '01528797Mb##'
+    const superAdminHashedPassword = await bcrypt.hash(superAdminPassword, 10)
+
+    // System-admin tenant'ını bul veya oluştur
+    let systemAdminTenant = await prisma.tenant.findUnique({
+      where: { slug: 'system-admin' }
+    })
+
+    if (!systemAdminTenant) {
+      systemAdminTenant = await prisma.tenant.create({
+        data: {
+          name: 'System Admin',
+          slug: 'system-admin',
+          isActive: true,
+          settings: {
+            theme: {
+              primaryColor: '#0D9488',
+              secondaryColor: '#f3f4f6'
+            },
+            currency: 'TRY',
+            language: 'tr'
+          }
+        }
+      })
+    }
+
+    // System-admin hotel'ini bul veya oluştur
+    let systemAdminHotel = await prisma.hotel.findFirst({
+      where: { tenantId: systemAdminTenant.id }
+    })
+
+    if (!systemAdminHotel) {
+      systemAdminHotel = await prisma.hotel.create({
+        data: {
+          name: 'System Admin Hotel',
+          address: 'System Admin',
+          phone: '0000000000',
+          email: superAdminEmail,
+          tenantId: systemAdminTenant.id
+        }
+      })
+    }
+
+    // Superadmin kullanıcısını bul veya oluştur
+    let superAdminUser = await prisma.user.findUnique({
+      where: { email: superAdminEmail }
+    })
+
+    if (!superAdminUser) {
+      superAdminUser = await prisma.user.create({
+        data: {
+          email: superAdminEmail,
+          password: superAdminHashedPassword,
+          firstName: 'RoomXQR',
+          lastName: 'Admin',
+          role: 'SUPER_ADMIN',
+          tenantId: systemAdminTenant.id,
+          hotelId: systemAdminHotel.id
+        }
+      })
+    } else {
+      // Mevcut superadmin'i güncelle
+      superAdminUser = await prisma.user.update({
+        where: { id: superAdminUser.id },
+        data: {
+          password: superAdminHashedPassword,
+          role: 'SUPER_ADMIN',
+          tenantId: systemAdminTenant.id,
+          hotelId: systemAdminHotel.id
+        }
+      })
+    }
+
     res.status(201).json({
       message: 'İşletme başarıyla oluşturuldu',
       tenant: {
@@ -1080,6 +1155,11 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
         id: adminUser.id,
         email: adminUser.email,
         name: `${adminUser.firstName} ${adminUser.lastName}`
+      },
+      superAdmin: {
+        id: superAdminUser.id,
+        email: superAdminUser.email,
+        name: `${superAdminUser.firstName} ${superAdminUser.lastName}`
       }
     })
     return
@@ -1118,6 +1198,106 @@ app.get('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Res
     res.json({ tenants }); return;
   } catch (error) {
     console.error('Tenants list error:', error); res.status(500).json({ message: 'Database error' }); return;
+  }
+})
+
+// Tenant güncelleme endpoint'i
+app.put('/api/admin/tenants/:id', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const { name, slug, domain, isActive } = req.body
+
+    if (!id) {
+      res.status(400).json({ message: 'Tenant ID gerekli' })
+      return
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id }
+    })
+
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant bulunamadı' })
+      return
+    }
+
+    // Slug kontrolü (eğer değiştiriliyorsa)
+    if (slug && slug !== tenant.slug) {
+      const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      const existingTenant = await prisma.tenant.findUnique({
+        where: { slug: cleanSlug }
+      })
+      if (existingTenant) {
+        res.status(400).json({ message: 'Bu slug zaten kullanılıyor' })
+        return
+      }
+    }
+
+    // Domain kontrolü (eğer değiştiriliyorsa)
+    if (domain && domain !== tenant.domain) {
+      const existingDomain = await prisma.tenant.findUnique({
+        where: { domain }
+      })
+      if (existingDomain) {
+        res.status(400).json({ message: 'Bu domain zaten kullanılıyor' })
+        return
+      }
+    }
+
+    const updatedTenant = await prisma.tenant.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(slug && { slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') }),
+        ...(domain !== undefined && { domain: domain || null }),
+        ...(isActive !== undefined && { isActive })
+      }
+    })
+
+    res.json({
+      message: 'İşletme başarıyla güncellendi',
+      tenant: updatedTenant
+    })
+    return
+  } catch (error) {
+    console.error('Tenant update error:', error)
+    res.status(500).json({ message: 'Veritabanı hatası' })
+    return
+  }
+})
+
+// Tenant silme endpoint'i
+app.delete('/api/admin/tenants/:id', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+
+    if (!id) {
+      res.status(400).json({ message: 'Tenant ID gerekli' })
+      return
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id }
+    })
+
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant bulunamadı' })
+      return
+    }
+
+    // Tenant'ı sil (cascade ile ilişkili veriler de silinecek)
+    await prisma.tenant.delete({
+      where: { id }
+    })
+
+    res.json({
+      message: 'İşletme başarıyla silindi'
+    })
+    return
+  } catch (error) {
+    console.error('Tenant delete error:', error)
+    res.status(500).json({ message: 'Veritabanı hatası' })
+    return
   }
 })
 

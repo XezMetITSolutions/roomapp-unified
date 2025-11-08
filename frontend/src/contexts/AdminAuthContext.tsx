@@ -189,6 +189,19 @@ export const adminApiClient = {
     });
   },
 
+  async updateTenant(tenantId: string, data: any) {
+    return this.request(`/api/admin/tenants/${tenantId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  async deleteTenant(tenantId: string) {
+    return this.request(`/api/admin/tenants/${tenantId}`, {
+      method: 'DELETE'
+    });
+  },
+
   // Feature endpoints
   async getTenantFeatures(tenantId: string) {
     return this.request(`/api/admin/tenants/${tenantId}/features`);

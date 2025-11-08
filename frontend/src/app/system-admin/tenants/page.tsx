@@ -309,19 +309,79 @@ export default function TenantManagement() {
     setShowFeatureModal(true);
   };
 
-  const handleEditTenant = (tenant: any) => {
-    // Edit functionality
-    console.log('Edit tenant:', tenant);
+  const handleEditTenant = async (tenant: any) => {
+    // TODO: Edit modal açılacak
+    setSelectedTenant(tenant);
+    // Şimdilik sadece bilgi göster
+    alert(`İşletme düzenleme özelliği yakında eklenecek.\n\nİşletme: ${tenant.name}\nSlug: ${tenant.slug}`);
   };
 
-  const handleSuspendTenant = (tenant: any) => {
-    // Suspend functionality
-    console.log('Suspend tenant:', tenant);
+  const handleSuspendTenant = async (tenant: any) => {
+    if (!confirm(`${tenant.name} işletmesini ${tenant.isActive ? 'askıya almak' : 'aktif etmek'} istediğinize emin misiniz?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await adminApiClient.updateTenant(tenant.id, { isActive: !tenant.isActive });
+      alert('İşletme durumu güncellendi');
+      await loadTenants();
+    } catch (error) {
+      console.error('Error updating tenant:', error);
+      alert('İşletme durumu güncellenirken hata oluştu');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteTenant = (tenant: any) => {
-    // Delete functionality
-    console.log('Delete tenant:', tenant);
+  const handleDeleteTenant = async (tenant: any) => {
+    if (!confirm(`${tenant.name} işletmesini silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await adminApiClient.deleteTenant(tenant.id);
+      alert('İşletme silindi');
+      await loadTenants();
+    } catch (error) {
+      console.error('Error deleting tenant:', error);
+      alert('İşletme silinirken hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSuperAdminLogin = async () => {
+    try {
+      const { useAdminAuth } = await import('@/contexts/AdminAuthContext');
+      // Bu fonksiyon component içinde olmalı, bu yüzden context'ten alacağız
+      // Şimdilik direkt login yapalım
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend-1.onrender.com'}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant': 'system-admin',
+        },
+        body: JSON.stringify({ 
+          email: 'roomxqr-admin@roomxqr.com', 
+          password: '01528797Mb##' 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.user.role === 'SUPER_ADMIN') {
+        localStorage.setItem('admin_token', data.token);
+        localStorage.setItem('admin_user', JSON.stringify(data.user));
+        window.location.href = '/system-admin';
+      } else {
+        alert('Super admin girişi başarısız');
+      }
+    } catch (error) {
+      console.error('Super admin login error:', error);
+      alert('Super admin girişi sırasında hata oluştu');
+    }
   };
 
   const isFeatureEnabled = (featureKey: string) => {
@@ -356,6 +416,13 @@ export default function TenantManagement() {
             </p>
         </div>
           <div className="mt-4 sm:mt-0 flex flex-wrap gap-3">
+            <button
+              onClick={handleSuperAdminLogin}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Super Admin Olarak Giriş Yap
+            </button>
             <button
               onClick={() => setShowBulkFeatureModal(true)}
               disabled={selectedTenants.length === 0}
