@@ -14,6 +14,7 @@ import { authMiddleware, requirePermission } from './middleware/auth'
 import { adminAuthMiddleware, createSuperAdmin } from './middleware/adminAuth'
 import { login, getCurrentUser } from './controllers/auth'
 import { getUsers, createUser, updateUser, updateUserPermissions, deleteUser } from './controllers/users'
+import bcrypt from 'bcryptjs'
 
 // Load environment variables
 dotenv.config()
@@ -910,47 +911,150 @@ app.post('/api/notifications', tenantMiddleware, async (req: Request, res: Respo
 // Admin Routes (Tenant Management) - Admin yetkilendirmesi gerekli
 app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const { name, slug, adminEmail, adminPassword, adminFirstName, adminLastName } = req.body
+    const { 
+      name, 
+      slug, 
+      domain,
+      // Sahip Bilgileri
+      ownerName,
+      ownerEmail,
+      ownerPhone,
+      // Adres Bilgileri
+      address,
+      city,
+      district,
+      postalCode,
+      // Admin Kullanıcı Bilgileri
+      adminUsername,
+      adminPassword,
+      adminPasswordConfirm,
+      // Plan ve Durum
+      planId,
+      status
+    } = req.body
+
+    // Validasyon
+    if (!name || !slug) {
+      res.status(400).json({ message: 'İşletme adı ve slug gerekli' })
+      return
+    }
+
+    if (!ownerName || !ownerEmail || !ownerPhone) {
+      res.status(400).json({ message: 'Sahip bilgileri gerekli' })
+      return
+    }
+
+    if (!address || !city || !district) {
+      res.status(400).json({ message: 'Adres bilgileri gerekli' })
+      return
+    }
+
+    if (!adminUsername || !adminPassword || !adminPasswordConfirm) {
+      res.status(400).json({ message: 'Admin kullanıcı bilgileri gerekli' })
+      return
+    }
+
+    if (adminPassword !== adminPasswordConfirm) {
+      res.status(400).json({ message: 'Şifreler eşleşmiyor' })
+      return
+    }
+
+    if (adminPassword.length < 6) {
+      res.status(400).json({ message: 'Şifre en az 6 karakter olmalıdır' })
+      return
+    }
 
     // Slug'ı temizle ve kontrol et
     const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    
     // Tenant'ın zaten var olup olmadığını kontrol et
     const existingTenant = await prisma.tenant.findUnique({
       where: { slug: cleanSlug }
     })
     if (existingTenant) {
-      res.status(400).json({ message: 'Bu slug zaten kullanılıyor' }); return;
+      res.status(400).json({ message: 'Bu slug zaten kullanılıyor' })
+      return
     }
+
+    // Domain kontrolü (varsa)
+    if (domain) {
+      const existingDomain = await prisma.tenant.findUnique({
+        where: { domain }
+      })
+      if (existingDomain) {
+        res.status(400).json({ message: 'Bu domain zaten kullanılıyor' })
+        return
+      }
+    }
+
+    // Admin email kontrolü
+    const existingUser = await prisma.user.findUnique({
+      where: { email: adminUsername.includes('@') ? adminUsername : `${adminUsername}@${cleanSlug}.roomxqr.com` }
+    })
+    if (existingUser) {
+      res.status(400).json({ message: 'Bu email zaten kullanılıyor' })
+      return
+    }
+
+    // Şifreyi hash'le
+    const hashedPassword = await bcrypt.hash(adminPassword, 10)
+
+    // Admin email'i belirle
+    const adminEmail = adminUsername.includes('@') ? adminUsername : `${adminUsername}@${cleanSlug}.roomxqr.com`
+
+    // Admin ad soyad'ı owner'dan al veya adminUsername'den oluştur
+    const adminNameParts = ownerName.split(' ')
+    const adminFirstName = adminNameParts[0] || adminUsername
+    const adminLastName = adminNameParts.slice(1).join(' ') || 'Admin'
+
     // Tenant oluştur
     const tenant = await prisma.tenant.create({
       data: {
         name,
         slug: cleanSlug,
+        domain: domain || null,
+        isActive: status === 'active',
         settings: {
           theme: {
             primaryColor: '#0D9488',
             secondaryColor: '#f3f4f6'
           },
           currency: 'TRY',
-          language: 'tr'
+          language: 'tr',
+          owner: {
+            name: ownerName,
+            email: ownerEmail,
+            phone: ownerPhone
+          },
+          address: {
+            address,
+            city,
+            district,
+            postalCode: postalCode || null
+          },
+          planId: planId || null,
+          status: status || 'pending'
         }
       }
     })
+
     // İlk otel oluştur
+    const fullAddress = `${address}, ${district}, ${city}${postalCode ? ` ${postalCode}` : ''}`
     const hotel = await prisma.hotel.create({
       data: {
         name: `${name} Otel`,
-        address: 'Adres bilgisi güncellenmeli',
-        phone: 'Telefon bilgisi güncellenmeli',
-        email: adminEmail,
+        address: fullAddress,
+        phone: ownerPhone,
+        email: ownerEmail,
         tenantId: tenant.id
       }
     })
+
     // İlk admin kullanıcı oluştur
     const adminUser = await prisma.user.create({
       data: {
         email: adminEmail,
-        password: adminPassword, // Production'da hash'lenmeli
+        password: hashedPassword,
         firstName: adminFirstName,
         lastName: adminLastName,
         role: 'ADMIN',
@@ -958,13 +1062,15 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
         hotelId: hotel.id
       }
     })
+
     res.status(201).json({
-      message: 'Tenant başarıyla oluşturuldu',
+      message: 'İşletme başarıyla oluşturuldu',
       tenant: {
         id: tenant.id,
         name: tenant.name,
         slug: tenant.slug,
-        url: `https://${tenant.slug}.roomxr.com`
+        domain: tenant.domain,
+        url: `https://${tenant.slug}.roomxqr.com`
       },
       hotel: {
         id: hotel.id,
@@ -975,9 +1081,17 @@ app.post('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Re
         email: adminUser.email,
         name: `${adminUser.firstName} ${adminUser.lastName}`
       }
-    }); return;
+    })
+    return
   } catch (error) {
-    console.error('Tenant creation error:', error); res.status(500).json({ message: 'Database error' }); return;
+    console.error('Tenant creation error:', error)
+    console.error('Error details:', error instanceof Error ? error.message : String(error))
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    res.status(500).json({ 
+      message: 'Veritabanı hatası',
+      error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+    })
+    return
   }
 })
 
