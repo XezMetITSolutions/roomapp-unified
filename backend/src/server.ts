@@ -1207,9 +1207,11 @@ app.get('/api/admin/tenants', adminAuthMiddleware, async (req: Request, res: Res
 // Tenant'ın admin kullanıcısını getir (PUT /api/admin/tenants/:id'den önce olmalı)
 app.get('/api/admin/tenants/:id/admin-user', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
+    console.log('🔍 GET /api/admin/tenants/:id/admin-user endpoint called', { id: req.params.id })
     const { id } = req.params
 
     if (!id) {
+      console.log('❌ Tenant ID missing')
       res.status(400).json({ message: 'Tenant ID gerekli' })
       return
     }
