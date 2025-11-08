@@ -67,9 +67,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   // Kullanıcının yetkili olduğu sayfaları filtrele
-  const filteredNavigation = navigation.filter(item => 
-    hasPermission(item.key)
-  );
+  // Eğer kullanıcının permissions'ı yoksa veya boşsa, tüm menü öğelerini göster
+  const filteredNavigation = user?.permissions && user.permissions.length > 0
+    ? navigation.filter(item => hasPermission(item.key))
+    : navigation;
 
   const handleLogout = () => {
     logout();
