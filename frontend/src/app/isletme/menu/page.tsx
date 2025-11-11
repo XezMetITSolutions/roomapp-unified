@@ -17,10 +17,12 @@ import {
   FileSpreadsheet,
   CheckCircle,
   AlertCircle,
-  X
+  X,
+  Image as ImageIcon,
+  FolderOpen,
+  Tag
 } from 'lucide-react';
 import { MenuTranslator } from '@/components/MenuTranslator';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface MenuItem {
   id: string;
@@ -32,23 +34,37 @@ interface MenuItem {
   isAvailable: boolean;
   allergens: string[];
   calories?: number;
-  preparationTime?: number; // Hazırlık süresi (dakika)
-  rating?: number; // İşletme tarafından belirlenen kalite puanı (1.0-5.0)
+  preparationTime?: number;
+  rating?: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 export default function MenuManagement() {
-  const { token, user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'menu' | 'categories'>('menu');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTranslationModal, setShowTranslationModal] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showCategorySelectModal, setShowCategorySelectModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [selectedCategoryForEdit, setSelectedCategoryForEdit] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showAddCategoryInSelector, setShowAddCategoryInSelector] = useState(false);
 
   // Menü verileri state'i
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   
   // Toast notification state'i
   const [toast, setToast] = useState<{show: boolean, message: string, type: 'success' | 'error'}>({
@@ -58,10 +74,11 @@ export default function MenuManagement() {
   });
 
   // Confirmation modal state'i
-  const [confirmModal, setConfirmModal] = useState<{show: boolean, itemId: string | null, itemName: string}>({
+  const [confirmModal, setConfirmModal] = useState<{show: boolean, itemId: string | null, itemName: string, type: 'item' | 'category'}>({
     show: false,
     itemId: null,
-    itemName: ''
+    itemName: '',
+    type: 'item'
   });
 
   // Bulk upload state'i
@@ -77,8 +94,6 @@ export default function MenuManagement() {
     isValid: false
   });
 
-  const categories = ['all', 'Pizza', 'Burger', 'Salata', 'İçecek', 'Tatlı'];
-
   // Toast notification fonksiyonları
   const showSuccessToast = (message: string) => {
     setToast({ show: true, message, type: 'success' });
@@ -90,45 +105,52 @@ export default function MenuManagement() {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4000);
   };
 
+  // Kategorileri yükle
+  const loadCategories = async () => {
+    try {
+      const stored = localStorage.getItem('menuCategories');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCategories(parsed);
+      } else {
+        // Varsayılan kategoriler
+        const defaultCategories: Category[] = [
+          { id: '1', name: 'Pizza' },
+          { id: '2', name: 'Burger' },
+          { id: '3', name: 'Salata' },
+          { id: '4', name: 'İçecek' },
+          { id: '5', name: 'Tatlı' },
+        ];
+        setCategories(defaultCategories);
+        localStorage.setItem('menuCategories', JSON.stringify(defaultCategories));
+      }
+    } catch (error) {
+      console.error('Kategori yükleme hatası:', error);
+    }
+  };
+
   // Menü verilerini API'den yükle
   useEffect(() => {
-    const loadMenuItems = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        await loadCategories();
         
-        // URL'den tenant slug'ını al
-        let tenantSlug = 'demo';
-        if (typeof window !== 'undefined') {
-          const hostname = window.location.hostname;
-          const subdomain = hostname.split('.')[0];
-          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
-            tenantSlug = subdomain;
-          }
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/menu`, {
-          headers: {
-            'x-tenant': tenantSlug,
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          }
-        });
-        
+        const response = await fetch('/api/menu');
         if (response.ok) {
           const data = await response.json();
-          // API'den gelen veriyi menü yönetimi formatına çevir
-          const formattedItems = (data.menuItems || []).map((item: any) => ({
-            id: item.id,
+          const formattedItems = data.menu.map((item: any, index: number) => ({
+            id: item.id || `api-${index}`,
             name: item.name,
             description: item.description || '',
             price: item.price,
             category: item.category || 'Diğer',
-            isAvailable: item.isAvailable !== false,
+            isAvailable: item.available !== false,
             allergens: item.allergens || [],
             calories: item.calories,
             image: item.image,
             preparationTime: item.preparationTime,
-            rating: item.rating || 4.0,
+            rating: item.rating,
           }));
           
           setMenuItems(formattedItems);
@@ -143,8 +165,15 @@ export default function MenuManagement() {
       }
     };
 
-    loadMenuItems();
-  }, [token]);
+    loadData();
+  }, []);
+
+  // Kategori listesini güncelle
+  useEffect(() => {
+    if (categories.length > 0) {
+      localStorage.setItem('menuCategories', JSON.stringify(categories));
+    }
+  }, [categories]);
 
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,6 +182,39 @@ export default function MenuManagement() {
     return matchesSearch && matchesCategory;
   });
 
+  // Resim yükleme fonksiyonu
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showErrorToast('Lütfen geçerli bir resim dosyası seçin!');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showErrorToast('Resim boyutu 5MB\'dan küçük olmalıdır!');
+      return;
+    }
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Resmi base64'e çevir
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const toggleAvailability = async (id: string) => {
     try {
       const item = menuItems.find(item => item.id === id);
@@ -160,33 +222,28 @@ export default function MenuManagement() {
 
       const newAvailability = !item.isAvailable;
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
-      
-      // URL'den tenant slug'ını al
-      let tenantSlug = 'demo';
-      if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        const subdomain = hostname.split('.')[0];
-        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
-          tenantSlug = subdomain;
-        }
-      }
-      
-      // API'ye güncelleme gönder (PUT endpoint kullan)
-      const response = await fetch(`${API_BASE_URL}/api/menu/${id}`, {
-        method: 'PUT',
+      const response = await fetch('/api/menu/save', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-tenant': tenantSlug,
-          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({ 
-          isAvailable: newAvailability
+          items: [{
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            category: item.category,
+            image: item.image || '',
+            allergens: item.allergens || [],
+            calories: item.calories,
+            preparationTime: item.preparationTime,
+            rating: item.rating,
+            available: newAvailability,
+          }]
         }),
       });
 
       if (response.ok) {
-        // API'den başarılı yanıt gelirse local state'i güncelle
         setMenuItems(items => 
           items.map(item => 
             item.id === id ? { ...item, isAvailable: newAvailability } : item
@@ -208,7 +265,27 @@ export default function MenuManagement() {
       setConfirmModal({
         show: true,
         itemId: id,
-        itemName: item.name
+        itemName: item.name,
+        type: 'item'
+      });
+    }
+  };
+
+  const deleteCategory = (id: string) => {
+    const category = categories.find(cat => cat.id === id);
+    if (category) {
+      // Kategori kullanılıyor mu kontrol et
+      const itemsInCategory = menuItems.filter(item => item.category === category.name);
+      if (itemsInCategory.length > 0) {
+        showErrorToast(`Bu kategori ${itemsInCategory.length} üründe kullanılıyor. Önce ürünleri başka kategoriye taşıyın.`);
+        return;
+      }
+      
+      setConfirmModal({
+        show: true,
+        itemId: id,
+        itemName: category.name,
+        type: 'category'
       });
     }
   };
@@ -216,85 +293,133 @@ export default function MenuManagement() {
   const confirmDelete = async () => {
     if (confirmModal.itemId) {
       try {
-        const itemToDelete = menuItems.find(item => item.id === confirmModal.itemId);
-        if (itemToDelete) {
-          const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
-          
-          // URL'den tenant slug'ını al
-          let tenantSlug = 'demo';
-          if (typeof window !== 'undefined') {
-            const hostname = window.location.hostname;
-            const subdomain = hostname.split('.')[0];
-            if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
-              tenantSlug = subdomain;
-            }
-          }
-          
-          // Önce local state'den kaldır (anında UI güncellemesi için)
-          setMenuItems(items => items.filter(item => item.id !== confirmModal.itemId));
-          
-          // Sonra API'ye silme komutu gönder
-          const response = await fetch(`${API_BASE_URL}/api/menu/${confirmModal.itemId}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-tenant': tenantSlug,
-              ...(token && { 'Authorization': `Bearer ${token}` })
-            }
-          });
+        if (confirmModal.type === 'item') {
+          const itemToDelete = menuItems.find(item => item.id === confirmModal.itemId);
+          if (itemToDelete) {
+            setMenuItems(items => items.filter(item => item.id !== confirmModal.itemId));
+            
+            const response = await fetch('/api/menu/delete', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                id: confirmModal.itemId,
+                name: itemToDelete.name,
+                category: itemToDelete.category 
+              }),
+            });
 
-          if (response.ok) {
-            showSuccessToast('Ürün başarıyla silindi!');
-          } else {
-            // API hatası durumunda ürünü geri ekle
-            setMenuItems(items => [...items, itemToDelete]);
-            showErrorToast('Ürün silinirken hata oluştu!');
+            if (response.ok) {
+              showSuccessToast('Ürün başarıyla silindi!');
+            } else {
+              setMenuItems(items => [...items, itemToDelete]);
+              showErrorToast('Ürün silinirken hata oluştu!');
+            }
           }
+        } else {
+          setCategories(cats => cats.filter(cat => cat.id !== confirmModal.itemId));
+          showSuccessToast('Kategori başarıyla silindi!');
         }
       } catch (error) {
         console.error('Silme hatası:', error);
-        showErrorToast('Ürün silinirken hata oluştu!');
+        showErrorToast('Silme işlemi sırasında hata oluştu!');
       }
       
-      setConfirmModal({ show: false, itemId: null, itemName: '' });
+      setConfirmModal({ show: false, itemId: null, itemName: '', type: 'item' });
     }
   };
 
   const cancelDelete = () => {
-    setConfirmModal({ show: false, itemId: null, itemName: '' });
+    setConfirmModal({ show: false, itemId: null, itemName: '', type: 'item' });
   };
 
   const editItem = (item: MenuItem) => {
     setSelectedItem(item);
+    setImagePreview(item.image || null);
+    setImageFile(null);
     setShowEditModal(true);
+  };
+
+  const editCategory = (category: Category) => {
+    setSelectedCategoryForEdit(category);
+    setNewCategoryName(category.name);
+    setShowAddCategoryModal(true);
   };
 
   const addNewItem = () => {
     setSelectedItem(null);
+    setImagePreview(null);
+    setImageFile(null);
     setShowAddModal(true);
+  };
+
+  const addNewCategory = () => {
+    setSelectedCategoryForEdit(null);
+    setNewCategoryName('');
+    setShowAddCategoryModal(true);
+  };
+
+  const saveCategory = () => {
+    if (!newCategoryName.trim()) {
+      showErrorToast('Kategori adı boş olamaz!');
+      return;
+    }
+
+    if (selectedCategoryForEdit) {
+      // Kategori güncelle
+      const oldName = selectedCategoryForEdit.name;
+      setCategories(cats => 
+        cats.map(cat => 
+          cat.id === selectedCategoryForEdit.id 
+            ? { ...cat, name: newCategoryName.trim() }
+            : cat
+        )
+      );
+      
+      // Menü öğelerindeki kategori adını da güncelle
+      setMenuItems(items =>
+        items.map(item =>
+          item.category === oldName
+            ? { ...item, category: newCategoryName.trim() }
+            : item
+        )
+      );
+      
+      showSuccessToast('Kategori başarıyla güncellendi!');
+    } else {
+      // Yeni kategori ekle
+      const newCategory: Category = {
+        id: Date.now().toString(),
+        name: newCategoryName.trim(),
+      };
+      setCategories(cats => [...cats, newCategory]);
+      showSuccessToast('Kategori başarıyla eklendi!');
+    }
+    
+    setShowAddCategoryModal(false);
+    setNewCategoryName('');
+    setSelectedCategoryForEdit(null);
   };
 
   const saveItem = async (itemData: Partial<MenuItem>) => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      let imageUrl = itemData.image || '';
       
-      // URL'den tenant slug'ını al
-      let tenantSlug = 'demo';
-      if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        const subdomain = hostname.split('.')[0];
-        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
-          tenantSlug = subdomain;
-        }
+      // Eğer yeni resim yüklendiyse base64'e çevir
+      if (imageFile) {
+        imageUrl = await convertImageToBase64(imageFile);
+      } else if (imagePreview && !imagePreview.startsWith('data:')) {
+        // Eğer mevcut resim varsa ve base64 değilse, olduğu gibi kullan
+        imageUrl = imagePreview;
       }
 
-      // API'ye gönderilecek format
       const apiItem = {
         name: itemData.name || '',
         description: itemData.description || '',
         price: itemData.price || 0,
         category: itemData.category || 'Diğer',
-        image: itemData.image || '',
+        image: imageUrl,
         allergens: itemData.allergens || [],
         calories: itemData.calories,
         preparationTime: itemData.preparationTime,
@@ -302,50 +427,28 @@ export default function MenuManagement() {
         isAvailable: itemData.isAvailable ?? true,
       };
 
-      let response;
-      if (selectedItem) {
-        // Edit existing item
-        response = await fetch(`${API_BASE_URL}/api/menu/${selectedItem.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-tenant': tenantSlug,
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          },
-          body: JSON.stringify(apiItem),
-        });
-      } else {
-        // Add new item
-        response = await fetch(`${API_BASE_URL}/api/menu`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-tenant': tenantSlug,
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          },
-          body: JSON.stringify(apiItem),
-        });
-      }
+      const response = await fetch('/api/menu/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: [apiItem] }),
+      });
 
       if (!response.ok) {
         throw new Error('API hatası');
       }
 
-      const savedItem = await response.json();
-
-      // Başarılı olursa local state'i güncelle
       if (selectedItem) {
-        // Edit existing item
         setMenuItems(items => 
           items.map(item => 
-            item.id === selectedItem.id ? { ...item, ...itemData, ...savedItem } : item
+            item.id === selectedItem.id ? { ...item, ...itemData, image: imageUrl } : item
           )
         );
         setShowEditModal(false);
       } else {
-        // Add new item
         const newItem: MenuItem = {
-          id: savedItem.id || Date.now().toString(),
+          id: Date.now().toString(),
           name: itemData.name || '',
           description: itemData.description || '',
           price: itemData.price || 0,
@@ -353,15 +456,17 @@ export default function MenuManagement() {
           isAvailable: itemData.isAvailable ?? true,
           allergens: itemData.allergens || [],
           calories: itemData.calories,
-          ...itemData,
-          ...savedItem
+          image: imageUrl,
+          preparationTime: itemData.preparationTime,
+          rating: itemData.rating,
         };
         setMenuItems(items => [...items, newItem]);
         setShowAddModal(false);
       }
       setSelectedItem(null);
+      setImagePreview(null);
+      setImageFile(null);
       
-      // Başarı mesajı - Toast notification
       showSuccessToast('Ürün başarıyla kaydedildi!');
     } catch (error) {
       console.error('Ürün kaydetme hatası:', error);
@@ -369,9 +474,17 @@ export default function MenuManagement() {
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
+    let imageUrl = selectedItem?.image || '';
+    if (imageFile) {
+      imageUrl = await convertImageToBase64(imageFile);
+    } else if (imagePreview && imagePreview.startsWith('data:')) {
+      imageUrl = imagePreview;
+    }
+    
     const itemData = {
       name: formData.get('name') as string,
       description: formData.get('description') as string,
@@ -382,6 +495,7 @@ export default function MenuManagement() {
       calories: formData.get('calories') ? parseInt(formData.get('calories') as string) : undefined,
       preparationTime: formData.get('preparationTime') ? parseInt(formData.get('preparationTime') as string) : undefined,
       rating: formData.get('rating') ? parseFloat(formData.get('rating') as string) : 4.0,
+      image: imageUrl,
     };
     saveItem(itemData);
   };
@@ -398,7 +512,6 @@ export default function MenuManagement() {
 
     setBulkUploadData(prev => ({ ...prev, file }));
 
-    // Dosyayı oku ve parse et
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
@@ -412,7 +525,6 @@ export default function MenuManagement() {
     const errors: string[] = [];
     const parsedData: any[] = [];
 
-    // CSV başlık satırını kontrol et
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const requiredHeaders = ['name', 'price', 'category'];
     
@@ -427,7 +539,8 @@ export default function MenuManagement() {
       return;
     }
 
-    // Veri satırlarını parse et
+    const categoryNames = categories.map(c => c.name);
+
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim());
       
@@ -441,7 +554,6 @@ export default function MenuManagement() {
         rowData[header] = values[index];
       });
 
-      // Veri doğrulama
       if (!rowData.name || rowData.name.length < 2) {
         errors.push(`Satır ${i + 1}: Ürün adı en az 2 karakter olmalı`);
       }
@@ -450,7 +562,7 @@ export default function MenuManagement() {
         errors.push(`Satır ${i + 1}: Geçerli fiyat giriniz`);
       }
 
-      if (!rowData.category || !categories.includes(rowData.category)) {
+      if (!rowData.category || !categoryNames.includes(rowData.category)) {
         errors.push(`Satır ${i + 1}: Geçerli kategori seçiniz`);
       }
 
@@ -484,38 +596,20 @@ export default function MenuManagement() {
     try {
       setLoading(true);
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
-      
-      // URL'den tenant slug'ını al
-      let tenantSlug = 'demo';
-      if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        const subdomain = hostname.split('.')[0];
-        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
-          tenantSlug = subdomain;
-        }
+      const response = await fetch('/api/menu/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: bulkUploadData.parsedData }),
+      });
+
+      if (!response.ok) {
+        throw new Error('API hatası');
       }
-      
-      // Her bir ürünü ayrı ayrı ekle
-      const promises = bulkUploadData.parsedData.map(item => 
-        fetch(`${API_BASE_URL}/api/menu`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-tenant': tenantSlug,
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          },
-          body: JSON.stringify(item),
-        })
-      );
 
-      const responses = await Promise.all(promises);
-      const results = await Promise.all(responses.map(r => r.json()));
-
-      // Başarılı olursa local state'i güncelle
-      const newItems: MenuItem[] = results.map((item, index) => ({
-        id: item.id || Date.now().toString() + index,
-        ...bulkUploadData.parsedData[index],
+      const newItems: MenuItem[] = bulkUploadData.parsedData.map((item, index) => ({
+        id: Date.now().toString() + index,
         ...item
       }));
 
@@ -558,203 +652,335 @@ export default function MenuManagement() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Menü Yönetimi</h1>
-            <p className="text-gray-600">Menü ürünlerini düzenleyin ve yönetin</p>
+            <p className="text-gray-600">Menü ürünlerini ve kategorileri düzenleyin</p>
           </div>
-          <div className="flex space-x-3">
+          {activeTab === 'menu' && (
+            <div className="flex space-x-3">
+              <button
+                onClick={addNewItem}
+                className="bg-hotel-gold text-white px-4 py-2 rounded-lg hover:bg-hotel-navy transition-colors flex items-center space-x-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Ürün Ekle</span>
+              </button>
+              <button
+                onClick={() => setShowBulkUploadModal(true)}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+              >
+                <FileSpreadsheet className="w-5 h-5" />
+                <span>Toplu Yükle</span>
+              </button>
+              <button
+                onClick={() => setShowTranslationModal(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <Languages className="w-5 h-5" />
+                <span>Çeviri</span>
+              </button>
+            </div>
+          )}
+          {activeTab === 'categories' && (
             <button
-              onClick={addNewItem}
+              onClick={addNewCategory}
               className="bg-hotel-gold text-white px-4 py-2 rounded-lg hover:bg-hotel-navy transition-colors flex items-center space-x-2"
             >
               <Plus className="w-5 h-5" />
-              <span>Ürün Ekle</span>
+              <span>Kategori Ekle</span>
             </button>
-            <button
-              onClick={() => setShowBulkUploadModal(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-            >
-              <FileSpreadsheet className="w-5 h-5" />
-              <span>Toplu Yükle</span>
-            </button>
-            <button
-              onClick={() => setShowTranslationModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-            >
-              <Languages className="w-5 h-5" />
-              <span>Çeviri</span>
-            </button>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="hotel-card p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Ürün ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
-              />
+      {/* Tabs */}
+      <div className="border-b border-gray-200 bg-white">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('menu')}
+            className={`py-4 px-6 border-b-2 font-semibold text-base transition-colors ${
+              activeTab === 'menu'
+                ? 'border-hotel-gold text-hotel-gold bg-hotel-cream'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <MenuIcon className="w-5 h-5" />
+              <span>Menü</span>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
-            >
-              {categories.map(category => (
-                <option key={category} value={category}>
-                  {category === 'all' ? 'Tüm Kategoriler' : category}
-                </option>
-              ))}
-            </select>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center space-x-2">
-              <Filter className="w-4 h-4" />
-              <span>Filtrele</span>
-            </button>
-          </div>
-        </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`py-4 px-6 border-b-2 font-semibold text-base transition-colors ${
+              activeTab === 'categories'
+                ? 'border-hotel-gold text-hotel-gold bg-hotel-cream'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Tag className="w-5 h-5" />
+              <span>Kategoriler</span>
+            </div>
+          </button>
+        </nav>
       </div>
 
-      {/* Menu Items Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="hotel-card p-6 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded mb-4"></div>
-              <div className="space-y-2">
-                <div className="h-3 bg-gray-200 rounded"></div>
-                <div className="h-3 bg-gray-200 rounded"></div>
-                <div className="h-3 bg-gray-200 rounded"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map((item) => (
-          <div key={item.id} className="hotel-card p-6">
-            <div className="flex items-start justify-between mb-4">
+      {/* Menu Tab Content */}
+      {activeTab === 'menu' && (
+        <>
+          {/* Filters and Search */}
+          <div className="hotel-card p-6">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">{item.name}</h3>
-                <p className="text-gray-600 text-sm mt-1">{item.description}</p>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Ürün ara..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
+                  />
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => toggleAvailability(item.id)}
-                  className={`p-1 rounded ${
-                    item.isAvailable 
-                      ? 'text-green-600 hover:bg-green-50' 
-                      : 'text-red-600 hover:bg-red-50'
-                  }`}
+              <div className="flex gap-2">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
                 >
-                  {item.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-                <button
-                  onClick={() => editItem(item)}
-                  className="p-1 text-hotel-gold hover:bg-yellow-50 rounded"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  className="p-1 text-red-600 hover:bg-red-50 rounded"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                  <option value="all">Tüm Kategoriler</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Kategori:</span>
-                <span className="text-sm font-medium text-gray-900">{item.category}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Fiyat:</span>
-                <span className="text-lg font-bold text-hotel-gold">₺{item.price}</span>
-              </div>
-              {item.calories && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Kalori:</span>
-                  <span className="text-sm text-gray-900">{item.calories} kcal</span>
+          {/* Menu Items Grid */}
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="hotel-card p-6 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded mb-4"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Kalite Puanı:</span>
-                <div className="flex items-center space-x-1">
-                  <span className="text-sm font-medium text-gray-900">{item.rating || 4}</span>
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <span
-                        key={star}
-                        className={`text-xs ${
-                          star <= (item.rating || 4) ? 'text-yellow-400' : 'text-gray-300'
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredItems.map((item) => (
+                <div key={item.id} className="hotel-card p-6">
+                  {item.image && (
+                    <div className="mb-4 rounded-lg overflow-hidden">
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-full h-48 object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">{item.name}</h3>
+                      <p className="text-gray-600 text-sm mt-1">{item.description}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => toggleAvailability(item.id)}
+                        className={`p-1 rounded ${
+                          item.isAvailable 
+                            ? 'text-green-600 hover:bg-green-50' 
+                            : 'text-red-600 hover:bg-red-50'
                         }`}
                       >
-                        ⭐
+                        {item.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => editItem(item)}
+                        className="p-1 text-hotel-gold hover:bg-yellow-50 rounded"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteItem(item.id)}
+                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Kategori:</span>
+                      <span className="text-sm font-medium text-gray-900">{item.category}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Fiyat:</span>
+                      <span className="text-lg font-bold text-hotel-gold">₺{item.price}</span>
+                    </div>
+                    {item.calories && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Kalori:</span>
+                        <span className="text-sm text-gray-900">{item.calories} kcal</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Durum:</span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        item.isAvailable 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {item.isAvailable ? 'Mevcut' : 'Mevcut Değil'}
                       </span>
-                    ))}
+                    </div>
+                  </div>
+
+                  {item.allergens.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <span className="text-sm text-gray-500">Alerjenler:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.allergens.map((allergen, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
+                          >
+                            {allergen}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {filteredItems.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <MenuIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Ürün bulunamadı</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Arama kriterlerinizi değiştirerek tekrar deneyin.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Categories Tab Content */}
+      {activeTab === 'categories' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {categories.map((category) => {
+            const itemCount = menuItems.filter(item => item.category === category.name).length;
+            return (
+              <div key={category.id} className="hotel-card p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{category.name}</h3>
+                    {category.description && (
+                      <p className="text-gray-600 text-sm mt-1">{category.description}</p>
+                    )}
+                    <p className="text-sm text-gray-500 mt-2">
+                      {itemCount} ürün
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => editCategory(category)}
+                      className="p-1 text-hotel-gold hover:bg-yellow-50 rounded"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => deleteCategory(category.id)}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Durum:</span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  item.isAvailable 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {item.isAvailable ? 'Mevcut' : 'Mevcut Değil'}
-                </span>
-              </div>
+            );
+          })}
+          {categories.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <FolderOpen className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Henüz kategori yok</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                İlk kategorinizi eklemek için yukarıdaki "Kategori Ekle" butonuna tıklayın.
+              </p>
             </div>
-
-            {item.allergens.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <span className="text-sm text-gray-500">Alerjenler:</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {item.allergens.map((allergen, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
-                    >
-                      {allergen}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+          )}
         </div>
       )}
 
-      {filteredItems.length === 0 && (
-        <div className="text-center py-12">
-          <MenuIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Ürün bulunamadı</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Arama kriterlerinizi değiştirerek tekrar deneyin.
-          </p>
-        </div>
-      )}
-
-      {/* Add/Edit Modal */}
+      {/* Add/Edit Item Modal */}
       {(showAddModal || showEditModal) && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               {showAddModal ? 'Yeni Ürün Ekle' : 'Ürün Düzenle'}
             </h3>
             
             <form onSubmit={handleFormSubmit} className="space-y-4">
+              {/* Image Upload */}
+              <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Ürün Resmi *
+                </label>
+                <div className="mt-1 flex items-center space-x-4">
+                  {imagePreview && (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-40 w-40 object-cover rounded-lg border-2 border-hotel-gold shadow-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview(null);
+                          setImageFile(null);
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className="inline-flex items-center px-6 py-3 border-2 border-hotel-gold rounded-lg hover:bg-hotel-gold hover:text-white transition-colors cursor-pointer font-medium"
+                    >
+                      <ImageIcon className="w-5 h-5 mr-2" />
+                      {imagePreview ? 'Resmi Değiştir' : 'Resim Yükle (JPG, PNG, max 5MB)'}
+                    </label>
+                    {!imagePreview && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Ürün için bir resim yükleyin. Bu resim menüde görüntülenecektir.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -774,21 +1000,36 @@ export default function MenuManagement() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Kategori *
                   </label>
-                  <select
-                    name="category"
-                    defaultValue={selectedItem?.category || ''}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
-                  >
-                    <option value="">Kategori seçin</option>
-                    <option value="Pizza">Pizza</option>
-                    <option value="Burger">Burger</option>
-                    <option value="Salata">Salata</option>
-                    <option value="İçecek">İçecek</option>
-                    <option value="Tatlı">Tatlı</option>
-                    <option value="Ana Yemek">Ana Yemek</option>
-                    <option value="Çorba">Çorba</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="category"
+                      defaultValue={selectedItem?.category || ''}
+                      required
+                      onChange={(e) => {
+                        if (e.target.value === '__add_new__') {
+                          setShowCategorySelectModal(true);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
+                    >
+                      <option value="">Kategori seçin</option>
+                      {categories.map(category => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                      <option value="" disabled className="text-gray-400">──────────</option>
+                      <option value="__add_new__" className="text-hotel-gold font-bold bg-hotel-cream">
+                        ➕ Yeni Kategori Ekle
+                      </option>
+                    </select>
+                    {categories.length === 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Henüz kategori yok. Lütfen önce bir kategori ekleyin.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -861,27 +1102,16 @@ export default function MenuManagement() {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
                   >
-                    <option value="1.0">1.0 ⭐ (Temel)</option>
-                    <option value="1.2">1.2 ⭐ (Temel+)</option>
-                    <option value="1.5">1.5 ⭐ (Temel++)</option>
-                    <option value="1.7">1.7 ⭐ (Temel+++)</option>
-                    <option value="2.0">2.0 ⭐⭐ (Orta)</option>
-                    <option value="2.2">2.2 ⭐⭐ (Orta+)</option>
-                    <option value="2.5">2.5 ⭐⭐ (Orta++)</option>
-                    <option value="2.7">2.7 ⭐⭐ (Orta+++)</option>
-                    <option value="3.0">3.0 ⭐⭐⭐ (İyi)</option>
-                    <option value="3.2">3.2 ⭐⭐⭐ (İyi+)</option>
-                    <option value="3.5">3.5 ⭐⭐⭐ (İyi++)</option>
-                    <option value="3.7">3.7 ⭐⭐⭐ (İyi+++)</option>
                     <option value="4.0">4.0 ⭐⭐⭐⭐ (Çok İyi)</option>
-                    <option value="4.2">4.2 ⭐⭐⭐⭐ (Çok İyi+)</option>
                     <option value="4.5">4.5 ⭐⭐⭐⭐ (Çok İyi++)</option>
-                    <option value="4.7">4.7 ⭐⭐⭐⭐ (Çok İyi+++)</option>
                     <option value="5.0">5.0 ⭐⭐⭐⭐⭐ (Mükemmel)</option>
+                    <option value="3.5">3.5 ⭐⭐⭐ (İyi++)</option>
+                    <option value="3.0">3.0 ⭐⭐⭐ (İyi)</option>
+                    <option value="2.5">2.5 ⭐⭐ (Orta++)</option>
+                    <option value="2.0">2.0 ⭐⭐ (Orta)</option>
+                    <option value="1.5">1.5 ⭐ (Temel++)</option>
+                    <option value="1.0">1.0 ⭐ (Temel)</option>
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Ürünün kalitesini müşteri memnuniyetine göre değerlendirin
-                  </p>
                 </div>
                 
                 <div>
@@ -917,6 +1147,8 @@ export default function MenuManagement() {
                     setShowAddModal(false);
                     setShowEditModal(false);
                     setSelectedItem(null);
+                    setImagePreview(null);
+                    setImageFile(null);
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
@@ -934,7 +1166,115 @@ export default function MenuManagement() {
         </div>
       )}
 
-      {/* Confirmation Modal - Responsive */}
+      {/* Add/Edit Category Modal */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {selectedCategoryForEdit ? 'Kategori Düzenle' : 'Yeni Kategori Ekle'}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kategori Adı *
+                </label>
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
+                  placeholder="Kategori adı"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddCategoryModal(false);
+                    setNewCategoryName('');
+                    setSelectedCategoryForEdit(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  İptal
+                </button>
+                <button 
+                  onClick={saveCategory}
+                  className="px-4 py-2 bg-hotel-gold text-white rounded-lg hover:bg-hotel-navy"
+                >
+                  {selectedCategoryForEdit ? 'Güncelle' : 'Ekle'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Select Modal (when adding new category from product form) */}
+      {showCategorySelectModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Yeni Kategori Ekle
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kategori Adı *
+                </label>
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent"
+                  placeholder="Kategori adı"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCategorySelectModal(false);
+                    setNewCategoryName('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  İptal
+                </button>
+                <button 
+                  onClick={() => {
+                    if (newCategoryName.trim()) {
+                      const newCategory: Category = {
+                        id: Date.now().toString(),
+                        name: newCategoryName.trim(),
+                      };
+                      setCategories(cats => [...cats, newCategory]);
+                      showSuccessToast('Kategori başarıyla eklendi!');
+                      setShowCategorySelectModal(false);
+                      setNewCategoryName('');
+                      // Form'daki kategori select'ini güncelle
+                      const select = document.querySelector('select[name="category"]') as HTMLSelectElement;
+                      if (select) {
+                        select.value = newCategory.name;
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 bg-hotel-gold text-white rounded-lg hover:bg-hotel-navy"
+                >
+                  Ekle ve Seç
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
       {confirmModal.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl transform transition-all">
@@ -945,10 +1285,10 @@ export default function MenuManagement() {
                 </svg>
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 text-center mb-2">
-                Ürünü Sil
+                {confirmModal.type === 'item' ? 'Ürünü Sil' : 'Kategoriyi Sil'}
               </h3>
               <p className="text-sm sm:text-base text-gray-600 text-center mb-6">
-                <span className="font-semibold text-gray-900">{confirmModal.itemName}</span> ürününü silmek istediğinizden emin misiniz?
+                <span className="font-semibold text-gray-900">{confirmModal.itemName}</span> {confirmModal.type === 'item' ? 'ürününü' : 'kategorisini'} silmek istediğinizden emin misiniz?
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
@@ -983,9 +1323,7 @@ export default function MenuManagement() {
                   onClick={() => setShowTranslationModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-6 h-6" />
                 </button>
               </div>
               
@@ -998,7 +1336,6 @@ export default function MenuManagement() {
                       <MenuTranslator
                         menuItem={item}
                         onTranslated={(translated) => {
-                          // Çeviriyi kaydet
                           setMenuItems(items => 
                             items.map(menuItem => 
                               menuItem.id === item.id 
@@ -1048,7 +1385,6 @@ export default function MenuManagement() {
               </div>
               
               <div className="space-y-6">
-                {/* Template Download */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1065,7 +1401,6 @@ export default function MenuManagement() {
                   </div>
                 </div>
 
-                {/* File Upload */}
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                   <FileSpreadsheet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Dosya Seçin</h3>
@@ -1086,7 +1421,6 @@ export default function MenuManagement() {
                   </label>
                 </div>
 
-                {/* File Info */}
                 {bulkUploadData.file && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between">
@@ -1101,7 +1435,6 @@ export default function MenuManagement() {
                   </div>
                 )}
 
-                {/* Errors */}
                 {bulkUploadData.errors.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-center mb-2">
@@ -1116,7 +1449,6 @@ export default function MenuManagement() {
                   </div>
                 )}
 
-                {/* Preview */}
                 {bulkUploadData.parsedData.length > 0 && bulkUploadData.isValid && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center mb-4">
@@ -1161,7 +1493,6 @@ export default function MenuManagement() {
                   </div>
                 )}
 
-                {/* Actions */}
                 <div className="flex justify-end space-x-3">
                   <button
                     onClick={() => {
@@ -1186,7 +1517,7 @@ export default function MenuManagement() {
         </div>
       )}
 
-      {/* Toast Notification - Responsive */}
+      {/* Toast Notification */}
       {toast.show && (
         <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-50">
           <div className={`px-4 sm:px-6 py-3 sm:py-4 rounded-lg shadow-lg flex items-center space-x-2 sm:space-x-3 transform transition-all duration-300 ${
@@ -1196,13 +1527,9 @@ export default function MenuManagement() {
           }`}>
             <div className="flex-shrink-0">
               {toast.type === 'success' ? (
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
+                <CheckCircle className="w-5 h-5" />
               ) : (
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
+                <AlertCircle className="w-5 h-5" />
               )}
             </div>
             <div className="flex-1">
@@ -1212,9 +1539,7 @@ export default function MenuManagement() {
               onClick={() => setToast(prev => ({ ...prev, show: false }))}
               className="flex-shrink-0 ml-4 text-white hover:text-gray-200 transition-colors"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
