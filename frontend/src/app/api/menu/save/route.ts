@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+
+// Backend API URL'i
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
 
 type IncomingItem = {
   name: string;
@@ -14,41 +15,6 @@ type IncomingItem = {
   rating?: number;
   available?: boolean;
 };
-
-const DATA_DIR = path.join(process.cwd(), '.data');
-const MENU_FILE = path.join(DATA_DIR, 'menu.json');
-
-function normalizeKey(name: string, category: string) {
-  const s = (v: string) => (v || '')
-    .toString()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
-  return `${s(name)}__${s(category)}`;
-}
-
-function normalizeItem(it: IncomingItem) {
-  const priceNumber = typeof it.price === 'number' ? it.price : Number(String(it.price).replace(/[^0-9.,-]/g, '').replace(',', '.'));
-  return {
-    id: `menu-${Date.now()}-${Math.random()}`,
-    name: String(it.name || '').trim(),
-    description: String(it.description || '').trim(),
-    category: String(it.category || 'Genel'),
-    price: !isNaN(priceNumber) ? Number(priceNumber) : 0,
-    image: it.image || '',
-    preparationTime: it.preparationTime || 15,
-    allergens: it.allergens || [],
-    calories: it.calories,
-    rating: it.rating || 4.0,
-    available: it.available !== false, // API'den gelen available değerini kullan
-    isNew: false,
-    isPopular: false,
-    dietaryInfo: [] as string[],
-    likes: 0,
-  };
-}
 
 export async function POST(request: Request) {
   try {
@@ -77,47 +43,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Doğrulama hatası', details: errors }, { status: 422 });
     }
 
-    const normalized = items.map(normalizeItem);
-
-    await fs.mkdir(DATA_DIR, { recursive: true });
-
-    let current: any[] = [];
+    // Backend API'ye proxy yap
     try {
-      const buf = await fs.readFile(MENU_FILE, 'utf8');
-      const parsed = JSON.parse(buf);
-      if (Array.isArray(parsed)) current = parsed;
-    } catch {}
+      const backendResponse = await fetch(`${BACKEND_URL}/api/menu/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items }),
+      });
 
-    // Upsert: name+category anahtarı ile güncelle veya ekle
-    const keyToIndex = new Map<string, number>();
-    current.forEach((it, idx) => keyToIndex.set(normalizeKey(it.name, it.category || 'Genel'), idx));
+      const backendData = await backendResponse.json();
 
-    normalized.forEach((it) => {
-      const key = normalizeKey(it.name, it.category);
-      const existingIdx = keyToIndex.get(key);
-      if (existingIdx !== undefined) {
-        // Var olanı güncelle (fiyat, açıklama, image, hazırlık süresi, availability)
-        current[existingIdx] = {
-          ...current[existingIdx],
-          description: it.description || current[existingIdx].description,
-          price: it.price ?? current[existingIdx].price,
-          image: it.image || current[existingIdx].image,
-          preparationTime: it.preparationTime ?? current[existingIdx].preparationTime,
-          allergens: it.allergens || current[existingIdx].allergens,
-          calories: it.calories ?? current[existingIdx].calories,
-          rating: it.rating ?? current[existingIdx].rating,
-          available: it.available !== undefined ? it.available : current[existingIdx].available,
-        };
+      if (backendResponse.ok) {
+        return NextResponse.json({ 
+          success: true, 
+          ...backendData
+        }, { status: 200 });
       } else {
-        current.push(it);
-        keyToIndex.set(key, current.length - 1);
+        return NextResponse.json({ 
+          error: backendData.error || 'Backend hatası' 
+        }, { status: backendResponse.status });
       }
-    });
+    } catch (backendError: any) {
+      // Backend'e ulaşılamazsa hata dön
+      console.error('Backend menu save hatası:', backendError);
+      return NextResponse.json({ 
+        error: 'Backend bağlantısı kurulamadı: ' + (backendError?.message || 'Bilinmeyen hata')
+      }, { status: 500 });
+    }
 
-    await fs.writeFile(MENU_FILE, JSON.stringify(current, null, 2), 'utf8');
-
-    return NextResponse.json({ success: true, count: normalized.length, merged: true }, { status: 200 });
   } catch (err: any) {
+    console.error('Menu save API hatası:', err);
     return NextResponse.json({ error: err?.message || 'Sunucu hatası' }, { status: 500 });
   }
 }
