@@ -267,7 +267,12 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
               <button
           className="flex flex-col items-center justify-center rounded-xl p-4 sm:p-6 shadow hover:scale-105 transition"
           style={{ background: `${theme.primaryColor}20` }}
-          onClick={() => router.push('/qr-menu')}
+          onClick={() => {
+            // Oda numarasını localStorage'a kaydet ve query parameter olarak ekle
+            const roomNumber = roomId.replace('room-', '');
+            localStorage.setItem('currentRoomId', roomId);
+            router.push(`/qr-menu?roomId=${roomNumber}`);
+          }}
         >
           <FaConciergeBell className="text-2xl sm:text-3xl mb-2" style={{ color: theme.primaryColor }} />
           <span className="font-medium text-sm sm:text-base" style={{ color: theme.textColor }}>{safeGetTranslation('room.room_service', 'Oda Servisi')}</span>

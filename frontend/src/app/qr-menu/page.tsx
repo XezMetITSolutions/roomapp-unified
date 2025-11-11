@@ -146,10 +146,28 @@ export default function QRMenuPage() {
   // Dil store'u
   const { getTranslation, currentLanguage } = useLanguageStore();
   const [isHydrated, setIsHydrated] = useState(false);
+  
+  // Oda numarası state
+  const [roomId, setRoomId] = useState<string>('');
 
-  // Hydration kontrolü
+  // Hydration kontrolü ve oda numarasını al
   useEffect(() => {
     setIsHydrated(true);
+    // URL'den oda numarasını al
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomIdParam = urlParams.get('roomId') || '';
+      const storedRoomId = localStorage.getItem('currentRoomId') || '';
+      
+      // Önce URL'den, yoksa localStorage'dan al
+      if (roomIdParam) {
+        setRoomId(roomIdParam);
+        localStorage.setItem('currentRoomId', `room-${roomIdParam}`);
+      } else if (storedRoomId) {
+        const roomNumber = storedRoomId.replace('room-', '');
+        setRoomId(roomNumber);
+      }
+    }
   }, []);
 
   // Menü verilerini API'den yükle
@@ -538,6 +556,11 @@ export default function QRMenuPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-center" style={{ color: theme.textColor }}>
               {getTranslation('menu.title')}
             </h1>
+            {roomId && (
+              <p className="text-center mt-2 text-sm" style={{ color: theme.textColor, opacity: 0.7 }}>
+                Oda {roomId}
+              </p>
+            )}
           </div>
           
           {/* Duyurular */}
@@ -763,6 +786,7 @@ export default function QRMenuPage() {
             items={getCartItems()}
             note={cartNote}
             total={getCartTotal()}
+            roomId={roomId}
             onPaymentSuccess={() => setOrderStatus('finalized')}
             onBack={() => setOrderStatus('idle')}
             getTranslation={getTranslation}
@@ -1123,16 +1147,84 @@ function ConfirmationModal({ items, note, total, onProceed, onBack, getTranslati
   );
 }
 
-function PaymentModal({ items, note, total, onPaymentSuccess, onBack, getTranslation }: {
+function PaymentModal({ items, note, total, roomId, onPaymentSuccess, onBack, getTranslation }: {
   items: any[];
   note: string;
   total: number;
+  roomId: string;
   onPaymentSuccess: () => void;
   onBack: () => void;
   getTranslation: (key: string) => string;
 }) {
   const [selectedPayment, setSelectedPayment] = useState<'card' | 'cash' | 'room'>('card');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const theme = useThemeStore();
+  
+  // Sipariş oluşturma fonksiyonu
+  const handlePayment = async () => {
+    if (!roomId) {
+      alert('Oda numarası bulunamadı. Lütfen sayfayı yenileyin.');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+      
+      // URL'den tenant slug'ını al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      // Sipariş item'larını hazırla
+      const orderItems = items.map(item => ({
+        menuItemId: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        notes: note || undefined
+      }));
+
+      // Guest ID'yi bul veya oluştur (roomId'den)
+      const guestId = `guest-${roomId}`;
+      const roomIdFormatted = `room-${roomId}`;
+
+      // Backend'e sipariş oluştur
+      const response = await fetch(`${API_BASE_URL}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant': tenantSlug,
+        },
+        body: JSON.stringify({
+          roomId: roomIdFormatted,
+          guestId: guestId,
+          items: orderItems,
+          notes: note || undefined
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Sipariş oluşturulamadı');
+      }
+
+      const orderData = await response.json();
+      console.log('Sipariş oluşturuldu:', orderData);
+      
+      // Başarılı olduğunda callback'i çağır
+      onPaymentSuccess();
+    } catch (error: any) {
+      console.error('Sipariş oluşturma hatası:', error);
+      alert(`Sipariş oluşturulamadı: ${error.message || 'Bilinmeyen hata'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
@@ -1268,13 +1360,18 @@ function PaymentModal({ items, note, total, onPaymentSuccess, onBack, getTransla
           
           {/* Ödeme Butonu */}
           <button
-            onClick={onPaymentSuccess}
-            className="w-full py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+            onClick={handlePayment}
+            disabled={isSubmitting}
+            className="w-full py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: theme.gradientColors?.length ? `linear-gradient(135deg, ${theme.gradientColors[0]} 0%, ${theme.gradientColors[1]} 100%)` : theme.primaryColor, color: 'white' }}
           >
-            {selectedPayment === 'card' && '💳 Kart ile Öde'}
-            {selectedPayment === 'cash' && '💰 Nakit ile Öde'}
-            {selectedPayment === 'room' && '🏨 Oda Hesabına Ekle'}
+            {isSubmitting ? 'Gönderiliyor...' : (
+              <>
+                {selectedPayment === 'card' && '💳 Kart ile Öde'}
+                {selectedPayment === 'cash' && '💰 Nakit ile Öde'}
+                {selectedPayment === 'room' && '🏨 Oda Hesabına Ekle'}
+              </>
+            )}
           </button>
           </div>
         </div>

@@ -736,6 +736,74 @@ app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) =>
     const tenantId = getTenantId(req)
     const { roomId, guestId, items, notes } = req.body
 
+    if (!roomId || !guestId || !items || !Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ message: 'roomId, guestId, and items are required' }); return;
+    }
+
+    // Get hotel ID from tenant
+    const hotel = await prisma.hotel.findFirst({
+      where: { tenantId }
+    })
+
+    if (!hotel) {
+      res.status(404).json({ message: 'Hotel not found' }); return;
+    }
+
+    // Check if room exists, if not create it
+    let room = await prisma.room.findFirst({
+      where: { 
+        id: roomId,
+        tenantId
+      }
+    })
+
+    if (!room) {
+      // Extract room number from roomId (e.g., "room-101" -> "101")
+      const roomNumber = roomId.replace('room-', '');
+      // Create room if it doesn't exist
+      room = await prisma.room.create({
+        data: {
+          id: roomId,
+          number: roomNumber,
+          floor: parseInt(roomNumber.charAt(0)) || 1,
+          type: 'STANDARD',
+          capacity: 2,
+          qrCode: roomId,
+          isOccupied: true,
+          isActive: true,
+          tenantId,
+          hotelId: hotel.id
+        }
+      })
+    }
+
+    // Check if guest exists, if not create it
+    let guest = await prisma.guest.findFirst({
+      where: { 
+        id: guestId,
+        tenantId
+      }
+    })
+
+    if (!guest) {
+      // Extract room number from guestId (e.g., "guest-101" -> "101")
+      const roomNumber = guestId.replace('guest-', '');
+      // Create guest if it doesn't exist
+      guest = await prisma.guest.create({
+        data: {
+          id: guestId,
+          firstName: 'Guest',
+          lastName: roomNumber,
+          language: 'tr',
+          checkIn: new Date(),
+          isActive: true,
+          tenantId,
+          hotelId: hotel.id,
+          roomId: room.id
+        }
+      })
+    }
+
     // Calculate total amount
     let totalAmount = 0
     for (const item of items) {
@@ -749,10 +817,10 @@ app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) =>
     const order = await prisma.order.create({
       data: {
         orderNumber,
-        roomId,
-        guestId,
+        roomId: room.id,
+        guestId: guest.id,
         tenantId,
-        hotelId: 'default-hotel-id', // You'll need to get this from request
+        hotelId: hotel.id,
         totalAmount,
         notes,
         items: {
