@@ -749,32 +749,58 @@ app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) =>
       res.status(404).json({ message: 'Hotel not found' }); return;
     }
 
-    // Check if room exists, if not create it
+    // Extract room number from roomId (e.g., "room-101" -> "101")
+    const roomNumber = roomId.replace('room-', '');
+    
+    // Check if room exists by number or id
     let room = await prisma.room.findFirst({
       where: { 
-        id: roomId,
+        OR: [
+          { id: roomId },
+          { number: roomNumber }
+        ],
         tenantId
       }
     })
 
     if (!room) {
-      // Extract room number from roomId (e.g., "room-101" -> "101")
-      const roomNumber = roomId.replace('room-', '');
       // Create room if it doesn't exist
-      room = await prisma.room.create({
-        data: {
-          id: roomId,
-          number: roomNumber,
-          floor: parseInt(roomNumber.charAt(0)) || 1,
-          type: 'STANDARD',
-          capacity: 2,
-          qrCode: roomId,
-          isOccupied: true,
-          isActive: true,
-          tenantId,
-          hotelId: hotel.id
+      try {
+        // Generate unique QR code
+        const qrCode = `qr-${roomId}-${Date.now()}`;
+        room = await prisma.room.create({
+          data: {
+            id: roomId,
+            number: roomNumber,
+            floor: parseInt(roomNumber.charAt(0)) || 1,
+            type: 'DOUBLE', // RoomType enum: SINGLE, DOUBLE, TWIN, SUITE, FAMILY
+            capacity: 2,
+            qrCode: qrCode, // Unique QR code
+            isOccupied: true,
+            isActive: true,
+            tenantId,
+            hotelId: hotel.id
+          }
+        })
+      } catch (roomError: any) {
+        console.error('Room creation error:', roomError);
+        // If room creation fails (e.g., unique constraint), try to find by number again
+        room = await prisma.room.findFirst({
+          where: { 
+            number: roomNumber,
+            tenantId
+          }
+        })
+        if (!room) {
+          // If still not found, try to find by id (might have different qrCode)
+          room = await prisma.room.findUnique({
+            where: { id: roomId }
+          })
+          if (!room) {
+            throw new Error(`Room creation failed: ${roomError.message}`);
+          }
         }
-      })
+      }
     }
 
     // Check if guest exists, if not create it
@@ -787,21 +813,35 @@ app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) =>
 
     if (!guest) {
       // Extract room number from guestId (e.g., "guest-101" -> "101")
-      const roomNumber = guestId.replace('guest-', '');
+      const guestRoomNumber = guestId.replace('guest-', '');
       // Create guest if it doesn't exist
-      guest = await prisma.guest.create({
-        data: {
-          id: guestId,
-          firstName: 'Guest',
-          lastName: roomNumber,
-          language: 'tr',
-          checkIn: new Date(),
-          isActive: true,
-          tenantId,
-          hotelId: hotel.id,
-          roomId: room.id
+      try {
+        guest = await prisma.guest.create({
+          data: {
+            id: guestId,
+            firstName: 'Guest',
+            lastName: guestRoomNumber,
+            language: 'tr',
+            checkIn: new Date(),
+            isActive: true,
+            tenantId,
+            hotelId: hotel.id,
+            roomId: room.id
+          }
+        })
+      } catch (guestError: any) {
+        console.error('Guest creation error:', guestError);
+        // If guest creation fails, try to find by id again (might have been created concurrently)
+        guest = await prisma.guest.findFirst({
+          where: { 
+            id: guestId,
+            tenantId
+          }
+        })
+        if (!guest) {
+          throw new Error(`Guest creation failed: ${guestError.message}`);
         }
-      })
+      }
     }
 
     // Calculate total amount
@@ -850,9 +890,20 @@ app.post('/api/orders', tenantMiddleware, async (req: Request, res: Response) =>
     io.emit('new-order', order)
 
     res.status(201).json({ message: 'Order created successfully', order }); return;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Order creation error:', error)
-    res.status(500).json({ message: 'Database error' })
+    // Return more detailed error message for debugging
+    const errorMessage = error?.message || 'Database error'
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: error?.stack,
+      code: error?.code,
+      meta: error?.meta
+    })
+    res.status(500).json({ 
+      message: 'Database error',
+      error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+    })
     return;
   }
 })
