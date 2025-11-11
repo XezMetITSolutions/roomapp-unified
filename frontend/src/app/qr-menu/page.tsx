@@ -194,20 +194,16 @@ export default function QRMenuPage() {
               available: item.available !== false,
             };
           });
-          // API'den gelen verileri öncelikli yap, aynı isimdeki default verileri filtrele
-          const apiItemNames = new Set(formattedMenu.map(item => item.name.toLowerCase()));
-          const filteredDefaultMenu = defaultMenuData.filter(item => 
-            !apiItemNames.has(item.name.toLowerCase())
-          );
-          setMenuData([...formattedMenu, ...filteredDefaultMenu]);
+          // Sadece API'den gelen gerçek ürünleri kullan, demo ürünleri ekleme
+          setMenuData(formattedMenu);
         } else {
-          // API hatası durumunda varsayılan menüyü kullan
-          setMenuData(defaultMenuData);
+          // API hatası durumunda boş menü göster
+          setMenuData([]);
         }
       } catch (error) {
         console.error('Menü yükleme hatası:', error);
-        // Hata durumunda varsayılan menüyü kullan
-        setMenuData(defaultMenuData);
+        // Hata durumunda boş menü göster
+        setMenuData([]);
       } finally {
         setLoading(false);
       }
