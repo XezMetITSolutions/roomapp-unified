@@ -18,6 +18,8 @@ export default function QRKodPage() {
   const [customRooms, setCustomRooms] = useState<any[]>([]);
   const [selectedCustomRoom, setSelectedCustomRoom] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [floorCount, setFloorCount] = useState(4);
+  const [roomsPerFloor, setRoomsPerFloor] = useState(5);
 
   useEffect(() => {
     // Client-side'da baseURL'i ayarla
@@ -438,6 +440,50 @@ export default function QRKodPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Side - Controls */}
           <div className="space-y-6">
+            {/* Otel Konfigürasyonu */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-blue-900 mb-3">
+                Otel Konfigürasyonu
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-blue-700 mb-1">
+                    Kat Sayısı
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={floorCount}
+                    onChange={(e) => setFloorCount(parseInt(e.target.value) || 1)}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-blue-700 mb-1">
+                    Her Katta Oda Sayısı
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={roomsPerFloor}
+                    onChange={(e) => setRoomsPerFloor(parseInt(e.target.value) || 1)}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="mt-3 text-xs text-blue-600">
+                <strong>Toplam:</strong> {floorCount * roomsPerFloor} oda oluşturulacak
+                <br />
+                <strong>Örnek:</strong> {floorCount} kat × {roomsPerFloor} oda = {Array.from({ length: Math.min(floorCount * roomsPerFloor, 3) }, (_, i) => {
+                  const floor = Math.floor(i / roomsPerFloor) + 1;
+                  const room = (i % roomsPerFloor) + 1;
+                  return `${floor}${room.toString().padStart(2, '0')}`;
+                }).join(', ')}...
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Oda Seçimi
