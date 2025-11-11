@@ -3,13 +3,16 @@ import { NextResponse } from 'next/server';
 // Backend API URL'i
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
 
-export async function POST(request: Request) {
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
+    const { id } = params;
     const body = await request.json();
-    const { id } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Silinecek ürün ID\'si eksik' }, { status: 400 });
+      return NextResponse.json({ error: 'Ürün ID\'si eksik' }, { status: 400 });
     }
 
     // Tenant bilgisini al
@@ -30,7 +33,7 @@ export async function POST(request: Request) {
     // Authorization token'ını al
     const authHeader = request.headers.get('authorization') || '';
 
-    // Backend API'ye proxy yap - DELETE /api/menu/:id endpoint'ini kullan
+    // Backend API'ye proxy yap
     try {
       const backendHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -43,17 +46,15 @@ export async function POST(request: Request) {
       }
 
       const backendResponse = await fetch(`${BACKEND_URL}/api/menu/${id}`, {
-        method: 'DELETE',
+        method: 'PUT',
         headers: backendHeaders,
+        body: JSON.stringify(body),
       });
 
-      // 404 - Backend endpoint yok, client-side'da zaten silindi, başarılı dön
       if (backendResponse.status === 404) {
         return NextResponse.json({ 
-          success: true, 
-          message: 'Ürün silindi',
-          note: 'Backend endpoint bulunamadı, client-side silme başarılı'
-        }, { status: 200 });
+          error: 'Ürün bulunamadı'
+        }, { status: 404 });
       }
 
       const backendData = await backendResponse.json();
@@ -64,33 +65,20 @@ export async function POST(request: Request) {
           ...backendData
         }, { status: 200 });
       } else {
-        // Backend hatası ama client-side'da zaten silindi, başarılı dön
         return NextResponse.json({ 
-          success: true, 
-          message: 'Ürün silindi',
-          warning: 'Backend hatası: ' + (backendData.error || 'Bilinmeyen hata'),
-          note: 'Client-side silme başarılı'
-        }, { status: 200 });
+          error: backendData.message || 'Güncelleme hatası'
+        }, { status: backendResponse.status });
       }
     } catch (backendError: any) {
-      // Backend'e ulaşılamazsa, client-side'da zaten silindi, başarılı dön
-      console.warn('Backend silme hatası (devam ediliyor):', backendError);
+      console.warn('Backend menu update hatası:', backendError);
       return NextResponse.json({ 
-        success: true, 
-        message: 'Ürün silindi',
-        warning: 'Backend bağlantısı kurulamadı',
-        note: 'Client-side silme başarılı'
-      }, { status: 200 });
+        error: 'Backend bağlantısı kurulamadı: ' + (backendError?.message || 'Bilinmeyen hata')
+      }, { status: 500 });
     }
 
   } catch (err: any) {
-    console.error('Menu delete API hatası:', err);
-    // Hata olsa bile client-side'da silindi, başarılı dön
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Ürün silindi',
-      warning: err?.message || 'Sunucu hatası',
-      note: 'Client-side silme başarılı'
-    }, { status: 200 });
+    console.error('Menu update API hatası:', err);
+    return NextResponse.json({ error: err?.message || 'Sunucu hatası' }, { status: 500 });
   }
 }
+

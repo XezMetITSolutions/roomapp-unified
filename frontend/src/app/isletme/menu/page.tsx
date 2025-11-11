@@ -299,39 +299,32 @@ export default function MenuManagement() {
           itemToDelete = menuItems.find(item => item.id === confirmModal.itemId) || null;
           if (itemToDelete) {
             // Önce UI'dan kaldır (optimistic update)
-            const remainingItems = menuItems.filter(item => item.id !== confirmModal.itemId);
-            setMenuItems(remainingItems);
+            setMenuItems(items => items.filter(item => item.id !== confirmModal.itemId));
             
-            // Kalan tüm menü öğelerini backend'e kaydet (silinen hariç)
-            const itemsToSave = remainingItems.map(item => ({
-              name: item.name,
-              description: item.description,
-              price: item.price,
-              category: item.category || 'Diğer',
-              image: item.image || '',
-              allergens: item.allergens || [],
-              calories: item.calories,
-              preparationTime: item.preparationTime,
-              rating: item.rating || 4,
-              available: item.isAvailable,
-            }));
+            // Backend'de sil
+            const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+            };
 
-            const response = await fetch('/api/menu/save', {
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch('/api/menu/delete', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ items: itemsToSave }),
+              headers,
+              body: JSON.stringify({ id: confirmModal.itemId }),
             });
 
             const responseData = await response.json();
 
             if (response.ok && responseData.success) {
-              showSuccessToast('Ürün başarıyla silindi ve menü güncellendi!');
+              showSuccessToast('Ürün başarıyla silindi!');
             } else {
               // Hata durumunda geri ekle
               setMenuItems(items => [...items, itemToDelete!]);
-              const errorMsg = responseData.error || 'Ürün silinirken hata oluştu!';
+              const errorMsg = responseData.error || responseData.message || 'Ürün silinirken hata oluştu!';
               showErrorToast(errorMsg);
               console.error('Silme hatası:', responseData);
             }
@@ -439,32 +432,40 @@ export default function MenuManagement() {
         imageUrl = imagePreview;
       }
 
-      const apiItem = {
-        name: itemData.name || '',
-        description: itemData.description || '',
-        price: itemData.price || 0,
-        category: itemData.category || 'Diğer',
-        image: imageUrl,
-        allergens: itemData.allergens || [],
-        calories: itemData.calories,
-        preparationTime: itemData.preparationTime,
-        rating: itemData.rating || 4,
-        isAvailable: itemData.isAvailable ?? true,
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
       };
 
-      const response = await fetch('/api/menu/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: [apiItem] }),
-      });
-
-      if (!response.ok) {
-        throw new Error('API hatası');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       if (selectedItem) {
+        // Güncelleme işlemi - PUT endpoint kullan
+        const apiItem = {
+          name: itemData.name || '',
+          description: itemData.description || '',
+          price: itemData.price || 0,
+          category: itemData.category || 'Diğer',
+          image: imageUrl,
+          allergens: itemData.allergens || [],
+          calories: itemData.calories,
+          isAvailable: itemData.isAvailable ?? true,
+        };
+
+        const response = await fetch(`/api/menu/${selectedItem.id}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(apiItem),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Güncelleme hatası');
+        }
+
+        const responseData = await response.json();
         setMenuItems(items => 
           items.map(item => 
             item.id === selectedItem.id ? { ...item, ...itemData, image: imageUrl } : item
@@ -472,8 +473,35 @@ export default function MenuManagement() {
         );
         setShowEditModal(false);
       } else {
+        // Yeni öğe ekleme - POST endpoint kullan
+        const apiItem = {
+          name: itemData.name || '',
+          description: itemData.description || '',
+          price: itemData.price || 0,
+          category: itemData.category || 'Diğer',
+          image: imageUrl,
+          allergens: itemData.allergens || [],
+          calories: itemData.calories,
+          preparationTime: itemData.preparationTime,
+          rating: itemData.rating || 4,
+          isAvailable: itemData.isAvailable ?? true,
+        };
+
+        const response = await fetch('/api/menu/save', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ items: [apiItem] }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Kaydetme hatası');
+        }
+
+        const responseData = await response.json();
+        // Backend'den dönen ID'yi kullan
         const newItem: MenuItem = {
-          id: Date.now().toString(),
+          id: responseData.items?.[0]?.id || Date.now().toString(),
           name: itemData.name || '',
           description: itemData.description || '',
           price: itemData.price || 0,
