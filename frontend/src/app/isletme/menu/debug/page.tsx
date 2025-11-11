@@ -149,6 +149,16 @@ export default function MenuDebugPage() {
   const testBackendMenuSave = async () => {
     addResult('Backend Menü Kaydetme', 'pending', 'Test başlatılıyor...');
     try {
+      // Tenant bilgisini subdomain'den al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend' && subdomain !== 'localhost') {
+          tenantSlug = subdomain;
+        }
+      }
+
       const testItem = {
         name: `Backend Test ${Date.now()}`,
         description: 'Backend debug test',
@@ -166,6 +176,7 @@ export default function MenuDebugPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-tenant': tenantSlug,
         },
         body: JSON.stringify({ items: [testItem] }),
       });

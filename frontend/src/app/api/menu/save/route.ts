@@ -27,6 +27,21 @@ export async function POST(request: Request) {
       }
     }
 
+    // Tenant bilgisini al
+    let tenantSlug = request.headers.get('x-tenant') || '';
+    
+    // Eğer header'da yoksa, host header'ından subdomain'i çıkar
+    if (!tenantSlug) {
+      const host = request.headers.get('host') || '';
+      const subdomain = host.split('.')[0];
+      if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend' && subdomain !== 'localhost') {
+        tenantSlug = subdomain;
+      } else {
+        // Varsayılan tenant
+        tenantSlug = 'demo';
+      }
+    }
+
     const body = await request.json();
     const items: IncomingItem[] = body?.items || [];
 
@@ -49,6 +64,7 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-tenant': tenantSlug,
         },
         body: JSON.stringify({ items }),
       });
