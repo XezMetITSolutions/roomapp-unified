@@ -159,6 +159,9 @@ export default function MenuDebugPage() {
         }
       }
 
+      // Token'ı localStorage'dan al
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
       const testItem = {
         name: `Backend Test ${Date.now()}`,
         description: 'Backend debug test',
@@ -172,12 +175,19 @@ export default function MenuDebugPage() {
         available: true
       };
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-tenant': tenantSlug,
+      };
+
+      // Token varsa Authorization header'ına ekle
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/menu/save`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-tenant': tenantSlug,
-        },
+        headers,
         body: JSON.stringify({ items: [testItem] }),
       });
 

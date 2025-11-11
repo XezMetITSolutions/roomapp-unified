@@ -42,6 +42,9 @@ export async function POST(request: Request) {
       }
     }
 
+    // Authorization token'ını al
+    const authHeader = request.headers.get('authorization') || '';
+
     const body = await request.json();
     const items: IncomingItem[] = body?.items || [];
 
@@ -60,12 +63,19 @@ export async function POST(request: Request) {
 
     // Backend API'ye proxy yap
     try {
+      const backendHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-tenant': tenantSlug,
+      };
+
+      // Authorization header'ı varsa ekle
+      if (authHeader) {
+        backendHeaders['Authorization'] = authHeader;
+      }
+
       const backendResponse = await fetch(`${BACKEND_URL}/api/menu/save`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-tenant': tenantSlug,
-        },
+        headers: backendHeaders,
         body: JSON.stringify({ items }),
       });
 
