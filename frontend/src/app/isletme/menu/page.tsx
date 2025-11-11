@@ -299,36 +299,38 @@ export default function MenuManagement() {
           itemToDelete = menuItems.find(item => item.id === confirmModal.itemId) || null;
           if (itemToDelete) {
             // Önce UI'dan kaldır (optimistic update)
-            setMenuItems(items => items.filter(item => item.id !== confirmModal.itemId));
+            const remainingItems = menuItems.filter(item => item.id !== confirmModal.itemId);
+            setMenuItems(remainingItems);
             
-            // API'ye silme isteği gönder
-            const deletePayload: any = {
-              name: itemToDelete.name,
-              category: itemToDelete.category || 'Diğer'
-            };
-            
-            // Eğer id gerçek bir id ise (api- ile başlamıyorsa) ekle
-            if (confirmModal.itemId && !confirmModal.itemId.startsWith('api-')) {
-              deletePayload.id = confirmModal.itemId;
-            }
-            
-            const response = await fetch('/api/menu/delete', {
+            // Kalan tüm menü öğelerini backend'e kaydet (silinen hariç)
+            const itemsToSave = remainingItems.map(item => ({
+              name: item.name,
+              description: item.description,
+              price: item.price,
+              category: item.category || 'Diğer',
+              image: item.image || '',
+              allergens: item.allergens || [],
+              calories: item.calories,
+              preparationTime: item.preparationTime,
+              rating: item.rating || 4,
+              available: item.isAvailable,
+            }));
+
+            const response = await fetch('/api/menu/save', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify(deletePayload),
+              body: JSON.stringify({ items: itemsToSave }),
             });
 
             const responseData = await response.json();
 
             if (response.ok && responseData.success) {
-              showSuccessToast(responseData.message || 'Ürün başarıyla silindi!');
+              showSuccessToast('Ürün başarıyla silindi ve menü güncellendi!');
             } else {
               // Hata durumunda geri ekle
-              if (itemToDelete) {
-                setMenuItems(items => [...items, itemToDelete]);
-              }
+              setMenuItems(items => [...items, itemToDelete!]);
               const errorMsg = responseData.error || 'Ürün silinirken hata oluştu!';
               showErrorToast(errorMsg);
               console.error('Silme hatası:', responseData);
