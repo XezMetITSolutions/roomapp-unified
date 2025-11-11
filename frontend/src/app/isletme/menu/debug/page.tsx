@@ -96,37 +96,106 @@ export default function MenuDebugPage() {
 
       const firstItem = menuData.menu[0];
       
-      // Silme işlemi - kalan tüm ürünleri kaydet
-      const remainingItems = menuData.menu.slice(1).map((item: any) => ({
-        name: item.name,
-        description: item.description || '',
-        price: item.price,
-        category: item.category || 'Diğer',
-        image: item.image || '',
-        allergens: item.allergens || [],
-        calories: item.calories,
-        preparationTime: item.preparationTime,
-        rating: item.rating || 4,
-        available: item.available !== false,
-      }));
+      if (!firstItem.id) {
+        addResult('Menü Silme', 'error', 'Ürün ID\'si bulunamadı. Backend\'den yüklenen ürünlerin ID\'si olmalı.', firstItem);
+        return;
+      }
 
-      const response = await fetch('/api/menu/save', {
+      // Token'ı localStorage'dan al
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // Silme işlemi - DELETE endpoint kullan
+      const response = await fetch('/api/menu/delete', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: remainingItems }),
+        headers,
+        body: JSON.stringify({ id: firstItem.id }),
       });
 
       const data = await response.json();
       
       if (response.ok && data.success) {
-        addResult('Menü Silme', 'success', `Başarılı: "${firstItem.name}" silindi, ${remainingItems.length} ürün kaldı`, data);
+        addResult('Menü Silme', 'success', `Başarılı: "${firstItem.name}" silindi`, data);
       } else {
-        addResult('Menü Silme', 'error', `Hata: ${data.error || 'Bilinmeyen hata'}`, data);
+        addResult('Menü Silme', 'error', `Hata: ${data.error || data.message || 'Bilinmeyen hata'}`, data);
       }
     } catch (error: any) {
       addResult('Menü Silme', 'error', `Hata: ${error.message}`, error);
+    }
+  };
+
+  const testBackendMenuDelete = async () => {
+    addResult('Backend Menü Silme', 'pending', 'Test başlatılıyor...');
+    try {
+      // Tenant bilgisini subdomain'den al
+      let tenantSlug = 'demo';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend' && subdomain !== 'localhost') {
+          tenantSlug = subdomain;
+        }
+      }
+
+      // Token'ı localStorage'dan al
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
+      // Önce backend'den menüyü yükle
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-tenant': tenantSlug,
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const menuResponse = await fetch(`${apiUrl}/api/menu`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!menuResponse.ok) {
+        addResult('Backend Menü Silme', 'error', `Menü yüklenemedi: ${menuResponse.status}`, await menuResponse.json());
+        return;
+      }
+
+      const menuData = await menuResponse.json();
+      const menuItems = menuData.menuItems || menuData.menu || [];
+
+      if (menuItems.length === 0) {
+        addResult('Backend Menü Silme', 'error', 'Silinecek ürün bulunamadı (menü boş)');
+        return;
+      }
+
+      const firstItem = menuItems[0];
+      
+      if (!firstItem.id) {
+        addResult('Backend Menü Silme', 'error', 'Ürün ID\'si bulunamadı', firstItem);
+        return;
+      }
+
+      // Backend'de sil
+      const deleteResponse = await fetch(`${apiUrl}/api/menu/${firstItem.id}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const deleteData = await deleteResponse.json();
+      
+      if (deleteResponse.ok) {
+        addResult('Backend Menü Silme', 'success', `Başarılı: "${firstItem.name}" backend'de silindi`, deleteData);
+      } else {
+        addResult('Backend Menü Silme', 'error', `Backend hatası: ${deleteData.message || deleteResponse.status}`, deleteData);
+      }
+    } catch (error: any) {
+      addResult('Backend Menü Silme', 'error', `Backend hatası: ${error.message}`, error);
     }
   };
 
@@ -220,6 +289,9 @@ export default function MenuDebugPage() {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     await testMenuDelete();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await testBackendMenuDelete();
     
     setLoading(false);
   };
@@ -287,6 +359,13 @@ export default function MenuDebugPage() {
           className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
         >
           Menü Silme
+        </button>
+        
+        <button
+          onClick={testBackendMenuDelete}
+          className="bg-red-700 text-white px-4 py-2 rounded-lg hover:bg-red-800"
+        >
+          Backend Menü Silme
         </button>
         
         <button
