@@ -1348,6 +1348,71 @@ app.delete('/api/menu/:id', tenantMiddleware, authMiddleware, async (req: Reques
   }
 })
 
+app.post('/api/menu/save', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { items } = req.body
+
+    if (!Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ message: 'Items array is required and cannot be empty' }); return;
+    }
+
+    // Get hotel ID from tenant
+    const hotel = await prisma.hotel.findFirst({
+      where: { tenantId }
+    })
+
+    if (!hotel) {
+      res.status(404).json({ message: 'Hotel not found' }); return;
+    }
+
+    // Validate items
+    const errors: string[] = []
+    items.forEach((item: any, idx: number) => {
+      if (!item.name) errors.push(`Item ${idx + 1}: name is required`)
+      if (item.price === undefined || item.price === null || item.price === '') {
+        errors.push(`Item ${idx + 1}: price is required`)
+      }
+    })
+
+    if (errors.length > 0) {
+      res.status(422).json({ message: 'Validation error', details: errors }); return;
+    }
+
+    // Create menu items
+    const createdItems = []
+    for (const item of items) {
+      const menuItem = await prisma.menuItem.create({
+        data: {
+          name: item.name,
+          description: item.description || '',
+          price: parseFloat(item.price) || 0,
+          category: item.category || 'Diğer',
+          image: item.image || '',
+          allergens: item.allergens || [],
+          calories: item.calories ? parseInt(item.calories) : null,
+          isAvailable: item.available !== undefined ? item.available : (item.isAvailable !== false),
+          isActive: true,
+          tenantId,
+          hotelId: hotel.id
+        }
+      })
+      createdItems.push(menuItem)
+    }
+
+    res.status(201).json({
+      success: true,
+      count: createdItems.length,
+      message: 'Menu items saved successfully',
+      items: createdItems
+    }); return;
+  } catch (error) {
+    console.error('Menu save error:', error)
+    res.status(500).json({ message: 'Database error' })
+    return;
+  }
+})
+
 // Announcements endpoints (using Notification model)
 app.get('/api/announcements', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
   try {
