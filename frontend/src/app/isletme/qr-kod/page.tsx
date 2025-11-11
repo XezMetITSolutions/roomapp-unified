@@ -20,6 +20,36 @@ export default function QRKodPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [floorCount, setFloorCount] = useState(4);
   const [roomsPerFloor, setRoomsPerFloor] = useState(5);
+  const [generatedRooms, setGeneratedRooms] = useState<any[]>([]);
+  const [useGeneratedRooms, setUseGeneratedRooms] = useState(false);
+
+  // Otomatik oda oluşturma fonksiyonu
+  const generateRooms = (floors: number, roomsPerFloor: number) => {
+    const generated: any[] = [];
+    for (let floor = 1; floor <= floors; floor++) {
+      for (let room = 1; room <= roomsPerFloor; room++) {
+        const roomNumber = `${floor}${room.toString().padStart(2, '0')}`;
+        generated.push({
+          number: roomNumber,
+          floor: floor,
+          id: `generated-${roomNumber}`
+        });
+      }
+    }
+    return generated;
+  };
+
+  const handleGenerateRooms = () => {
+    const newRooms = generateRooms(floorCount, roomsPerFloor);
+    setGeneratedRooms(newRooms);
+    setUseGeneratedRooms(true);
+    
+    // İlk odayı seç
+    if (newRooms.length > 0) {
+      setSelectedRoom(newRooms[0].number);
+      setQRCodeURL(`${baseURL}/guest/${newRooms[0].number}`);
+    }
+  };
 
   useEffect(() => {
     // Client-side'da baseURL'i ayarla
@@ -285,7 +315,7 @@ export default function QRKodPage() {
   };
 
   const handleDownloadAll = async () => {
-    const roomsToDownload = showCustomInput ? customRooms : rooms;
+    const roomsToDownload = showCustomInput ? customRooms : (useGeneratedRooms ? generatedRooms : rooms);
     
     if (roomsToDownload.length === 0) {
       alert('İndirilecek oda bulunamadı!');
@@ -473,7 +503,7 @@ export default function QRKodPage() {
                   />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-blue-600">
+              <div className="mt-3 text-xs text-blue-600 mb-3">
                 <strong>Toplam:</strong> {floorCount * roomsPerFloor} oda oluşturulacak
                 <br />
                 <strong>Örnek:</strong> {floorCount} kat × {roomsPerFloor} oda = {Array.from({ length: Math.min(floorCount * roomsPerFloor, 3) }, (_, i) => {
@@ -482,6 +512,17 @@ export default function QRKodPage() {
                   return `${floor}${room.toString().padStart(2, '0')}`;
                 }).join(', ')}...
               </div>
+              <button
+                onClick={handleGenerateRooms}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+              >
+                Odaları Oluştur
+              </button>
+              {useGeneratedRooms && generatedRooms.length > 0 && (
+                <div className="mt-2 text-xs text-green-600">
+                  ✓ {generatedRooms.length} oda oluşturuldu
+                </div>
+              )}
             </div>
 
             <div>
@@ -502,7 +543,7 @@ export default function QRKodPage() {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  Veritabanı Odaları ({isLoading ? '...' : rooms.length})
+                  {useGeneratedRooms ? 'Oluşturulan Odalar' : 'Veritabanı Odaları'} ({isLoading ? '...' : (useGeneratedRooms ? generatedRooms.length : rooms.length)})
                 </button>
                 <button
                   onClick={() => setShowCustomInput(true)}
@@ -523,7 +564,7 @@ export default function QRKodPage() {
                     <div className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-gray-500">
                       Odalar yükleniyor...
                     </div>
-                  ) : rooms.length > 0 ? (
+                  ) : (useGeneratedRooms ? generatedRooms : rooms).length > 0 ? (
                     <select
                       value={selectedRoom}
                       onChange={(e) => {
@@ -532,7 +573,7 @@ export default function QRKodPage() {
                       }}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hotel-gold focus:border-transparent text-lg"
                     >
-                      {rooms.map((room: any) => (
+                      {(useGeneratedRooms ? generatedRooms : rooms).map((room: any) => (
                         <option key={room.number} value={room.number}>
                           Oda {room.number} - Kat {room.floor}
                         </option>
@@ -540,7 +581,7 @@ export default function QRKodPage() {
                     </select>
                   ) : (
                     <div className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-gray-500">
-                      Henüz oda bulunmuyor
+                      Henüz oda bulunmuyor. Yukarıdaki "Odaları Oluştur" butonuna tıklayın.
                     </div>
                   )}
                 </>
@@ -677,7 +718,7 @@ export default function QRKodPage() {
                   className="flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Tümünü İndir ({rooms.length})
+                  Tümünü İndir ({(useGeneratedRooms ? generatedRooms : rooms).length})
                 </button>
               )}
             </div>
@@ -759,18 +800,18 @@ export default function QRKodPage() {
       </div>
 
       {/* Quick Room Grid */}
-      {!showCustomInput && !isLoading && rooms.length > 0 && (
+      {!showCustomInput && !isLoading && (useGeneratedRooms ? generatedRooms : rooms).length > 0 && (
         <div className="hotel-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">Hızlı Oda Seçimi</h3>
             <div className="text-sm text-gray-500">
-              {rooms.length} oda
+              {(useGeneratedRooms ? generatedRooms : rooms).length} oda
             </div>
           </div>
           
           {/* Kat bazında gruplandırma */}
-          {Array.from(new Set(rooms.map((r: any) => r.floor))).sort((a: any, b: any) => a - b).map((floorNumber: any) => {
-            const floorRooms = rooms.filter((room: any) => room.floor === floorNumber);
+          {Array.from(new Set((useGeneratedRooms ? generatedRooms : rooms).map((r: any) => r.floor))).sort((a: any, b: any) => a - b).map((floorNumber: any) => {
+            const floorRooms = (useGeneratedRooms ? generatedRooms : rooms).filter((room: any) => room.floor === floorNumber);
             
             return (
               <div key={floorNumber} className="mb-6">
