@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useHotelStore } from '@/store/hotelStore';
-import { sampleOrders, sampleMenu } from '@/lib/sampleData';
 import { translate } from '@/lib/translations';
 import { Language, Order, MenuItem } from '@/types';
 import { ApiService } from '@/services/api';
@@ -25,8 +24,8 @@ import {
 
 export default function KitchenPanel() {
   const [currentLanguage, setCurrentLanguage] = useState<Language>('tr');
-  const [orders, setOrders] = useState<Order[]>(sampleOrders);
-  const [menu, setMenu] = useState<MenuItem[]>(sampleMenu);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [menu, setMenu] = useState<MenuItem[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -57,82 +56,120 @@ export default function KitchenPanel() {
     }
   };
 
-  // Yemek siparişlerini yükle
+  // Menüyü backend'den yükle
+  useEffect(() => {
+    const loadMenu = async () => {
+      try {
+        const response = await fetch('/api/menu');
+        if (response.ok) {
+          const data = await response.json();
+          const formattedMenu = data.menu.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            description: item.description || '',
+            price: item.price,
+            category: item.category || 'Diğer',
+            image: item.image || '',
+            allergens: item.allergens || [],
+            calories: item.calories,
+            preparationTime: item.preparationTime || 15,
+            rating: item.rating || 4,
+            available: item.available !== false,
+          }));
+          setMenu(formattedMenu);
+        }
+      } catch (error) {
+        console.error('Menü yükleme hatası:', error);
+      }
+    };
+
+    loadMenu();
+  }, []);
+
+  // Yemek siparişlerini backend'den yükle
   useEffect(() => {
     const loadOrders = async () => {
       try {
         setIsLoading(true);
-        // Yemek siparişlerini al (type: 'food_order' olanlar)
-        const requests = await ApiService.getGuestRequests();
-        const foodOrders = requests
-          .filter(req => req.type === 'food_order')
-          .map(req => {
-            // Description'dan sipariş detaylarını parse et
-            const description = req.description || '';
-            const items: Array<{
-              menuItemId: string;
-              name: string;
-              quantity: number;
-              price: number;
-              specialRequests: string;
-            }> = [];
-            let totalAmount = 0;
-            
-            // "Yemek siparişi: 2x Cheeseburger, 1x Margherita Pizza" formatını parse et
-            if (description.includes('Yemek siparişi:')) {
-              const orderPart = description.split('Yemek siparişi:')[1];
-              if (orderPart) {
-                const itemStrings = orderPart.split(',').map(s => s.trim());
-                itemStrings.forEach(itemStr => {
-                  const match = itemStr.match(/(\d+)x\s+(.+)/);
-                  if (match) {
-                    const quantity = parseInt(match[1]);
-                    const itemName = match[2].trim();
-                    // Menüden fiyat bul
-                    const menuItem = menu.find(m => m.name === itemName);
-                    const price = menuItem?.price || 0;
-                    totalAmount += price * quantity;
-                    
-                    items.push({
-                      menuItemId: menuItem?.id || itemName.toLowerCase().replace(/\s+/g, '-'),
-                      name: itemName,
-                      quantity: quantity,
-                      price: price,
-                      specialRequests: req.notes || ''
-                    });
-                  }
-                });
-              }
-            }
-            
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        // Token'ı localStorage'dan al
+        const token = localStorage.getItem('auth_token');
+        
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'x-tenant': tenantSlug,
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Backend'den siparişleri al
+        const response = await fetch(`${API_BASE_URL}/api/orders`, {
+          method: 'GET',
+          headers,
+        });
+
+        if (response.ok) {
+          const backendOrders = await response.json();
+          
+          // Backend Order formatını frontend Order formatına çevir
+          const formattedOrders: Order[] = backendOrders.map((order: any) => {
+            const items = order.items.map((item: any) => ({
+              menuItemId: item.menuItemId,
+              name: item.menuItem?.name || 'Bilinmeyen Ürün',
+              quantity: item.quantity,
+              price: parseFloat(item.price) || 0,
+              specialRequests: item.notes || '',
+            }));
+
+            // Status mapping: PENDING -> pending, PREPARING -> preparing, READY -> ready, DELIVERED -> delivered, CANCELLED -> cancelled
+            let status: Order['status'] = 'pending';
+            if (order.status === 'PENDING') status = 'pending';
+            else if (order.status === 'PREPARING') status = 'preparing';
+            else if (order.status === 'READY') status = 'ready';
+            else if (order.status === 'DELIVERED') status = 'delivered';
+            else if (order.status === 'CANCELLED') status = 'cancelled';
+
             return {
-              id: req.id,
-              roomId: req.roomId.replace('room-', ''),
-              status: req.status === 'pending' ? 'pending' : 
-                     req.status === 'in_progress' ? 'preparing' :
-                     req.status === 'completed' ? 'ready' : 'pending',
+              id: order.id,
+              roomId: order.roomId.replace('room-', ''),
+              guestId: order.guestId,
               items: items,
-              totalAmount: totalAmount,
-              paymentStatus: 'paid' as const,
-              specialInstructions: req.notes || '',
-              createdAt: new Date(req.createdAt),
-              deliveryTime: req.status === 'completed' ? new Date() : undefined,
-              guestId: req.roomId // Order tipi için gerekli
+              totalAmount: parseFloat(order.totalAmount) || 0,
+              status: status,
+              paymentStatus: 'paid' as const, // Backend'de payment status yoksa varsayılan olarak paid
+              specialInstructions: order.notes || '',
+              createdAt: new Date(order.createdAt),
+              deliveryTime: order.status === 'DELIVERED' ? new Date(order.updatedAt) : undefined,
             } as Order;
           });
-        
-        // Mevcut siparişlerle birleştir (duplicate kontrolü ile)
-        setOrders(prev => {
-          const existingIds = new Set(prev.map(order => order.id));
-          const newOrders = foodOrders.filter(order => !existingIds.has(order.id));
-          
-          // Yeni sipariş varsa ses çal
-          if (newOrders.length > 0) {
-            playNotificationSound();
-          }
-          
-          return [...prev, ...newOrders];
-        });
+
+          // Mevcut siparişlerle karşılaştır (yeni siparişler için ses çal)
+          setOrders(prev => {
+            const existingIds = new Set(prev.map(order => order.id));
+            const newOrders = formattedOrders.filter(order => !existingIds.has(order.id));
+            
+            // Yeni sipariş varsa ses çal
+            if (newOrders.length > 0) {
+              playNotificationSound();
+            }
+            
+            // Tüm siparişleri güncelle (backend'den gelen güncel veriler)
+            return formattedOrders;
+          });
+        }
       } catch (error) {
         console.error('Sipariş yükleme hatası:', error);
       } finally {
@@ -145,7 +182,7 @@ export default function KitchenPanel() {
     // Her 10 saniyede bir güncelle
     const interval = setInterval(loadOrders, 10000);
     return () => clearInterval(interval);
-  }, [menu]);
+  }, []);
 
 
   const filteredOrders = orders
