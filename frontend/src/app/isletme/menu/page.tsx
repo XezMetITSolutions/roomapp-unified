@@ -292,30 +292,49 @@ export default function MenuManagement() {
 
   const confirmDelete = async () => {
     if (confirmModal.itemId) {
+      let itemToDelete: MenuItem | null = null;
+      
       try {
         if (confirmModal.type === 'item') {
-          const itemToDelete = menuItems.find(item => item.id === confirmModal.itemId);
+          itemToDelete = menuItems.find(item => item.id === confirmModal.itemId) || null;
           if (itemToDelete) {
+            // Önce UI'dan kaldır (optimistic update)
             setMenuItems(items => items.filter(item => item.id !== confirmModal.itemId));
+            
+            // API'ye silme isteği gönder
+            const deletePayload: any = {
+              name: itemToDelete.name,
+              category: itemToDelete.category || 'Diğer'
+            };
+            
+            // Eğer id gerçek bir id ise (api- ile başlamıyorsa) ekle
+            if (confirmModal.itemId && !confirmModal.itemId.startsWith('api-')) {
+              deletePayload.id = confirmModal.itemId;
+            }
             
             const response = await fetch('/api/menu/delete', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ 
-                id: confirmModal.itemId,
-                name: itemToDelete.name,
-                category: itemToDelete.category 
-              }),
+              body: JSON.stringify(deletePayload),
             });
 
-            if (response.ok) {
-              showSuccessToast('Ürün başarıyla silindi!');
+            const responseData = await response.json();
+
+            if (response.ok && responseData.success) {
+              showSuccessToast(responseData.message || 'Ürün başarıyla silindi!');
             } else {
-              setMenuItems(items => [...items, itemToDelete]);
-              showErrorToast('Ürün silinirken hata oluştu!');
+              // Hata durumunda geri ekle
+              if (itemToDelete) {
+                setMenuItems(items => [...items, itemToDelete]);
+              }
+              const errorMsg = responseData.error || 'Ürün silinirken hata oluştu!';
+              showErrorToast(errorMsg);
+              console.error('Silme hatası:', responseData);
             }
+          } else {
+            showErrorToast('Silinecek ürün bulunamadı!');
           }
         } else {
           setCategories(cats => cats.filter(cat => cat.id !== confirmModal.itemId));
@@ -323,10 +342,14 @@ export default function MenuManagement() {
         }
       } catch (error) {
         console.error('Silme hatası:', error);
-        showErrorToast('Silme işlemi sırasında hata oluştu!');
+        // Hata durumunda item'ı geri ekle
+        if (confirmModal.type === 'item' && itemToDelete) {
+          setMenuItems(items => [...items, itemToDelete]);
+        }
+        showErrorToast('Silme işlemi sırasında hata oluştu! Lütfen tekrar deneyin.');
+      } finally {
+        setConfirmModal({ show: false, itemId: null, itemName: '', type: 'item' });
       }
-      
-      setConfirmModal({ show: false, itemId: null, itemName: '', type: 'item' });
     }
   };
 
