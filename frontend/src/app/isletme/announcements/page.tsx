@@ -402,24 +402,27 @@ export default function AnnouncementsManagement() {
           const announcementsData = Array.isArray(data) ? data : [];
           
           // API'den gelen veriyi formatla
-          const formattedAnnouncements = announcementsData.map((a: any) => ({
-            id: a.id,
-            title: a.title || 'Duyuru',
-            content: a.message || '',
-            type: (a.type === 'announcement' ? 'info' : a.type) as 'info' | 'warning' | 'promotion' | 'maintenance' | 'advertisement',
-            category: 'general' as 'general' | 'menu' | 'hotel' | 'promotion',
-            isActive: true,
-            startDate: a.createdAt ? new Date(a.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            endDate: undefined,
-            targetRooms: [],
-            createdAt: a.createdAt || new Date().toISOString(),
-            createdBy: 'Admin',
-            priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
-            linkUrl: undefined,
-            linkText: undefined,
-            icon: undefined,
-            translations: undefined
-          }));
+          const formattedAnnouncements = announcementsData.map((a: any) => {
+            const metadata = (a.metadata as any) || {};
+            return {
+              id: a.id,
+              title: a.title || 'Duyuru',
+              content: a.message || '',
+              type: (metadata.announcementType || (a.type === 'announcement' ? 'info' : 'info')) as 'info' | 'warning' | 'promotion' | 'maintenance' | 'advertisement',
+              category: (metadata.category || 'general') as 'general' | 'menu' | 'hotel' | 'promotion',
+              isActive: metadata.isActive !== false,
+              startDate: metadata.startDate || (a.createdAt ? new Date(a.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+              endDate: metadata.endDate || undefined,
+              targetRooms: [],
+              createdAt: a.createdAt || new Date().toISOString(),
+              createdBy: 'Admin',
+              priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
+              linkUrl: metadata.linkUrl || undefined,
+              linkText: metadata.linkText || undefined,
+              icon: metadata.icon || undefined,
+              translations: metadata.translations || undefined
+            };
+          });
           
           setAnnouncements(formattedAnnouncements);
         } else {
@@ -636,11 +639,21 @@ export default function AnnouncementsManagement() {
 
         if (response.ok) {
           const updated = await response.json();
+          const metadata = (updated.metadata as any) || {};
           setAnnouncements(announcements.map(a => 
             a.id === selectedAnnouncement.id ? {
               ...a,
               title: updated.title || a.title,
               content: updated.message || a.content,
+              type: (metadata.announcementType || a.type) as 'info' | 'warning' | 'promotion' | 'maintenance' | 'advertisement',
+              category: (metadata.category || a.category) as 'general' | 'menu' | 'hotel' | 'promotion',
+              isActive: metadata.isActive !== undefined ? metadata.isActive : a.isActive,
+              startDate: metadata.startDate || a.startDate,
+              endDate: metadata.endDate !== undefined ? metadata.endDate : a.endDate,
+              linkUrl: metadata.linkUrl !== undefined ? metadata.linkUrl : a.linkUrl,
+              linkText: metadata.linkText !== undefined ? metadata.linkText : a.linkText,
+              icon: metadata.icon !== undefined ? metadata.icon : a.icon,
+              translations: metadata.translations !== undefined ? metadata.translations : a.translations,
               ...announcementData
             } : a
           ));
@@ -672,23 +685,24 @@ export default function AnnouncementsManagement() {
 
         if (response.ok) {
           const newAnnouncement = await response.json();
+          const metadata = (newAnnouncement.metadata as any) || {};
           const formattedAnnouncement: Announcement = {
             id: newAnnouncement.id,
             title: newAnnouncement.title || '',
             content: newAnnouncement.message || '',
-            type: (newAnnouncement.type === 'announcement' ? 'info' : newAnnouncement.type) as 'info' | 'warning' | 'promotion' | 'maintenance' | 'advertisement',
-            category: 'general' as 'general' | 'menu' | 'hotel' | 'promotion',
-            isActive: true,
-            startDate: newAnnouncement.createdAt ? new Date(newAnnouncement.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            endDate: announcementData.endDate,
+            type: (metadata.announcementType || 'info') as 'info' | 'warning' | 'promotion' | 'maintenance' | 'advertisement',
+            category: (metadata.category || 'general') as 'general' | 'menu' | 'hotel' | 'promotion',
+            isActive: metadata.isActive !== false,
+            startDate: metadata.startDate || (newAnnouncement.createdAt ? new Date(newAnnouncement.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+            endDate: metadata.endDate || announcementData.endDate,
             targetRooms: announcementData.targetRooms || [],
             createdAt: newAnnouncement.createdAt || new Date().toISOString(),
             createdBy: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Admin',
             priority: announcementData.priority || 'MEDIUM',
-            linkUrl: announcementData.linkUrl,
-            linkText: announcementData.linkText,
-            icon: selectedIcon || announcementData.icon,
-            translations: announcementData.translations
+            linkUrl: metadata.linkUrl || announcementData.linkUrl,
+            linkText: metadata.linkText || announcementData.linkText,
+            icon: metadata.icon || selectedIcon || announcementData.icon,
+            translations: metadata.translations || announcementData.translations
           };
           setAnnouncements([formattedAnnouncement, ...announcements]);
           setShowAddModal(false);
@@ -741,6 +755,17 @@ export default function AnnouncementsManagement() {
     };
     saveAnnouncement(announcementData);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-hotel-gold mx-auto mb-4"></div>
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

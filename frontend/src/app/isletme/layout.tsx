@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   ChevronRight,
   QrCode,
-  X
+  X,
+  Info
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'QR Kod Oluşturucu', href: '/isletme/qr-kod', icon: QrCode, key: 'qr-kod', color: 'text-emerald-600' },
   { name: 'Menü Yönetimi', href: '/isletme/menu', icon: Menu, key: 'menu', color: 'text-purple-600' },
   { name: 'Duyurular', href: '/isletme/announcements', icon: Megaphone, key: 'announcements', color: 'text-orange-600' },
+  { name: 'Otel Bilgileri', href: '/isletme/hotel-info', icon: Info, key: 'hotel-info', color: 'text-cyan-600' },
   { name: 'Kullanıcılar', href: '/isletme/users', icon: Users, key: 'users', color: 'text-green-600' },
   { name: 'Bildirimler', href: '/isletme/notifications', icon: Bell, key: 'notifications', color: 'text-pink-600' },
   { name: 'Analitik', href: '/isletme/analytics', icon: BarChart3, key: 'analytics', color: 'text-indigo-600' },

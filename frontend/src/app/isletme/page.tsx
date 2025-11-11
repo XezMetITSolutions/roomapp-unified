@@ -134,13 +134,49 @@ export default function AdminDashboard() {
         if (ordersRes && ordersRes.ok) {
           const ordersData = await ordersRes.json();
           const orders = Array.isArray(ordersData) ? ordersData : (ordersData.orders || []);
-          setRecentOrders(orders.slice(0, 4).map((order: any) => ({
-            id: order.id || `ORD-${order.number || ''}`,
-            room: order.roomId?.replace('room-', '') || order.roomNumber || '',
-            items: order.items?.map((item: any) => `${item.quantity}x ${item.name}`).join(', ') || '',
-            amount: `₺${(order.totalAmount || 0).toLocaleString('tr-TR')}`,
-            status: order.status || 'Pending'
-          })));
+          setRecentOrders(orders.slice(0, 4).map((order: any) => {
+            // Room ID'yi düzelt (room-101 -> 101)
+            const roomId = order.roomId || '';
+            const roomNumber = roomId.replace('room-', '') || '';
+            
+            // Items'ı düzelt (menuItem relation'dan name al)
+            const itemsText = order.items?.map((item: any) => {
+              // Debug için log
+              if (!item.menuItem && !item.name) {
+                console.warn('Order item without name:', item);
+              }
+              
+              // Önce menuItem relation'dan name al, yoksa item.name, yoksa menuItemId'den türet, yoksa varsayılan
+              let itemName = 'Bilinmeyen Ürün';
+              if (item.menuItem?.name) {
+                itemName = item.menuItem.name;
+              } else if (item.name) {
+                itemName = item.name;
+              } else if (item.menuItemId) {
+                // menuItemId varsa ama relation yüklenmemişse, ID'yi göster
+                itemName = `Ürün #${item.menuItemId.substring(0, 8)}`;
+              }
+              
+              return `${item.quantity}x ${itemName}`;
+            }).join(', ') || 'Sipariş detayı yok';
+            
+            // Status'u düzelt (PENDING -> Pending, PREPARING -> Preparing, etc.)
+            let statusText = 'Pending';
+            if (order.status === 'PENDING') statusText = 'Pending';
+            else if (order.status === 'PREPARING') statusText = 'Preparing';
+            else if (order.status === 'READY') statusText = 'Ready';
+            else if (order.status === 'DELIVERED') statusText = 'Delivered';
+            else if (order.status === 'CANCELLED') statusText = 'Cancelled';
+            else statusText = order.status || 'Pending';
+            
+            return {
+              id: order.id || order.orderNumber || `ORD-${Date.now()}`,
+              room: roomNumber,
+              items: itemsText,
+              amount: `₺${(parseFloat(order.totalAmount) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              status: statusText
+            };
+          }));
         }
 
         // Requests
@@ -166,18 +202,19 @@ export default function AdminDashboard() {
   }, [token, user]);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Preparing':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Ready':
-        return 'bg-green-100 text-green-800';
-      case 'Delivered':
-        return 'bg-blue-100 text-blue-800';
-      case 'Pending':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    const statusUpper = status.toUpperCase();
+    if (statusUpper === 'PREPARING' || status === 'Preparing') {
+      return 'bg-yellow-100 text-yellow-800';
+    } else if (statusUpper === 'READY' || status === 'Ready') {
+      return 'bg-green-100 text-green-800';
+    } else if (statusUpper === 'DELIVERED' || status === 'Delivered') {
+      return 'bg-blue-100 text-blue-800';
+    } else if (statusUpper === 'PENDING' || status === 'Pending') {
+      return 'bg-gray-100 text-gray-800';
+    } else if (statusUpper === 'CANCELLED' || status === 'Cancelled') {
+      return 'bg-red-100 text-red-800';
     }
+    return 'bg-gray-100 text-gray-800';
   };
 
   const getPriorityColor = (priority: string) => {

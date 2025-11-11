@@ -117,7 +117,7 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
     if (!hasShownWelcome) {
       const timer = setTimeout(() => {
         const welcomeMessage = guestInfo 
-          ? `Hoş Geldiniz ${ApiService.formatGuestName(guestInfo.name, guestInfo.surname)}`
+          ? `Hoş Geldiniz ${guestInfo.name}`
           : 'Hoş Geldiniz';
         
         addNotification('info', welcomeMessage, 'Resepsiyon ekibimiz 7/24 hizmetinizdedir. İsteklerinizi buradan gönderebilirsiniz.', false, true, 5000); // Ses çalma, 5 saniye
@@ -133,7 +133,7 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
   // Sayfa başlığını müşteri adı ile güncelle
   useEffect(() => {
     if (guestInfo) {
-      const title = `Hoş Geldiniz ${ApiService.formatGuestName(guestInfo.name, guestInfo.surname)}`;
+      const title = `Hoş Geldiniz ${guestInfo.name}`;
       document.title = title;
     }
   }, [guestInfo, roomId]);
@@ -150,7 +150,7 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
         <div className="w-full max-w-md px-4 mb-4 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold flex-1" style={{ color: theme.textColor }}>
             {guestInfo 
-              ? `Hoş Geldiniz ${ApiService.formatGuestName(guestInfo.name, guestInfo.surname)}`
+              ? `Hoş Geldiniz ${guestInfo.name}`
               : `Hoş Geldiniz`
             }
           </h1>
@@ -207,7 +207,7 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
       <div className="w-full max-w-md px-4 mb-4 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold flex-1" style={{ color: theme.textColor }}>
             {guestInfo 
-              ? `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')} ${ApiService.formatGuestName(guestInfo.name, guestInfo.surname)}`
+              ? `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')} ${guestInfo.name}`
               : `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')}`
             }
           </h1>

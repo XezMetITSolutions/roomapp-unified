@@ -28,15 +28,85 @@ import {
 import { useLanguageStore } from '@/store/languageStore';
 import { SimpleTranslator } from '@/components/RealtimeTranslator';
 
+interface HotelInfo {
+  wifi: {
+    networkName: string;
+    password: string;
+    speed: string;
+    supportPhone: string;
+  };
+  hours: {
+    reception: string;
+    restaurant: string;
+    bar: string;
+    spa: string;
+  };
+  dining: {
+    breakfast: string;
+    lunch: string;
+    dinner: string;
+    roomService: string;
+    towelChange: string;
+    techSupport: string;
+  };
+  amenities: string[];
+  contacts: {
+    reception: string;
+    security: string;
+    concierge: string;
+  };
+}
+
 export default function BilgiPage() {
   const router = useRouter();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [hotelInfo, setHotelInfo] = useState<HotelInfo | null>(null);
+  const [isLoadingInfo, setIsLoadingInfo] = useState(true);
   const { currentLanguage, getTranslation } = useLanguageStore();
 
   // Hydration kontrolü
   useEffect(() => {
     setIsHydrated(true);
+  }, []);
+
+  // Hotel info yükle
+  useEffect(() => {
+    const loadHotelInfo = async () => {
+      try {
+        setIsLoadingInfo(true);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/hotel/info`, {
+          headers: {
+            'x-tenant': tenantSlug
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setHotelInfo(data);
+        } else {
+          console.error('Failed to load hotel info');
+        }
+      } catch (error) {
+        console.error('Error loading hotel info:', error);
+      } finally {
+        setIsLoadingInfo(false);
+      }
+    };
+
+    loadHotelInfo();
   }, []);
 
   const toggleSection = (section: string) => {
@@ -75,7 +145,9 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">HotelLuxury_Guest</span>
+                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                  {hotelInfo?.wifi?.networkName || 'HotelLuxury_Guest'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <SimpleTranslator
@@ -83,7 +155,9 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">Luxury2024!</span>
+                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                  {hotelInfo?.wifi?.password || 'Luxury2024!'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <SimpleTranslator
@@ -91,7 +165,9 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="text-green-600 font-medium">100 Mbps</span>
+                <span className="text-green-600 font-medium">
+                  {hotelInfo?.wifi?.speed || '100 Mbps'}
+                </span>
               </div>
             </div>
           </div>
@@ -105,7 +181,7 @@ export default function BilgiPage() {
               <li>• <SimpleTranslator text="Sınırsız internet erişimi" targetLang={currentLanguage as any} /></li>
               <li>• <SimpleTranslator text="Tüm odalar WiFi kapsamında" targetLang={currentLanguage as any} /></li>
               <li>• <SimpleTranslator text="Lobi ve ortak alanlarda ücretsiz WiFi" targetLang={currentLanguage as any} /></li>
-              <li>• <SimpleTranslator text="Teknik destek:" targetLang={currentLanguage as any} /> +90 212 555 0199</li>
+              <li>• <SimpleTranslator text="Teknik destek:" targetLang={currentLanguage as any} /> {hotelInfo?.wifi?.supportPhone || '+90 212 555 0199'}</li>
             </ul>
           </div>
         </div>
@@ -132,7 +208,7 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-medium">24 Saat</span>
+                <span className="font-medium">{hotelInfo?.hours?.reception || '24 Saat'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <SimpleTranslator
@@ -140,7 +216,7 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-medium">06:00 - 23:00</span>
+                <span className="font-medium">{hotelInfo?.hours?.restaurant || '06:00 - 23:00'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <SimpleTranslator
@@ -148,7 +224,7 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-medium">18:00 - 02:00</span>
+                <span className="font-medium">{hotelInfo?.hours?.bar || '18:00 - 02:00'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <SimpleTranslator
@@ -156,7 +232,7 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-medium">08:00 - 22:00</span>
+                <span className="font-medium">{hotelInfo?.hours?.spa || '08:00 - 22:00'}</span>
               </div>
             </div>
           </div>
@@ -178,12 +254,20 @@ export default function BilgiPage() {
               className="font-semibold text-gray-900 mb-3"
             />
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>• <SimpleTranslator text="Ücretsiz WiFi" targetLang={currentLanguage as any} /></li>
-              <li>• <SimpleTranslator text="Otopark" targetLang={currentLanguage as any} /></li>
-              <li>• <SimpleTranslator text="Fitness Center" targetLang={currentLanguage as any} /></li>
-              <li>• <SimpleTranslator text="Yüzme Havuzu" targetLang={currentLanguage as any} /></li>
-              <li>• <SimpleTranslator text="Spa & Wellness" targetLang={currentLanguage as any} /></li>
-              <li>• <SimpleTranslator text="Çocuk Oyun Alanı" targetLang={currentLanguage as any} /></li>
+              {hotelInfo?.amenities && hotelInfo.amenities.length > 0 ? (
+                hotelInfo.amenities.map((amenity, index) => (
+                  <li key={index}>• <SimpleTranslator text={amenity} targetLang={currentLanguage as any} /></li>
+                ))
+              ) : (
+                <>
+                  <li>• <SimpleTranslator text="Ücretsiz WiFi" targetLang={currentLanguage as any} /></li>
+                  <li>• <SimpleTranslator text="Otopark" targetLang={currentLanguage as any} /></li>
+                  <li>• <SimpleTranslator text="Fitness Center" targetLang={currentLanguage as any} /></li>
+                  <li>• <SimpleTranslator text="Yüzme Havuzu" targetLang={currentLanguage as any} /></li>
+                  <li>• <SimpleTranslator text="Spa & Wellness" targetLang={currentLanguage as any} /></li>
+                  <li>• <SimpleTranslator text="Çocuk Oyun Alanı" targetLang={currentLanguage as any} /></li>
+                </>
+              )}
             </ul>
           </div>
         </div>
@@ -204,12 +288,12 @@ export default function BilgiPage() {
               className="font-semibold text-gray-900 mb-3"
             />
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>• <SimpleTranslator text="Kahvaltı Buffet" targetLang={currentLanguage as any} /> (06:00-10:00)</li>
-              <li>• <SimpleTranslator text="Öğle Yemeği" targetLang={currentLanguage as any} /> (12:00-15:00)</li>
-              <li>• <SimpleTranslator text="Akşam Yemeği" targetLang={currentLanguage as any} /> (18:00-22:00)</li>
-              <li>• <SimpleTranslator text="Room Service" targetLang={currentLanguage as any} /> (24 saat)</li>
-              <li>• <SimpleTranslator text="Havlu değişimi" targetLang={currentLanguage as any} /> (günlük)</li>
-              <li>• <SimpleTranslator text="Teknik destek" targetLang={currentLanguage as any} /> (24 saat)</li>
+              <li>• <SimpleTranslator text="Kahvaltı Buffet" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.breakfast || '06:00-10:00'})</li>
+              <li>• <SimpleTranslator text="Öğle Yemeği" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.lunch || '12:00-15:00'})</li>
+              <li>• <SimpleTranslator text="Akşam Yemeği" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.dinner || '18:00-22:00'})</li>
+              <li>• <SimpleTranslator text="Room Service" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.roomService || '24 saat'})</li>
+              <li>• <SimpleTranslator text="Havlu değişimi" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.towelChange || 'günlük'})</li>
+              <li>• <SimpleTranslator text="Teknik destek" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.techSupport || '24 saat'})</li>
             </ul>
           </div>
         </div>
@@ -338,10 +422,10 @@ export default function BilgiPage() {
                     </span>
                   </div>
                   <button
-                    onClick={() => window.open('tel:+902125550100')}
+                    onClick={() => window.open(`tel:${hotelInfo?.contacts?.reception?.replace(/\s/g, '') || '+902125550100'}`)}
                     className="w-full bg-red-600 hover:bg-red-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
                   >
-                    +90 212 555 0100
+                    {hotelInfo?.contacts?.reception || '+90 212 555 0100'}
                   </button>
                 </div>
 
@@ -357,10 +441,10 @@ export default function BilgiPage() {
                     </span>
                   </div>
                   <button
-                    onClick={() => window.open('tel:+902125550101')}
+                    onClick={() => window.open(`tel:${hotelInfo?.contacts?.security?.replace(/\s/g, '') || '+902125550101'}`)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
                   >
-                    +90 212 555 0101
+                    {hotelInfo?.contacts?.security || '+90 212 555 0101'}
                   </button>
                 </div>
 
@@ -376,10 +460,10 @@ export default function BilgiPage() {
                     </span>
                   </div>
                   <button
-                    onClick={() => window.open('tel:+902125550102')}
+                    onClick={() => window.open(`tel:${hotelInfo?.contacts?.concierge?.replace(/\s/g, '') || '+902125550102'}`)}
                     className="w-full bg-green-600 hover:bg-green-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
                   >
-                    +90 212 555 0102
+                    {hotelInfo?.contacts?.concierge || '+90 212 555 0102'}
                   </button>
                 </div>
               </div>

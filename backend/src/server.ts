@@ -1570,6 +1570,19 @@ app.post('/api/announcements', tenantMiddleware, authMiddleware, async (req: Req
       res.status(404).json({ message: 'Hotel not found' }); return;
     }
 
+    // Store extra data in metadata field
+    const metadata: any = {
+      category: category || 'general',
+      announcementType: type || 'info',
+      startDate: startDate || new Date().toISOString().split('T')[0],
+      endDate: endDate || null,
+      isActive: isActive !== false,
+      linkUrl: linkUrl || null,
+      linkText: linkText || null,
+      icon: icon || null,
+      translations: translations || null
+    }
+
     const announcement = await prisma.notification.create({
       data: {
         type: 'SYSTEM',
@@ -1578,8 +1591,7 @@ app.post('/api/announcements', tenantMiddleware, authMiddleware, async (req: Req
         roomId: null,
         tenantId,
         hotelId: hotel.id,
-        // Store additional data in a JSON field if needed
-        // For now, we'll use the message field for content
+        metadata: metadata
       }
     })
 
@@ -1597,6 +1609,33 @@ app.put('/api/announcements/:id', tenantMiddleware, authMiddleware, async (req: 
     const { id } = req.params
     const { title, content, type, category, startDate, endDate, isActive, linkUrl, linkText, icon, translations } = req.body
 
+    // Get existing announcement to preserve metadata
+    const existing = await prisma.notification.findFirst({
+      where: { 
+        id,
+        tenantId,
+        type: 'SYSTEM'
+      }
+    })
+
+    if (!existing) {
+      res.status(404).json({ message: 'Announcement not found' }); return;
+    }
+
+    // Merge metadata
+    const existingMetadata = (existing.metadata as any) || {}
+    const metadata: any = {
+      category: category !== undefined ? category : existingMetadata.category || 'general',
+      announcementType: type !== undefined ? type : existingMetadata.announcementType || 'info',
+      startDate: startDate !== undefined ? startDate : existingMetadata.startDate || new Date().toISOString().split('T')[0],
+      endDate: endDate !== undefined ? endDate : existingMetadata.endDate || null,
+      isActive: isActive !== undefined ? isActive : existingMetadata.isActive !== false,
+      linkUrl: linkUrl !== undefined ? linkUrl : existingMetadata.linkUrl || null,
+      linkText: linkText !== undefined ? linkText : existingMetadata.linkText || null,
+      icon: icon !== undefined ? icon : existingMetadata.icon || null,
+      translations: translations !== undefined ? translations : existingMetadata.translations || null
+    }
+
     const announcement = await prisma.notification.updateMany({
       where: { 
         id,
@@ -1605,7 +1644,8 @@ app.put('/api/announcements/:id', tenantMiddleware, authMiddleware, async (req: 
       },
       data: {
         ...(title && { title }),
-        ...(content !== undefined && { message: content })
+        ...(content !== undefined && { message: content }),
+        metadata: metadata
       }
     })
 
@@ -2399,6 +2439,104 @@ app.post('/api/admin/features/bulk-update', adminAuthMiddleware, async (req: Req
     }); return;
   } catch (error) {
     console.error('Bulk update features error:', error); res.status(500).json({ message: 'Database error' }); return;
+  }
+})
+
+// Hotel Info endpoints - Otel bilgilerini yönet
+app.get('/api/hotel/info', tenantMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    
+    // Get hotel from tenant
+    const hotel = await prisma.hotel.findFirst({
+      where: { tenantId }
+    })
+    
+    if (!hotel) {
+      res.status(404).json({ message: 'Hotel not found' }); return;
+    }
+    
+    // Get hotel info from settings or return defaults
+    const settings = hotel.settings as any || {}
+    const hotelInfo = {
+      wifi: settings.wifi || {
+        networkName: 'HotelLuxury_Guest',
+        password: 'Luxury2024!',
+        speed: '100 Mbps',
+        supportPhone: '+90 212 555 0199'
+      },
+      hours: settings.hours || {
+        reception: '24 Saat',
+        restaurant: '06:00 - 23:00',
+        bar: '18:00 - 02:00',
+        spa: '08:00 - 22:00'
+      },
+      dining: settings.dining || {
+        breakfast: '06:00-10:00',
+        lunch: '12:00-15:00',
+        dinner: '18:00-22:00',
+        roomService: '24 saat',
+        towelChange: 'günlük',
+        techSupport: '24 saat'
+      },
+      amenities: settings.amenities || [
+        'Ücretsiz WiFi',
+        'Otopark',
+        'Fitness Center',
+        'Yüzme Havuzu',
+        'Spa & Wellness',
+        'Çocuk Oyun Alanı'
+      ],
+      contacts: settings.contacts || {
+        reception: '+90 212 555 0100',
+        security: '+90 212 555 0101',
+        concierge: '+90 212 555 0102'
+      }
+    }
+    
+    res.json(hotelInfo); return;
+  } catch (error) {
+    console.error('Get hotel info error:', error);
+    res.status(500).json({ message: 'Database error' }); return;
+  }
+})
+
+app.put('/api/hotel/info', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = getTenantId(req)
+    const { wifi, hours, dining, amenities, contacts } = req.body
+    
+    // Get hotel from tenant
+    const hotel = await prisma.hotel.findFirst({
+      where: { tenantId }
+    })
+    
+    if (!hotel) {
+      res.status(404).json({ message: 'Hotel not found' }); return;
+    }
+    
+    // Update hotel settings
+    const currentSettings = (hotel.settings as any) || {}
+    const updatedSettings = {
+      ...currentSettings,
+      wifi: wifi || currentSettings.wifi,
+      hours: hours || currentSettings.hours,
+      dining: dining || currentSettings.dining,
+      amenities: amenities || currentSettings.amenities,
+      contacts: contacts || currentSettings.contacts
+    }
+    
+    await prisma.hotel.update({
+      where: { id: hotel.id },
+      data: {
+        settings: updatedSettings
+      }
+    })
+    
+    res.json({ message: 'Hotel info updated successfully', hotelInfo: updatedSettings }); return;
+  } catch (error) {
+    console.error('Update hotel info error:', error);
+    res.status(500).json({ message: 'Database error' }); return;
   }
 })
 
