@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Clock, Star, Image as ImageIcon, Minus, Plus, X, ArrowLeft, Info, AlertTriangle, Megaphone, Wrench } from 'lucide-react';
 import NextImage from 'next/image';
 import { FaBell, FaTimes } from 'react-icons/fa';
@@ -357,6 +357,22 @@ export default function QRMenuPage() {
     return matchesCategory && matchesSubCategory && matchesSearch && item.available;
   });
 
+  // Aktif kategorileri bul (ürün bulunan kategoriler)
+  const activeCategories = useMemo(() => {
+    if (menuData.length === 0) return [categories[0]]; // Sadece "Tümü" göster
+    
+    const categoriesWithProducts = new Set<string>();
+    categoriesWithProducts.add('all'); // "Tümü" her zaman göster
+    
+    menuData.forEach(item => {
+      if (item.available && item.category) {
+        categoriesWithProducts.add(item.category);
+      }
+    });
+    
+    return categories.filter(cat => categoriesWithProducts.has(cat.id));
+  }, [menuData]);
+
   // Alt kategori gösterimi
   const showSubCategories = selectedCategory !== 'all' && (subCategories as any)[selectedCategory]?.length > 0;
 
@@ -645,7 +661,7 @@ export default function QRMenuPage() {
         {/* Kategori ve Arama */}
         <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
           <div className="flex space-x-2 overflow-x-auto w-full md:w-auto">
-            {categories.map((category) => (
+            {activeCategories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => {
