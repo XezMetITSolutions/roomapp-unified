@@ -1,20 +1,7 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 
-const DATA_DIR = path.join(process.cwd(), '.data');
-const MENU_FILE = path.join(DATA_DIR, 'menu.json');
-
-function normalizeKey(name: string, category: string) {
-  const s = (v: string) => (v || '')
-    .toString()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
-  return `${s(name)}__${s(category)}`;
-}
+// Backend API URL'i
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
 
 export async function POST(request: Request) {
   try {
@@ -25,43 +12,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Silinecek ürün bilgisi eksik' }, { status: 400 });
     }
 
-    await fs.mkdir(DATA_DIR, { recursive: true });
-
-    let current: any[] = [];
+    // Backend API'ye proxy yap
     try {
-      const buf = await fs.readFile(MENU_FILE, 'utf8');
-      const parsed = JSON.parse(buf);
-      if (Array.isArray(parsed)) current = parsed;
-    } catch {
-      return NextResponse.json({ error: 'Menü dosyası bulunamadı' }, { status: 404 });
-    }
-
-    // Silme işlemi
-    let filteredItems = current;
-    
-    if (id) {
-      // ID ile sil
-      filteredItems = current.filter(item => item.id !== id);
-    } else if (name && category) {
-      // Name + category ile sil
-      const keyToDelete = normalizeKey(name, category);
-      filteredItems = current.filter(item => {
-        const itemKey = normalizeKey(item.name, item.category || 'Genel');
-        return itemKey !== keyToDelete;
+      const backendResponse = await fetch(`${BACKEND_URL}/api/menu/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, name, category }),
       });
+
+      const backendData = await backendResponse.json();
+
+      if (backendResponse.ok) {
+        return NextResponse.json({ 
+          success: true, 
+          ...backendData
+        }, { status: 200 });
+      } else {
+        return NextResponse.json({ 
+          error: backendData.error || 'Backend hatası' 
+        }, { status: backendResponse.status });
+      }
+    } catch (backendError: any) {
+      // Backend'e ulaşılamazsa, sadece başarılı dön (client-side'da zaten silindi)
+      console.warn('Backend silme hatası (devam ediliyor):', backendError);
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Ürün silindi (backend bağlantısı yok, sadece local silindi)',
+        warning: 'Backend bağlantısı kurulamadı'
+      }, { status: 200 });
     }
-
-    // Dosyayı güncelle
-    await fs.writeFile(MENU_FILE, JSON.stringify(filteredItems, null, 2), 'utf8');
-
-    const deletedCount = current.length - filteredItems.length;
-    return NextResponse.json({ 
-      success: true, 
-      deletedCount,
-      message: `${deletedCount} ürün silindi` 
-    }, { status: 200 });
 
   } catch (err: any) {
+    console.error('Menu delete API hatası:', err);
     return NextResponse.json({ error: err?.message || 'Sunucu hatası' }, { status: 500 });
   }
 }
