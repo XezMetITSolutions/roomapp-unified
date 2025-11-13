@@ -283,21 +283,77 @@ app.post('/debug/database-setup', async (req: Request, res: Response): Promise<v
       const migrateOutput = execSync('npx prisma migrate deploy', {
         encoding: 'utf8',
         cwd: process.cwd(),
-        stdio: 'pipe',
+        stdio: ['pipe', 'pipe', 'pipe'], // stdin, stdout, stderr
         timeout: 120000 // 2 dakika
       })
       results[results.length - 1] = { step: '3. Migration\'ları Çalıştırma', status: 'success', message: 'Migration\'lar başarıyla çalıştırıldı', output: migrateOutput }
       console.log('✅ Migration output:', migrateOutput)
     } catch (migrateError: any) {
-      const errorOutput = migrateError.stdout || migrateError.stderr || migrateError.message
-      console.error('❌ Migration hatası:', errorOutput)
+      // Hem stdout hem stderr'i al
+      const stdout = migrateError.stdout || ''
+      const stderr = migrateError.stderr || ''
+      const errorMessage = migrateError.message || ''
+      const fullErrorOutput = `${stdout}\n${stderr}\n${errorMessage}`.trim()
+      
+      console.error('❌ Migration hatası detayları:')
+      console.error('  - stdout:', stdout)
+      console.error('  - stderr:', stderr)
+      console.error('  - message:', errorMessage)
+      console.error('  - code:', migrateError.code)
+      console.error('  - signal:', migrateError.signal)
       
       // Eğer "already applied" veya "No pending migrations" ise başarılı say
-      if (errorOutput.includes('already applied') || errorOutput.includes('No pending migrations')) {
-        results[results.length - 1] = { step: '3. Migration\'ları Çalıştırma', status: 'success', message: 'Migration\'lar zaten uygulanmış', output: errorOutput }
+      if (fullErrorOutput.includes('already applied') || 
+          fullErrorOutput.includes('No pending migrations') ||
+          fullErrorOutput.includes('All migrations have already been applied')) {
+        results[results.length - 1] = { 
+          step: '3. Migration\'ları Çalıştırma', 
+          status: 'success', 
+          message: 'Migration\'lar zaten uygulanmış', 
+          output: fullErrorOutput 
+        }
       } else {
-        results[results.length - 1] = { step: '3. Migration\'ları Çalıştırma', status: 'error', message: 'Migration hatası', output: errorOutput }
-        // Hata olsa bile devam et
+        // Migration hatası var - alternatif yöntem dene
+        results[results.length - 1] = { 
+          step: '3. Migration\'ları Çalıştırma', 
+          status: 'error', 
+          message: 'Migration hatası - alternatif yöntem deneniyor', 
+          output: fullErrorOutput,
+          errorDetails: {
+            code: migrateError.code,
+            signal: migrateError.signal,
+            stdout: stdout.substring(0, 500), // İlk 500 karakter
+            stderr: stderr.substring(0, 500)
+          }
+        }
+        
+        // Alternatif: Prisma db push dene (development için)
+        console.log('🔄 Alternatif yöntem deneniyor: prisma db push')
+        try {
+          const pushOutput = execSync('npx prisma db push --accept-data-loss', {
+            encoding: 'utf8',
+            cwd: process.cwd(),
+            stdio: ['pipe', 'pipe', 'pipe'],
+            timeout: 120000
+          })
+          console.log('✅ DB push başarılı:', pushOutput)
+          results.push({ 
+            step: '3b. Alternatif: DB Push', 
+            status: 'success', 
+            message: 'Schema başarıyla push edildi', 
+            output: pushOutput.substring(0, 1000) 
+          })
+        } catch (pushError: any) {
+          const pushStdout = pushError.stdout || ''
+          const pushStderr = pushError.stderr || ''
+          console.error('❌ DB push hatası:', pushStdout, pushStderr)
+          results.push({ 
+            step: '3b. Alternatif: DB Push', 
+            status: 'error', 
+            message: 'DB push başarısız', 
+            output: `${pushStdout}\n${pushStderr}`.substring(0, 500)
+          })
+        }
       }
     }
     
