@@ -313,6 +313,50 @@ export default function DebugPage() {
     });
   };
 
+  const testDatabaseSetup = async (): Promise<TestResult> => {
+    const startTime = Date.now();
+    try {
+      const response = await fetch(`${apiBaseUrl}/debug/database-setup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const duration = Date.now() - startTime;
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success) {
+        return {
+          name: 'Database Setup (Kapsamlı)',
+          status: 'success',
+          message: `Database setup başarılı (${duration}ms)`,
+          data: {
+            message: data.message,
+            summary: data.summary,
+            results: data.results
+          },
+          duration,
+        };
+      } else {
+        return {
+          name: 'Database Setup (Kapsamlı)',
+          status: 'error',
+          message: `Database setup hatası: ${data.error || 'Bilinmeyen hata'}`,
+          data: data,
+          duration,
+        };
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      return {
+        name: 'Database Setup (Kapsamlı)',
+        status: 'error',
+        message: `Bağlantı hatası: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        duration,
+      };
+    }
+  };
+
   const runAllTests = async () => {
     setIsRunning(true);
     clearResults();
@@ -324,6 +368,13 @@ export default function DebugPage() {
     // Test 2: Database Connection
     addResult(await testDatabaseConnection());
     await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Test 2.5: Database Setup (Eğer tenants tablosu yoksa)
+    const dbTest = await testDatabaseConnection();
+    if (dbTest.status === 'error' || dbTest.data?.error?.includes('tenants') || dbTest.data?.error?.includes('table')) {
+      addResult(await testDatabaseSetup());
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Setup biraz zaman alabilir
+    }
 
     // Test 3: API Endpoints
     const endpoints = [
@@ -353,6 +404,9 @@ export default function DebugPage() {
         break;
       case 'database':
         addResult(await testDatabaseConnection());
+        break;
+      case 'database-setup':
+        addResult(await testDatabaseSetup());
         break;
       case 'socket':
         addResult(await testSocketIO());
@@ -584,6 +638,14 @@ export default function DebugPage() {
             </button>
             
             <button
+              onClick={() => runSingleTest('database-setup')}
+              disabled={isRunning}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+            >
+              🔧 Database Setup
+            </button>
+            
+            <button
               onClick={() => runSingleTest('socket')}
               disabled={isRunning}
               className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -682,6 +744,7 @@ export default function DebugPage() {
           <div className="space-y-2 text-blue-800">
             <p><strong>Backend Health Check:</strong> Backend sunucusunun çalışıp çalışmadığını kontrol eder.</p>
             <p><strong>Veritabanı Bağlantısı:</strong> PostgreSQL veritabanı bağlantısını test eder.</p>
+            <p><strong>Database Setup:</strong> Tüm sorunları otomatik çözer - başarısız migration'ları resolve eder, migration'ları çalıştırır, system-admin tenant ve kullanıcı oluşturur.</p>
             <p><strong>API Endpoints:</strong> Tüm API endpoint'lerini test eder (Menu, Rooms, Guests, Requests).</p>
             <p><strong>Socket.IO:</strong> WebSocket bağlantısını test eder (gerçek zamanlı bildirimler için).</p>
             <p className="mt-4 text-sm">
