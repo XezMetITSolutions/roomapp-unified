@@ -250,7 +250,8 @@ app.post('/debug/database-setup', async (req: Request, res: Response): Promise<v
       results[results.length - 1] = { step: '1. Veritabanı Bağlantısı', status: 'success', message: 'Veritabanı bağlantısı başarılı' }
     } catch (error: any) {
       results[results.length - 1] = { step: '1. Veritabanı Bağlantısı', status: 'error', message: error.message }
-      return res.status(500).json({ success: false, results, error: 'Veritabanı bağlantısı başarısız' })
+      res.status(500).json({ success: false, results, error: 'Veritabanı bağlantısı başarısız' })
+      return
     }
     
     // 2. Başarısız migration'ları resolve et
