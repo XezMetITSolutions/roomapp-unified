@@ -240,22 +240,56 @@ app.post('/debug/migrate', async (req: Request, res: Response) => {
   try {
     console.log('🔄 Manual migration baslatiliyor...')
     const { execSync } = require('child_process')
-    const output = execSync('npx prisma migrate deploy', { 
-      encoding: 'utf8',
-      cwd: process.cwd()
-    })
-    console.log('✅ Migration ciktisi:', output)
-    res.status(200).json({
-      success: true,
-      message: 'Migrations basariyla calistirildi',
-      output: output
-    })
+    
+    // Prisma migrate deploy komutunu çalıştır
+    let output = ''
+    let errorOutput = ''
+    
+    try {
+      output = execSync('npx prisma migrate deploy', { 
+        encoding: 'utf8',
+        cwd: process.cwd(),
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 60000 // 60 saniye timeout
+      })
+      console.log('✅ Migration ciktisi:', output)
+      
+      res.status(200).json({
+        success: true,
+        message: 'Migrations basariyla calistirildi',
+        output: output || 'Migration tamamlandi (cikti yok)'
+      })
+    } catch (execError: any) {
+      errorOutput = execError.stdout || execError.stderr || execError.message || 'Unknown error'
+      console.error('❌ Migration exec hatası:', execError)
+      console.error('❌ stdout:', execError.stdout)
+      console.error('❌ stderr:', execError.stderr)
+      
+      // Hata olsa bile, eğer migration'lar zaten uygulanmışsa başarılı sayılabilir
+      if (errorOutput.includes('already applied') || errorOutput.includes('No pending migrations')) {
+        res.status(200).json({
+          success: true,
+          message: 'Migration zaten uygulanmis veya bekleyen migration yok',
+          output: errorOutput
+        })
+      } else {
+        res.status(500).json({
+          success: false,
+          error: execError.message || 'Migration hatasi',
+          output: errorOutput,
+          details: {
+            code: execError.code,
+            signal: execError.signal
+          }
+        })
+      }
+    }
   } catch (error: any) {
-    console.error('❌ Migration hatası:', error)
+    console.error('❌ Migration endpoint hatası:', error)
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
-      output: error.stdout || error.stderr || 'No output',
+      output: 'Migration endpoint hatasi',
       stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
     })
   }

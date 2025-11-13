@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 
 export default function AdminLoginDebug() {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomapp-backend-1.onrender.com';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
   const [results, setResults] = useState<Array<{ name: string; ok: boolean; status?: number; data?: any; error?: string; warning?: boolean }>>([]);
   const [isRunning, setIsRunning] = useState(false);
 
