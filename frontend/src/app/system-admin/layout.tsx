@@ -3,7 +3,7 @@
 import { AdminAuthProvider, useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { Building2, Users, Settings, LogOut, Menu, X, BarChart3, Crown, Sparkles, Bell, CreditCard, Headphones, Rocket, TrendingUp } from 'lucide-react';
+import { Building2, Users, Settings, LogOut, Menu, X, BarChart3, Crown, Sparkles, Bell, CreditCard, Headphones, Rocket, TrendingUp, Database } from 'lucide-react';
 import { useState } from 'react';
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
@@ -44,6 +44,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const reportsMenu = [
     { name: 'Abonelik Yönetimi', href: '/system-admin/subscriptions', icon: CreditCard },
     { name: 'Destek Talepleri', href: '/system-admin/support', icon: Headphones },
+    { name: 'Veritabanı Restore', href: '/system-admin/database-restore', icon: Database },
   ];
 
   return (

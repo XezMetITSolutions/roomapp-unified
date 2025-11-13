@@ -15,6 +15,9 @@ import { adminAuthMiddleware, createSuperAdmin } from './middleware/adminAuth'
 import { login, getCurrentUser } from './controllers/auth'
 import { getUsers, createUser, updateUser, updateUserPermissions, deleteUser } from './controllers/users'
 import bcrypt from 'bcryptjs'
+import fs from 'fs'
+import path from 'path'
+import { v4 as uuidv4 } from 'uuid'
 
 // Load environment variables
 dotenv.config()
@@ -178,8 +181,8 @@ const limiter = rateLimit({
 app.use('/api/', limiter)
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use(express.json({ limit: '100mb' }))
+app.use(express.urlencoded({ extended: true, limit: '100mb' }))
 
 // Compression
 app.use(compression())
@@ -2557,6 +2560,99 @@ app.put('/api/hotel/info', tenantMiddleware, authMiddleware, async (req: Request
 })
 
 // Tüm mevcut özellikleri listele
+// Database Restore Endpoints
+const uploadsDir = path.join(process.cwd(), 'uploads', 'backups')
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true })
+}
+
+// Backup dosyası yükleme endpoint'i
+app.post('/api/admin/database/upload-backup', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    // Basit multipart/form-data desteği - dosyayı base64 olarak gönder
+    const { backup, filename } = req.body
+
+    if (!backup) {
+      res.status(400).json({ message: 'Backup dosyası gerekli' })
+      return
+    }
+
+    // Base64'ten buffer'a çevir
+    const fileBuffer = Buffer.from(backup, 'base64')
+    const fileId = uuidv4()
+    const filePath = path.join(uploadsDir, `${fileId}.backup`)
+
+    // Dosyayı kaydet
+    fs.writeFileSync(filePath, fileBuffer)
+
+    console.log(`✅ Backup dosyası yüklendi: ${filePath} (${fileBuffer.length} bytes)`)
+
+    res.json({
+      success: true,
+      fileId,
+      filename: filename || 'backup.backup',
+      size: fileBuffer.length,
+      message: 'Backup dosyası başarıyla yüklendi'
+    })
+    return
+  } catch (error) {
+    console.error('Backup upload error:', error)
+    res.status(500).json({ 
+      message: 'Backup dosyası yüklenirken hata oluştu',
+      error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+    })
+    return
+  }
+})
+
+// Database restore endpoint'i
+app.post('/api/admin/database/restore', adminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { fileId } = req.body
+
+    if (!fileId) {
+      res.status(400).json({ message: 'File ID gerekli' })
+      return
+    }
+
+    const filePath = path.join(uploadsDir, `${fileId}.backup`)
+
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ message: 'Backup dosyası bulunamadı' })
+      return
+    }
+
+    // Render.com'da pg_restore komutunu çalıştırmak zor olabilir
+    // Bu yüzden kullanıcıya restore talimatlarını göster
+    const fileStats = fs.statSync(filePath)
+    
+    console.log(`🔄 Database restore isteği: ${filePath} (${fileStats.size} bytes)`)
+
+    // Not: Render.com'da pg_restore komutunu çalıştırmak için
+    // ya lokal bir script kullanılmalı ya da backup SQL formatına çevrilmeli
+    // Şimdilik kullanıcıya talimatları göster
+    
+    res.json({
+      success: true,
+      message: 'Backup dosyası hazır. Restore işlemi için manuel komut gerekli.',
+      instructions: {
+        method1: 'Lokal PostgreSQL ile restore edin',
+        method2: 'Backup dosyasını SQL formatına çevirin',
+        filePath: filePath,
+        fileSize: fileStats.size
+      }
+    })
+    return
+  } catch (error) {
+    console.error('Database restore error:', error)
+    res.status(500).json({ 
+      message: 'Database restore işlemi sırasında hata oluştu',
+      error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+    })
+    return
+  }
+})
+
 app.get('/api/admin/features/available', adminAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const availableFeatures = [

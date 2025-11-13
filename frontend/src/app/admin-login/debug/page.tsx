@@ -83,6 +83,31 @@ export default function AdminLoginDebug() {
     }
     await new Promise(resolve => setTimeout(resolve, 300));
 
+    // 3.5) Migration testi (eğer tenants tablosu yoksa)
+    try {
+      const res = await fetch(`${API_BASE_URL}/debug/migrate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      const migrationSuccess = res.ok && data.success;
+      push({ 
+        name: 'POST /debug/migrate (Migration Çalıştır)', 
+        ok: migrationSuccess, 
+        status: res.status, 
+        data: migrationSuccess ? { 
+          message: data.message,
+          output: data.output ? 'Migration çıktısı alındı ✅' : 'Çıktı yok'
+        } : data,
+        warning: !migrationSuccess && res.status === 500
+      });
+    } catch (e: any) {
+      push({ name: 'POST /debug/migrate (Migration Çalıştır)', ok: false, error: e?.message || String(e) });
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Migration biraz zaman alabilir
+
     // 4) Login endpoint'e POST (yanlış şifre - tenant kontrolü için)
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -214,6 +239,7 @@ export default function AdminLoginDebug() {
               <ul className="list-disc list-inside mt-1 space-y-1">
                 <li><strong>Veritabanı Bağlantısı:</strong> Health endpoint veritabanı durumunu gösterir</li>
                 <li><strong>CORS Preflight:</strong> x-tenant header'ının izin verildiğini kontrol eder</li>
+                <li><strong>Migration Çalıştır:</strong> Veritabanı migration'larını çalıştırır (tablolar yoksa)</li>
                 <li><strong>Tenant Kontrolü:</strong> system-admin tenant'ının var olup olmadığını test eder</li>
                 <li><strong>Gerçek Login:</strong> Doğru credentials ile login testi yapar</li>
               </ul>
