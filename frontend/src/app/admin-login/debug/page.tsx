@@ -83,7 +83,37 @@ export default function AdminLoginDebug() {
     }
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    // 3.5) Migration testi (eğer tenants tablosu yoksa)
+    // 3.5) Kapsamlı Database Setup (ÖNERİLEN)
+    try {
+      const res = await fetch(`${API_BASE_URL}/debug/database-setup`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      const setupSuccess = res.ok && data.success;
+      push({ 
+        name: 'POST /debug/database-setup (Kapsamlı Setup)', 
+        ok: setupSuccess, 
+        status: res.status, 
+        data: {
+          message: data.message,
+          summary: data.summary,
+          results: data.results?.map((r: any) => ({
+            step: r.step,
+            status: r.status,
+            message: r.message
+          }))
+        },
+        warning: !setupSuccess && res.status === 500
+      });
+    } catch (e: any) {
+      push({ name: 'POST /debug/database-setup (Kapsamlı Setup)', ok: false, error: e?.message || String(e) });
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Setup biraz zaman alabilir
+
+    // 3.6) Migration testi (basit versiyon - eğer setup başarısız olursa)
     try {
       const res = await fetch(`${API_BASE_URL}/debug/migrate`, {
         method: 'POST',
@@ -239,7 +269,8 @@ export default function AdminLoginDebug() {
               <ul className="list-disc list-inside mt-1 space-y-1">
                 <li><strong>Veritabanı Bağlantısı:</strong> Health endpoint veritabanı durumunu gösterir</li>
                 <li><strong>CORS Preflight:</strong> x-tenant header'ının izin verildiğini kontrol eder</li>
-                <li><strong>Migration Çalıştır:</strong> Veritabanı migration'larını çalıştırır (tablolar yoksa)</li>
+                <li><strong>Kapsamlı Database Setup:</strong> Tüm sorunları otomatik çözer (başarısız migration'ları resolve eder, migration'ları çalıştırır, system-admin tenant ve kullanıcı oluşturur)</li>
+                <li><strong>Migration Çalıştır:</strong> Sadece migration'ları çalıştırır (basit versiyon)</li>
                 <li><strong>Tenant Kontrolü:</strong> system-admin tenant'ının var olup olmadığını test eder</li>
                 <li><strong>Gerçek Login:</strong> Doğru credentials ile login testi yapar</li>
               </ul>

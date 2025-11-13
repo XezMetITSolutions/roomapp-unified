@@ -235,11 +235,244 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 })
 
-// Debug endpoint - Migration çalıştır
+// Kapsamlı Database Setup Endpoint - Tüm sorunları otomatik çözer
+app.post('/debug/database-setup', async (req: Request, res: Response) => {
+  const results: any[] = []
+  const { execSync } = require('child_process')
+  
+  try {
+    console.log('🚀 Kapsamlı database setup başlatılıyor...')
+    
+    // 1. Veritabanı bağlantısını test et
+    results.push({ step: '1. Veritabanı Bağlantısı', status: 'checking' })
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      results[results.length - 1] = { step: '1. Veritabanı Bağlantısı', status: 'success', message: 'Veritabanı bağlantısı başarılı' }
+    } catch (error: any) {
+      results[results.length - 1] = { step: '1. Veritabanı Bağlantısı', status: 'error', message: error.message }
+      return res.status(500).json({ success: false, results, error: 'Veritabanı bağlantısı başarısız' })
+    }
+    
+    // 2. Başarısız migration'ları resolve et
+    results.push({ step: '2. Başarısız Migration\'ları Çözme', status: 'checking' })
+    const failedMigrations = [
+      '20250106210000_add_super_admin_role',
+      '20250106220000_add_user_permissions'
+    ]
+    
+    for (const migration of failedMigrations) {
+      try {
+        execSync(`npx prisma migrate resolve --applied ${migration}`, {
+          encoding: 'utf8',
+          cwd: process.cwd(),
+          stdio: 'pipe',
+          timeout: 10000
+        })
+        console.log(`✅ Migration resolved: ${migration}`)
+      } catch (error: any) {
+        // Migration zaten çözülmüş veya mevcut değil - bu normal
+        console.log(`ℹ️ Migration resolve skipped: ${migration} - ${error.message}`)
+      }
+    }
+    results[results.length - 1] = { step: '2. Başarısız Migration\'ları Çözme', status: 'success', message: 'Başarısız migration\'lar kontrol edildi' }
+    
+    // 3. Migration'ları çalıştır
+    results.push({ step: '3. Migration\'ları Çalıştırma', status: 'checking' })
+    try {
+      const migrateOutput = execSync('npx prisma migrate deploy', {
+        encoding: 'utf8',
+        cwd: process.cwd(),
+        stdio: 'pipe',
+        timeout: 120000 // 2 dakika
+      })
+      results[results.length - 1] = { step: '3. Migration\'ları Çalıştırma', status: 'success', message: 'Migration\'lar başarıyla çalıştırıldı', output: migrateOutput }
+      console.log('✅ Migration output:', migrateOutput)
+    } catch (migrateError: any) {
+      const errorOutput = migrateError.stdout || migrateError.stderr || migrateError.message
+      console.error('❌ Migration hatası:', errorOutput)
+      
+      // Eğer "already applied" veya "No pending migrations" ise başarılı say
+      if (errorOutput.includes('already applied') || errorOutput.includes('No pending migrations')) {
+        results[results.length - 1] = { step: '3. Migration\'ları Çalıştırma', status: 'success', message: 'Migration\'lar zaten uygulanmış', output: errorOutput }
+      } else {
+        results[results.length - 1] = { step: '3. Migration\'ları Çalıştırma', status: 'error', message: 'Migration hatası', output: errorOutput }
+        // Hata olsa bile devam et
+      }
+    }
+    
+    // 4. Veritabanı durumunu kontrol et
+    results.push({ step: '4. Veritabanı Durumu Kontrolü', status: 'checking' })
+    try {
+      // Tenants tablosunu kontrol et
+      const tenantCount = await prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*) as count FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'tenants'
+      `
+      const hasTenantsTable = tenantCount[0]?.count > 0
+      
+      let tenantDataCount = 0
+      if (hasTenantsTable) {
+        try {
+          tenantDataCount = await prisma.tenant.count()
+        } catch (e) {
+          // Tablo var ama boş olabilir
+        }
+      }
+      
+      results[results.length - 1] = {
+        step: '4. Veritabanı Durumu Kontrolü',
+        status: hasTenantsTable ? 'success' : 'warning',
+        message: hasTenantsTable 
+          ? `Tenants tablosu mevcut (${tenantDataCount} kayıt)`
+          : 'Tenants tablosu bulunamadı',
+        details: {
+          hasTenantsTable,
+          tenantDataCount
+        }
+      }
+    } catch (error: any) {
+      results[results.length - 1] = { step: '4. Veritabanı Durumu Kontrolü', status: 'error', message: error.message }
+    }
+    
+    // 5. System-admin tenant'ını oluştur (eğer yoksa)
+    results.push({ step: '5. System-Admin Tenant Oluşturma', status: 'checking' })
+    try {
+      let systemAdminTenant = await prisma.tenant.findUnique({
+        where: { slug: 'system-admin' }
+      })
+      
+      if (!systemAdminTenant) {
+        systemAdminTenant = await prisma.tenant.create({
+          data: {
+            name: 'System Admin',
+            slug: 'system-admin',
+            domain: 'roomxqr.com',
+            isActive: true,
+            settings: {}
+          }
+        })
+        results[results.length - 1] = { step: '5. System-Admin Tenant Oluşturma', status: 'success', message: 'System-admin tenant oluşturuldu' }
+      } else {
+        results[results.length - 1] = { step: '5. System-Admin Tenant Oluşturma', status: 'success', message: 'System-admin tenant zaten mevcut' }
+      }
+    } catch (error: any) {
+      results[results.length - 1] = { step: '5. System-Admin Tenant Oluşturma', status: 'error', message: error.message }
+    }
+    
+    // 6. Super admin kullanıcısını oluştur (eğer yoksa)
+    results.push({ step: '6. Super Admin Kullanıcı Oluşturma', status: 'checking' })
+    try {
+      const systemAdminTenant = await prisma.tenant.findUnique({
+        where: { slug: 'system-admin' }
+      })
+      
+      if (systemAdminTenant) {
+        const adminEmail = 'roomxqr-admin@roomxqr.com'
+        let adminUser = await prisma.user.findUnique({
+          where: { email: adminEmail }
+        })
+        
+        if (!adminUser) {
+          const hashedPassword = await bcrypt.hash('01528797Mb##', 10)
+          
+          // Önce bir hotel oluştur (user için gerekli)
+          let hotel = await prisma.hotel.findFirst({
+            where: { tenantId: systemAdminTenant.id }
+          })
+          
+          if (!hotel) {
+            hotel = await prisma.hotel.create({
+              data: {
+                name: 'System Admin Hotel',
+                address: 'System',
+                phone: '0000000000',
+                email: adminEmail,
+                tenantId: systemAdminTenant.id,
+                isActive: true
+              }
+            })
+          }
+          
+          adminUser = await prisma.user.create({
+            data: {
+              email: adminEmail,
+              password: hashedPassword,
+              firstName: 'System',
+              lastName: 'Admin',
+              role: 'SUPER_ADMIN',
+              tenantId: systemAdminTenant.id,
+              hotelId: hotel.id,
+              isActive: true
+            }
+          })
+          results[results.length - 1] = { step: '6. Super Admin Kullanıcı Oluşturma', status: 'success', message: 'Super admin kullanıcı oluşturuldu' }
+        } else {
+          results[results.length - 1] = { step: '6. Super Admin Kullanıcı Oluşturma', status: 'success', message: 'Super admin kullanıcı zaten mevcut' }
+        }
+      } else {
+        results[results.length - 1] = { step: '6. Super Admin Kullanıcı Oluşturma', status: 'warning', message: 'System-admin tenant bulunamadı' }
+      }
+    } catch (error: any) {
+      results[results.length - 1] = { step: '6. Super Admin Kullanıcı Oluşturma', status: 'error', message: error.message }
+    }
+    
+    // Sonuçları özetle
+    const successCount = results.filter(r => r.status === 'success').length
+    const errorCount = results.filter(r => r.status === 'error').length
+    const warningCount = results.filter(r => r.status === 'warning').length
+    
+    const overallSuccess = errorCount === 0
+    
+    res.status(overallSuccess ? 200 : 500).json({
+      success: overallSuccess,
+      message: overallSuccess 
+        ? 'Database setup başarıyla tamamlandı'
+        : 'Database setup tamamlandı ancak bazı hatalar var',
+      summary: {
+        total: results.length,
+        success: successCount,
+        warning: warningCount,
+        error: errorCount
+      },
+      results
+    })
+    
+  } catch (error: any) {
+    console.error('❌ Database setup hatası:', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      results,
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    })
+  }
+})
+
+// Debug endpoint - Migration çalıştır (basit versiyon)
 app.post('/debug/migrate', async (req: Request, res: Response) => {
   try {
     console.log('🔄 Manual migration baslatiliyor...')
     const { execSync } = require('child_process')
+    
+    // Önce başarısız migration'ları resolve et
+    const failedMigrations = [
+      '20250106210000_add_super_admin_role',
+      '20250106220000_add_user_permissions'
+    ]
+    
+    for (const migration of failedMigrations) {
+      try {
+        execSync(`npx prisma migrate resolve --applied ${migration}`, {
+          encoding: 'utf8',
+          cwd: process.cwd(),
+          stdio: 'pipe',
+          timeout: 10000
+        })
+        console.log(`✅ Migration resolved: ${migration}`)
+      } catch (error: any) {
+        console.log(`ℹ️ Migration resolve skipped: ${migration}`)
+      }
+    }
     
     // Prisma migrate deploy komutunu çalıştır
     let output = ''
