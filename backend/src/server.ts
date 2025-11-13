@@ -236,7 +236,7 @@ app.get('/health', async (req: Request, res: Response) => {
 })
 
 // Kapsamlı Database Setup Endpoint - Tüm sorunları otomatik çözer
-app.post('/debug/database-setup', async (req: Request, res: Response) => {
+app.post('/debug/database-setup', async (req: Request, res: Response): Promise<void> => {
   const results: any[] = []
   const { execSync } = require('child_process')
   
@@ -308,7 +308,7 @@ app.post('/debug/database-setup', async (req: Request, res: Response) => {
         SELECT COUNT(*) as count FROM information_schema.tables 
         WHERE table_schema = 'public' AND table_name = 'tenants'
       `
-      const hasTenantsTable = tenantCount[0]?.count > 0
+      const hasTenantsTable = (tenantCount[0]?.count ?? BigInt(0)) > 0
       
       let tenantDataCount = 0
       if (hasTenantsTable) {
@@ -436,6 +436,7 @@ app.post('/debug/database-setup', async (req: Request, res: Response) => {
       },
       results
     })
+    return
     
   } catch (error: any) {
     console.error('❌ Database setup hatası:', error)
@@ -445,6 +446,7 @@ app.post('/debug/database-setup', async (req: Request, res: Response) => {
       results,
       stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
     })
+    return
   }
 })
 
