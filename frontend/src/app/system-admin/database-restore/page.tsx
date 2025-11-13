@@ -45,7 +45,7 @@ export default function DatabaseRestorePage() {
     }
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!file) {
       setStatus('error');
       setMessage('Lütfen bir dosya seçin');
@@ -57,48 +57,47 @@ export default function DatabaseRestorePage() {
     setUploadProgress(0);
     setMessage('');
 
-    try {
-      // Dosyayı base64'e çevir
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const base64 = (e.target?.result as string).split(',')[1] || (e.target?.result as string);
-          
-          // adminApiClient.request zaten JSON döndürüyor
-          const token = localStorage.getItem('admin_token');
-          const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
-          
-          const uploadResponse = await fetch(`${API_BASE_URL}/api/admin/database/upload-backup`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'x-tenant': 'system-admin',
-            },
-            body: JSON.stringify({
-              backup: base64,
-              filename: file.name
-            }),
-          });
+    // Dosyayı base64'e çevir
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const base64 = (e.target?.result as string).split(',')[1] || (e.target?.result as string);
+        
+        // adminApiClient.request zaten JSON döndürüyor
+        const token = localStorage.getItem('admin_token');
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        const uploadResponse = await fetch(`${API_BASE_URL}/api/admin/database/upload-backup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-tenant': 'system-admin',
+          },
+          body: JSON.stringify({
+            backup: base64,
+            filename: file.name
+          }),
+        });
 
-          if (!uploadResponse.ok) {
-            const error = await uploadResponse.json().catch(() => ({ message: 'Yükleme hatası' }));
-            throw new Error(error.message || 'Yükleme hatası');
-          }
-
-          const response = await uploadResponse.json();
-          setUploadedFileId(response.fileId);
-          setStatus('success');
-          setMessage(`Backup dosyası başarıyla yüklendi: ${file.name}`);
-          setUploadProgress(100);
-        } catch (error: any) {
-          setStatus('error');
-          setMessage(error.message || 'Yükleme sırasında bir hata oluştu');
-        } finally {
-          setUploading(false);
+        if (!uploadResponse.ok) {
+          const error = await uploadResponse.json().catch(() => ({ message: 'Yükleme hatası' }));
+          throw new Error(error.message || 'Yükleme hatası');
         }
-      };
-      reader.readAsDataURL(file);
+
+        const response = await uploadResponse.json();
+        setUploadedFileId(response.fileId);
+        setStatus('success');
+        setMessage(`Backup dosyası başarıyla yüklendi: ${file.name}`);
+        setUploadProgress(100);
+      } catch (error: any) {
+        setStatus('error');
+        setMessage(error.message || 'Yükleme sırasında bir hata oluştu');
+      } finally {
+        setUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRestore = async () => {
@@ -364,4 +363,3 @@ export default function DatabaseRestorePage() {
     </div>
   );
 }
-
