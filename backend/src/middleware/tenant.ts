@@ -80,9 +80,18 @@ export async function tenantMiddleware(req: Request, res: Response, next: NextFu
   } catch (error) {
     console.error('❌ Tenant middleware error:', error)
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
+    // Daha detaylı hata mesajı (production'da da göster)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    
     res.status(500).json({ 
       message: 'Sunucu hatası',
-      error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      error: errorMessage,
+      details: {
+        tenantSlug: req.headers['x-tenant'],
+        path: req.path,
+        method: req.method
+      }
     })
     return
   }

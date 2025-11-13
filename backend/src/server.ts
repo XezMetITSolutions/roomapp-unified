@@ -643,7 +643,11 @@ app.get('/api/menu', tenantMiddleware, async (req: Request, res: Response) => {
     res.json({ menuItems }); return;
   } catch (error) {
     console.error('Menu error:', error)
-    res.status(500).json({ message: 'Database error' })
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production'
+    res.status(500).json({ 
+      message: 'Database error',
+      error: isDevelopment ? (error instanceof Error ? error.message : String(error)) : undefined
+    })
     return;
   }
 })
@@ -672,7 +676,11 @@ app.get('/api/rooms', tenantMiddleware, async (req: Request, res: Response) => {
     res.json({ rooms }); return;
   } catch (error) {
     console.error('Rooms error:', error)
-    res.status(500).json({ message: 'Database error' })
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production'
+    res.status(500).json({ 
+      message: 'Database error',
+      error: isDevelopment ? (error instanceof Error ? error.message : String(error)) : undefined
+    })
     return;
   }
 })
@@ -698,7 +706,11 @@ app.get('/api/guests', tenantMiddleware, async (req: Request, res: Response) => 
     res.json({ guests }); return;
   } catch (error) {
     console.error('Guests error:', error)
-    res.status(500).json({ message: 'Database error' })
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production'
+    res.status(500).json({ 
+      message: 'Database error',
+      error: isDevelopment ? (error instanceof Error ? error.message : String(error)) : undefined
+    })
     return;
   }
 })
@@ -1063,7 +1075,11 @@ app.get('/api/requests', tenantMiddleware, async (req: Request, res: Response) =
     res.json(requests); return;
   } catch (error) {
     console.error('Requests error:', error)
-    res.status(500).json({ message: 'Database error' })
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production'
+    res.status(500).json({ 
+      message: 'Database error',
+      error: isDevelopment ? (error instanceof Error ? error.message : String(error)) : undefined
+    })
     return;
   }
 })
