@@ -19,6 +19,9 @@ RUN npx prisma generate
 # Projenin geri kalanını kopyala
 COPY . .
 
+# Startup script'ini çalıştırılabilir yap
+RUN chmod +x ./start.sh
+
 # TypeScript'i derle
 RUN npm run build
 
@@ -29,4 +32,4 @@ RUN npm prune --omit=dev
 EXPOSE 3001
 
 # Container başlarken migration yap, sonra uygulamayı başlat
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+CMD ["./start.sh"]
