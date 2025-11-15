@@ -315,7 +315,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   </span>
                 </div>
                 <span className="hidden lg:block text-sm font-medium text-gray-700">
-                  {user.firstName} {user.lastName}
+                  {user.firstName?.replace(/\s+user\s*$/i, '').trim() || user.firstName}
                 </span>
               </div>
             </div>
