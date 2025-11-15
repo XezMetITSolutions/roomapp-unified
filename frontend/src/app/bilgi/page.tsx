@@ -87,9 +87,10 @@ export default function BilgiPage() {
           }
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/hotel/info`, {
+        const response = await fetch(`${API_BASE_URL}/api/hotel/info?t=${Date.now()}`, {
           headers: {
-            'x-tenant': tenantSlug
+            'x-tenant': tenantSlug,
+            'Cache-Control': 'no-cache'
           }
         });
 
@@ -107,6 +108,19 @@ export default function BilgiPage() {
     };
 
     loadHotelInfo();
+
+    // Sayfa görünür olduğunda veriyi yeniden yükle (güncellemeleri görmek için)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadHotelInfo();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const toggleSection = (section: string) => {

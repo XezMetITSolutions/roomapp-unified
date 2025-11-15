@@ -969,7 +969,16 @@ app.get('/api/menu', tenantMiddleware, async (req: Request, res: Response) => {
       },
       orderBy: { name: 'asc' }
     })
-    res.json({ menuItems }); return;
+    
+    // Translations'ı parse et (JSON olarak saklanıyor olabilir)
+    const formattedMenu = menuItems.map(item => ({
+      ...item,
+      translations: typeof item.translations === 'string' 
+        ? JSON.parse(item.translations) 
+        : item.translations || {}
+    }))
+    
+    res.json({ menu: formattedMenu }); return;
   } catch (error) {
     console.error('Menu error:', error)
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production'
@@ -2793,6 +2802,12 @@ app.get('/api/hotel/info', tenantMiddleware, async (req: Request, res: Response)
   try {
     const tenantId = getTenantId(req)
     
+    // Get tenant to get hotel name
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true }
+    })
+    
     // Get hotel from tenant
     const hotel = await prisma.hotel.findFirst({
       where: { tenantId }
@@ -2805,6 +2820,7 @@ app.get('/api/hotel/info', tenantMiddleware, async (req: Request, res: Response)
     // Get hotel info from settings or return empty defaults
     const settings = hotel.settings as any || {}
     const hotelInfo = {
+      name: tenant?.name || '', // Tenant name'i otel adı olarak kullan
       wifi: settings.wifi || {
         networkName: '',
         password: '',
@@ -2858,11 +2874,11 @@ app.put('/api/hotel/info', tenantMiddleware, authMiddleware, async (req: Request
     const currentSettings = (hotel.settings as any) || {}
     const updatedSettings = {
       ...currentSettings,
-      wifi: wifi || currentSettings.wifi,
-      hours: hours || currentSettings.hours,
-      dining: dining || currentSettings.dining,
-      amenities: amenities || currentSettings.amenities,
-      contacts: contacts || currentSettings.contacts
+      ...(wifi !== undefined && { wifi }),
+      ...(hours !== undefined && { hours }),
+      ...(dining !== undefined && { dining }),
+      ...(amenities !== undefined && { amenities }),
+      ...(contacts !== undefined && { contacts })
     }
     
     await prisma.hotel.update({
