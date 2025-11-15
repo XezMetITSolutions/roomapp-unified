@@ -4,7 +4,6 @@ import { Clock, Star, Image as ImageIcon, Minus, Plus, X, ArrowLeft, Info, Alert
 import NextImage from 'next/image';
 import { FaBell, FaTimes } from 'react-icons/fa';
 import { ApiService } from '@/services/api';
-import { useAnnouncementStore } from '@/store/announcementStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
 
@@ -230,17 +229,82 @@ export default function QRMenuPage() {
     loadMenuData();
   }, []);
   
-  // Duyuru store'u
-  const { getAnnouncementsByCategory } = useAnnouncementStore();
+  // Duyurular state
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
 
   
-  // Duyuruları yükle (sadece menü kategorisindeki)
+  // Duyuruları API'den yükle (sadece menü kategorisindeki)
   useEffect(() => {
-    const loadAnnouncements = () => {
-      const menuAnnouncements = getAnnouncementsByCategory('menu');
-      setAnnouncements(menuAnnouncements);
+    const loadAnnouncements = async () => {
+      try {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/announcements`, {
+          headers: {
+            'x-tenant': tenantSlug
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const announcementsData = Array.isArray(data) ? data : [];
+          
+          // API'den gelen veriyi formatla ve sadece menü kategorisindeki aktif duyuruları filtrele
+          const formattedAnnouncements = announcementsData
+            .map((a: any) => {
+              const metadata = (a.metadata as any) || {};
+              const category = metadata.category || 'general';
+              const isActive = metadata.isActive !== false;
+              
+              // Sadece menü kategorisindeki aktif duyuruları al
+              if (category !== 'menu' || !isActive) {
+                return null;
+              }
+              
+              // Tarih kontrolü
+              const now = new Date().toISOString().split('T')[0];
+              const startDate = metadata.startDate || (a.createdAt ? new Date(a.createdAt).toISOString().split('T')[0] : now);
+              const endDate = metadata.endDate;
+              
+              if (startDate > now) return null;
+              if (endDate && endDate < now) return null;
+              
+              return {
+                id: a.id,
+                title: a.title || 'Duyuru',
+                content: a.message || '',
+                type: (metadata.announcementType || 'info') as 'info' | 'warning' | 'promotion' | 'maintenance' | 'advertisement',
+                category: category as 'general' | 'menu' | 'hotel' | 'promotion',
+                isActive: true,
+                startDate: startDate,
+                endDate: endDate || undefined,
+                linkUrl: metadata.linkUrl || undefined,
+                linkText: metadata.linkText || undefined,
+                icon: metadata.icon || undefined,
+                translations: metadata.translations || undefined
+              };
+            })
+            .filter((a: any) => a !== null);
+          
+          setAnnouncements(formattedAnnouncements);
+        } else {
+          setAnnouncements([]);
+        }
+      } catch (error) {
+        console.error('Duyurular yüklenirken hata:', error);
+        setAnnouncements([]);
+      }
     };
     
     loadAnnouncements();
@@ -248,13 +312,13 @@ export default function QRMenuPage() {
     // Her 30 saniyede bir güncelle
     const interval = setInterval(loadAnnouncements, 30000);
     return () => clearInterval(interval);
-  }, [getAnnouncementsByCategory]);
+  }, []);
 
   // Dil değiştiğinde duyuruları yeniden yükle (re-render için)
   useEffect(() => {
-    const menuAnnouncements = getAnnouncementsByCategory('menu');
-    setAnnouncements(menuAnnouncements);
-  }, [currentLanguage, getAnnouncementsByCategory]);
+    // Duyurular zaten API'den yükleniyor, sadece state'i güncelle
+    // Bu effect sadece dil değiştiğinde re-render için
+  }, [currentLanguage]);
 
   // Otomatik duyuru rotasyonu
   useEffect(() => {

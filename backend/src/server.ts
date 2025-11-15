@@ -1878,7 +1878,7 @@ app.post('/api/menu/save', tenantMiddleware, authMiddleware, async (req: Request
 })
 
 // Announcements endpoints (using Notification model)
-app.get('/api/announcements', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+app.get('/api/announcements', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
     const { limit } = req.query
