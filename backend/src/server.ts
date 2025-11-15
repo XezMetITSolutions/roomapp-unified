@@ -3274,8 +3274,8 @@ app.post('/api/translate', tenantMiddleware, authMiddleware, async (req: Request
       return;
     }
 
-    const data = await response.json();
-    const translations = data.translations || [];
+    const data = await response.json() as any;
+    const translations = (data?.translations || []) as Array<{ text: string }>;
     
     console.log('DeepL API response:', { 
       targetLang: deeplTargetLang, 
