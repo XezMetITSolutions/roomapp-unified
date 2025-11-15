@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useThemeStore, generateGradientColors } from '@/store/themeStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemeStore } from '@/store/themeStore';
 import Image from 'next/image';
 import { useSocialMediaStore } from '@/store/socialMediaStore';
 import { 
@@ -60,6 +61,8 @@ interface LanguageSettings {
 
 
 export default function SettingsPage() {
+  // Authentication hook - component'in en üstünde çağrılmalı (React hooks kuralları)
+  const { token, user } = useAuth();
   const themeStore = useThemeStore();
   const [activeTab, setActiveTab] = useState<'hotel' | 'theme' | 'language' | 'social'>('hotel');
   const { links, setLinks } = useSocialMediaStore();
@@ -287,8 +290,6 @@ export default function SettingsPage() {
     return gradientColors;
   };
 
-
-  const { token, user } = useAuth();
   const [hotelSettings, setHotelSettings] = useState<HotelSettings>({
     name: '',
     address: '',
