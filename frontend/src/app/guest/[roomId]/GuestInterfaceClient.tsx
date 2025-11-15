@@ -34,10 +34,13 @@ interface GuestInterfaceClientProps {
 export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientProps) {
   const router = useRouter();
   const [showSurvey, setShowSurvey] = useState(false);
+  const [showSurnameModal, setShowSurnameModal] = useState(false);
+  const [surnameInput, setSurnameInput] = useState('');
   const [guestInfo, setGuestInfo] = useState<{
     name: string;
     surname: string;
   } | null>(null);
+  const [savedSurname, setSavedSurname] = useState<string | null>(null);
   const { addNotification } = useNotifications();
 
   // Dil store'u
@@ -57,11 +60,21 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
     }
   };
 
-  // Hydration kontrolü
+  // Hydration kontrolü ve soyisim kontrolü
   useEffect(() => {
     setIsHydrated(true);
     // RoomId'yi localStorage'a kaydet (geri dönüş için)
     localStorage.setItem('currentRoomId', roomId);
+    
+    // Bu oda için kaydedilmiş soyisim var mı kontrol et
+    const surnameKey = `guest_surname_${roomId}`;
+    const saved = localStorage.getItem(surnameKey);
+    if (saved) {
+      setSavedSurname(saved);
+    } else {
+      // İlk açılışta soyisim sor
+      setShowSurnameModal(true);
+    }
   }, [roomId]);
 
   // Dil seçici dropdown'ı dışına tıklandığında kapat
@@ -114,11 +127,10 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
     // Bu oda için hoş geldiniz bildirimi daha önce gösterildi mi?
     const hasShownWelcome = localStorage.getItem(welcomeKey);
     
-    if (!hasShownWelcome) {
+    // Soyisim kaydedildikten sonra hoş geldiniz mesajını göster
+    if (!hasShownWelcome && savedSurname) {
       const timer = setTimeout(() => {
-        const welcomeMessage = guestInfo 
-          ? `Hoş Geldiniz ${guestInfo.name}`
-          : 'Hoş Geldiniz';
+        const welcomeMessage = `Hoş Geldiniz sayın ${savedSurname}`;
         
         addNotification('info', welcomeMessage, 'Resepsiyon ekibimiz 7/24 hizmetinizdedir. İsteklerinizi buradan gönderebilirsiniz.', false, true, 5000); // Ses çalma, 5 saniye
         
@@ -128,15 +140,29 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
       
       return () => clearTimeout(timer);
     }
-  }, [guestInfo, roomId, addNotification]);
+  }, [savedSurname, roomId, addNotification]);
 
-  // Sayfa başlığını müşteri adı ile güncelle
+  // Sayfa başlığını müşteri soyismi ile güncelle
   useEffect(() => {
-    if (guestInfo) {
+    if (savedSurname) {
+      const title = `Hoş Geldiniz sayın ${savedSurname}`;
+      document.title = title;
+    } else if (guestInfo) {
       const title = `Hoş Geldiniz ${guestInfo.name}`;
       document.title = title;
     }
-  }, [guestInfo, roomId]);
+  }, [guestInfo, savedSurname, roomId]);
+
+  // Soyisim kaydetme fonksiyonu
+  const handleSaveSurname = () => {
+    if (surnameInput.trim()) {
+      const surnameKey = `guest_surname_${roomId}`;
+      localStorage.setItem(surnameKey, surnameInput.trim());
+      setSavedSurname(surnameInput.trim());
+      setShowSurnameModal(false);
+      setSurnameInput('');
+    }
+  };
 
 
   if (showSurvey) {
@@ -149,9 +175,11 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
       <div className="min-h-screen flex flex-col items-center py-8 relative" style={{ background: theme.backgroundColor }}>
         <div className="w-full max-w-md px-4 mb-4 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold flex-1" style={{ color: theme.textColor }}>
-            {guestInfo 
-              ? `Hoş Geldiniz ${guestInfo.name}`
-              : `Hoş Geldiniz`
+            {savedSurname 
+              ? `Hoş Geldiniz sayın ${savedSurname}`
+              : guestInfo 
+                ? `Hoş Geldiniz ${guestInfo.name}`
+                : `Hoş Geldiniz`
             }
           </h1>
           <div className="flex items-center gap-2">
@@ -203,12 +231,60 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
   return (
     <div className="min-h-screen flex flex-col items-center py-8 relative" style={{ background: theme.backgroundColor }}>
 
+      {/* Soyisim Modal */}
+      {showSurnameModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" style={{ background: theme.cardBackground }}>
+            <h2 className="text-xl font-bold mb-4" style={{ color: theme.textColor }}>
+              Hoş Geldiniz!
+            </h2>
+            <p className="text-sm mb-4" style={{ color: theme.textColor }}>
+              Size daha iyi hizmet verebilmek için lütfen soyisminizi giriniz.
+            </p>
+            <input
+              type="text"
+              value={surnameInput}
+              onChange={(e) => setSurnameInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && surnameInput.trim()) {
+                  handleSaveSurname();
+                }
+              }}
+              placeholder="Soyisminiz"
+              className="w-full px-4 py-3 rounded-lg mb-4 focus:outline-none focus:ring-2 text-base"
+              style={{ 
+                background: theme.backgroundColor,
+                color: theme.textColor,
+                border: `1px solid ${theme.borderColor}`,
+                boxShadow: 'none'
+              }}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={handleSaveSurname}
+                disabled={!surnameInput.trim()}
+                className="flex-1 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ 
+                  background: surnameInput.trim() ? theme.primaryColor : theme.borderColor,
+                  color: 'white'
+                }}
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="w-full max-w-md px-4 mb-4 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold flex-1" style={{ color: theme.textColor }}>
-            {guestInfo 
-              ? `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')} ${guestInfo.name}`
-              : `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')}`
+            {savedSurname 
+              ? `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')} sayın ${savedSurname}`
+              : guestInfo 
+                ? `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')} ${guestInfo.name}`
+                : `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')}`
             }
           </h1>
         
