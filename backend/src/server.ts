@@ -2801,41 +2801,34 @@ app.get('/api/hotel/info', tenantMiddleware, async (req: Request, res: Response)
       res.status(404).json({ message: 'Hotel not found' }); return;
     }
     
-    // Get hotel info from settings or return defaults
+    // Get hotel info from settings or return empty defaults
     const settings = hotel.settings as any || {}
     const hotelInfo = {
       wifi: settings.wifi || {
-        networkName: 'HotelLuxury_Guest',
-        password: 'Luxury2024!',
-        speed: '100 Mbps',
-        supportPhone: '+90 212 555 0199'
+        networkName: '',
+        password: '',
+        speed: '',
+        supportPhone: ''
       },
       hours: settings.hours || {
-        reception: '24 Saat',
-        restaurant: '06:00 - 23:00',
-        bar: '18:00 - 02:00',
-        spa: '08:00 - 22:00'
+        reception: '',
+        restaurant: '',
+        bar: '',
+        spa: ''
       },
       dining: settings.dining || {
-        breakfast: '06:00-10:00',
-        lunch: '12:00-15:00',
-        dinner: '18:00-22:00',
-        roomService: '24 saat',
-        towelChange: 'günlük',
-        techSupport: '24 saat'
+        breakfast: '',
+        lunch: '',
+        dinner: '',
+        roomService: '',
+        towelChange: '',
+        techSupport: ''
       },
-      amenities: settings.amenities || [
-        'Ücretsiz WiFi',
-        'Otopark',
-        'Fitness Center',
-        'Yüzme Havuzu',
-        'Spa & Wellness',
-        'Çocuk Oyun Alanı'
-      ],
+      amenities: settings.amenities || [],
       contacts: settings.contacts || {
-        reception: '+90 212 555 0100',
-        security: '+90 212 555 0101',
-        concierge: '+90 212 555 0102'
+        reception: '',
+        security: '',
+        concierge: ''
       }
     }
     
