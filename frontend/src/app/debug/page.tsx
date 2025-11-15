@@ -217,11 +217,15 @@ export default function DebugPage() {
       const response = await fetch(`${apiBaseUrl}${endpoint}`, options);
       const duration = Date.now() - startTime;
       
+      // Response body'yi bir kere oku (text olarak)
+      const responseText = await response.text();
       let responseData;
       try {
-        responseData = await response.json();
+        // Text'i JSON'a parse etmeye çalış
+        responseData = JSON.parse(responseText);
       } catch {
-        responseData = await response.text();
+        // JSON değilse text olarak kullan
+        responseData = responseText;
       }
 
       if (response.ok) {
