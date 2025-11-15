@@ -96,6 +96,7 @@ export default function BilgiPage() {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Bilgi sayfası - Loaded hotel info:', JSON.stringify(data, null, 2));
           setHotelInfo(data);
         } else {
           console.error('Failed to load hotel info');

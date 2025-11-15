@@ -68,6 +68,7 @@ export default function HotelInfoPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Loaded hotel info:', JSON.stringify(data, null, 2));
         setHotelInfo(data);
       } else {
         console.error('Failed to load hotel info');
@@ -98,6 +99,9 @@ export default function HotelInfoPage() {
       }
 
       const token = localStorage.getItem('auth_token');
+      
+      console.log('Saving hotel info:', JSON.stringify(hotelInfo, null, 2));
+      
       const response = await fetch(`${API_BASE_URL}/api/hotel/info`, {
         method: 'PUT',
         headers: {
@@ -109,10 +113,15 @@ export default function HotelInfoPage() {
       });
 
       if (response.ok) {
+        const responseData = await response.json();
+        console.log('Save response:', responseData);
         setSaveMessage('Bilgiler başarıyla kaydedildi!');
+        // Veriyi yeniden yükle
+        await loadHotelInfo();
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
         const errorData = await response.json();
+        console.error('Save error:', errorData);
         setSaveMessage(`Hata: ${errorData.message || 'Kayıt başarısız'}`);
       }
     } catch (error) {
