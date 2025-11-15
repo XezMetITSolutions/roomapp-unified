@@ -260,15 +260,27 @@ export default function QRMenuPage() {
           const data = await response.json();
           const announcementsData = Array.isArray(data) ? data : [];
           
-          // API'den gelen veriyi formatla ve sadece menü kategorisindeki aktif duyuruları filtrele
+          console.log('API\'den gelen duyurular:', announcementsData); // Debug için
+          
+          // API'den gelen veriyi formatla ve aktif duyuruları filtrele
           const formattedAnnouncements = announcementsData
             .map((a: any) => {
               const metadata = (a.metadata as any) || {};
               const category = metadata.category || 'general';
-              const isActive = metadata.isActive !== false;
+              // isActive undefined veya null ise true kabul et (default aktif)
+              const isActive = metadata.isActive === undefined || metadata.isActive === null ? true : metadata.isActive;
               
-              // Sadece menü kategorisindeki aktif duyuruları al
-              if (category !== 'menu' || !isActive) {
+              console.log('Duyuru kontrolü:', { 
+                id: a.id, 
+                title: a.title, 
+                category, 
+                isActive, 
+                metadata: JSON.stringify(metadata) 
+              }); // Debug için
+              
+              // Sadece aktif duyuruları göster (tüm kategoriler)
+              if (!isActive) {
+                console.log('Duyuru aktif değil:', a.id);
                 return null;
               }
               
@@ -277,8 +289,16 @@ export default function QRMenuPage() {
               const startDate = metadata.startDate || (a.createdAt ? new Date(a.createdAt).toISOString().split('T')[0] : now);
               const endDate = metadata.endDate;
               
-              if (startDate > now) return null;
-              if (endDate && endDate < now) return null;
+              if (startDate > now) {
+                console.log('Başlangıç tarihi gelecekte:', startDate, '>', now);
+                return null;
+              }
+              if (endDate && endDate < now) {
+                console.log('Bitiş tarihi geçmiş:', endDate, '<', now);
+                return null;
+              }
+              
+              console.log('Duyuru eklendi:', a.title);
               
               return {
                 id: a.id,
@@ -297,8 +317,10 @@ export default function QRMenuPage() {
             })
             .filter((a: any) => a !== null);
           
+          console.log('Filtrelenmiş duyurular:', formattedAnnouncements);
           setAnnouncements(formattedAnnouncements);
         } else {
+          console.error('API yanıt hatası:', response.status, response.statusText);
           setAnnouncements([]);
         }
       } catch (error) {
