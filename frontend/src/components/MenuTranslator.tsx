@@ -16,6 +16,7 @@ export function MenuTranslator({ menuItem, onTranslated, className = '' }: MenuT
   const [selectedLang, setSelectedLang] = useState<SupportedLanguage>('en');
   const [translatedName, setTranslatedName] = useState('');
   const [translatedDesc, setTranslatedDesc] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -26,17 +27,30 @@ export function MenuTranslator({ menuItem, onTranslated, className = '' }: MenuT
     try {
       // İsim çevirisi
       const translatedNameResult = await translateText(menuItem.name, selectedLang);
+      console.log('Çeviri sonucu (isim):', { original: menuItem.name, translated: translatedNameResult, lang: selectedLang });
+      
+      // Eğer çeviri başarısız olduysa (aynı metin döndüyse), hata göster
+      if (translatedNameResult === menuItem.name && selectedLang !== 'tr') {
+        setError('Çeviri yapılamadı. Lütfen DeepL API key\'in kontrol edildiğinden emin olun.');
+        setLoading(false);
+        return;
+      }
+      
       setTranslatedName(translatedNameResult);
       
       // Açıklama çevirisi
       const translatedDescResult = await translateText(menuItem.description, selectedLang);
-      setTranslatedDesc(translatedDescResult);
+      console.log('Çeviri sonucu (açıklama):', { original: menuItem.description, translated: translatedDescResult, lang: selectedLang });
       
-      // Her ikisi de başarılıysa callback'i çağır
-      onTranslated({
-        name: translatedNameResult,
-        description: translatedDescResult,
-      });
+      // Eğer çeviri başarısız olduysa (aynı metin döndüyse), hata göster
+      if (translatedDescResult === menuItem.description && selectedLang !== 'tr') {
+        setError('Açıklama çevirisi yapılamadı. Lütfen DeepL API key\'in kontrol edildiğinden emin olun.');
+        setLoading(false);
+        return;
+      }
+      
+      setTranslatedDesc(translatedDescResult);
+      setIsEditing(false);
     } catch (err) {
       setError('Çeviri hatası: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'));
     } finally {
@@ -50,7 +64,12 @@ export function MenuTranslator({ menuItem, onTranslated, className = '' }: MenuT
         name: translatedName,
         description: translatedDesc,
       });
+      setIsEditing(false);
     }
+  };
+  
+  const handleEditTranslation = () => {
+    setIsEditing(true);
   };
   
   return (
@@ -110,29 +129,82 @@ export function MenuTranslator({ menuItem, onTranslated, className = '' }: MenuT
       {(translatedName || translatedDesc) && (
         <div className="space-y-3">
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-            <h4 className="font-medium text-green-800 mb-2">
-              {LANGUAGE_FLAGS[selectedLang]} {LANGUAGE_NAMES[selectedLang]} Çevirisi:
-            </h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-green-800">
+                {LANGUAGE_FLAGS[selectedLang]} {LANGUAGE_NAMES[selectedLang]} Çevirisi:
+              </h4>
+              {!isEditing && (
+                <button
+                  onClick={handleEditTranslation}
+                  className="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center space-x-1"
+                >
+                  <span>✏️</span>
+                  <span>Çeviriyi Düzenle</span>
+                </button>
+              )}
+            </div>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-600">İsim:</label>
-                <p className="text-gray-900 font-medium">{translatedName}</p>
+                <label className="text-sm font-medium text-gray-600 block mb-1">İsim:</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={translatedName}
+                    onChange={(e) => setTranslatedName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    placeholder="Çevrilmiş isim"
+                  />
+                ) : (
+                  <p className="text-gray-900 font-medium">{translatedName}</p>
+                )}
               </div>
               
               <div>
-                <label className="text-sm font-medium text-gray-600">Açıklama:</label>
-                <p className="text-gray-700">{translatedDesc}</p>
+                <label className="text-sm font-medium text-gray-600 block mb-1">Açıklama:</label>
+                {isEditing ? (
+                  <textarea
+                    value={translatedDesc}
+                    onChange={(e) => setTranslatedDesc(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    placeholder="Çevrilmiş açıklama"
+                  />
+                ) : (
+                  <p className="text-gray-700">{translatedDesc}</p>
+                )}
               </div>
             </div>
             
-            <button
-              onClick={handleSaveTranslation}
-              className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2"
-            >
-              <span>💾</span>
-              <span>Çeviriyi Kaydet</span>
-            </button>
+            <div className="flex gap-2 mt-3">
+              {isEditing && (
+                <>
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center space-x-2"
+                  >
+                    <span>❌</span>
+                    <span>İptal</span>
+                  </button>
+                  <button
+                    onClick={handleSaveTranslation}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2"
+                  >
+                    <span>💾</span>
+                    <span>Çeviriyi Kaydet</span>
+                  </button>
+                </>
+              )}
+              {!isEditing && (
+                <button
+                  onClick={handleSaveTranslation}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2"
+                >
+                  <span>💾</span>
+                  <span>Çeviriyi Kaydet</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

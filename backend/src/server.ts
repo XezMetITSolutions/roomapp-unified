@@ -3265,17 +3265,37 @@ app.post('/api/translate', tenantMiddleware, authMiddleware, async (req: Request
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('DeepL API error:', errorText);
-      res.status(response.status).json({ message: 'Translation failed', error: errorText });
+      console.error('DeepL API error:', response.status, errorText);
+      res.status(response.status).json({ 
+        message: 'Translation failed', 
+        error: errorText,
+        translatedText: null 
+      });
       return;
     }
 
     const data = await response.json();
     const translations = data.translations || [];
     
+    console.log('DeepL API response:', { 
+      targetLang: deeplTargetLang, 
+      sourceLang: deeplSourceLang,
+      translationsCount: translations.length,
+      firstTranslation: translations[0]?.text 
+    });
+    
     // Eğer tek bir metin gönderildiyse, tek bir çeviri döndür
     if (!Array.isArray(text)) {
-      res.json({ translatedText: translations[0]?.text || text });
+      const translatedText = translations[0]?.text || null;
+      if (!translatedText) {
+        console.error('DeepL API returned no translation');
+        res.status(500).json({ 
+          message: 'No translation received from DeepL API',
+          translatedText: null 
+        });
+        return;
+      }
+      res.json({ translatedText });
       return;
     }
     

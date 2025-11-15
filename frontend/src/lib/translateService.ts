@@ -279,16 +279,23 @@ export async function translateText(text: string, targetLang: string): Promise<s
 
   // 2) Cache
   const cached = getFromCache(text, targetLang);
-  if (cached) return cached;
+  if (cached) {
+    // Cache'den gelen çeviri orijinal metinle aynıysa, bu geçersiz bir cache olabilir
+    if (cached !== text) {
+      return cached;
+    }
+  }
 
-  // 3) Online fallback
+  // 3) Online fallback (DeepL API)
   const online = await onlineTranslate(text, targetLang);
-  if (online) {
+  if (online && online !== text) {
     saveToCache(text, targetLang, online);
     return online;
   }
 
-  // Fallback to original if nothing else
+  // Eğer çeviri başarısız olduysa, orijinal metni döndür ama bu durumda MenuTranslator'da kontrol edilecek
+  // Bu durumda MenuTranslator'da hata mesajı gösterilecek
+  console.warn('Çeviri başarısız oldu, orijinal metin döndürülüyor:', { text, targetLang, online });
   return text;
 }
 
