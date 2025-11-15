@@ -78,7 +78,6 @@ export default function DebugHotelInfoPage() {
       const response = await fetch(`${apiUrl}?t=${Date.now()}`, {
         headers: {
           'x-tenant': tenantSlug,
-          'Cache-Control': 'no-cache',
           ...(token && { 'Authorization': `Bearer ${token}` })
         }
       });

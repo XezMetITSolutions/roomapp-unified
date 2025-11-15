@@ -89,8 +89,7 @@ export default function BilgiPage() {
 
         const response = await fetch(`${API_BASE_URL}/api/hotel/info?t=${Date.now()}`, {
           headers: {
-            'x-tenant': tenantSlug,
-            'Cache-Control': 'no-cache'
+            'x-tenant': tenantSlug
           }
         });
 
