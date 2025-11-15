@@ -3213,6 +3213,82 @@ async function runMigrations() {
   }
 }
 
+// DeepL Translation API endpoint
+app.post('/api/translate', tenantMiddleware, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { text, targetLang, sourceLang } = req.body;
+    
+    if (!text || !targetLang) {
+      res.status(400).json({ message: 'Text and targetLang are required' });
+      return;
+    }
+
+    const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
+    if (!DEEPL_API_KEY) {
+      res.status(500).json({ message: 'DeepL API key not configured' });
+      return;
+    }
+
+    // DeepL API endpoint (free tier)
+    const deeplEndpoint = DEEPL_API_KEY.includes('free') 
+      ? 'https://api-free.deepl.com/v2/translate'
+      : 'https://api.deepl.com/v2/translate';
+
+    // DeepL dil kodları mapping (DeepL bazı diller için farklı kodlar kullanıyor)
+    const deeplLangMap: Record<string, string> = {
+      'en': 'EN',
+      'de': 'DE',
+      'fr': 'FR',
+      'es': 'ES',
+      'it': 'IT',
+      'ru': 'RU',
+      'ar': 'AR',
+      'zh': 'ZH',
+      'tr': 'TR',
+    };
+
+    const deeplTargetLang = deeplLangMap[targetLang.toLowerCase()] || targetLang.toUpperCase();
+    const deeplSourceLang = sourceLang ? (deeplLangMap[sourceLang.toLowerCase()] || sourceLang.toUpperCase()) : undefined;
+
+    const response = await fetch(deeplEndpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `DeepL-Auth-Key ${DEEPL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: Array.isArray(text) ? text : [text],
+        target_lang: deeplTargetLang,
+        source_lang: deeplSourceLang,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('DeepL API error:', errorText);
+      res.status(response.status).json({ message: 'Translation failed', error: errorText });
+      return;
+    }
+
+    const data = await response.json();
+    const translations = data.translations || [];
+    
+    // Eğer tek bir metin gönderildiyse, tek bir çeviri döndür
+    if (!Array.isArray(text)) {
+      res.json({ translatedText: translations[0]?.text || text });
+      return;
+    }
+    
+    // Birden fazla metin gönderildiyse, tüm çevirileri döndür
+    res.json({ translations: translations.map((t: any) => t.text) });
+    return;
+  } catch (error) {
+    console.error('Translation error:', error);
+    res.status(500).json({ message: 'Translation error', error: error instanceof Error ? error.message : 'Unknown error' });
+    return;
+  }
+});
+
 // Start server
 server.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`)

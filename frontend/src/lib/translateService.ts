@@ -219,19 +219,47 @@ function saveToCache(text: string, targetLang: string, translated: string) {
 }
 
 async function onlineTranslate(text: string, targetLang: string): Promise<string | null> {
-  // Best-effort public instance; may be rate-limited. You can swap with your own.
-  const endpoint = 'https://libretranslate.com/translate';
+  // DeepL API kullan
   try {
-    const res = await fetch(endpoint, {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+    
+    // URL'den tenant slug'ını al
+    let tenantSlug = 'demo';
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const subdomain = hostname.split('.')[0];
+      if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+        tenantSlug = subdomain;
+      }
+    }
+
+    // Token'ı localStorage'dan al
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+    const res = await fetch(`${API_BASE_URL}/api/translate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q: text, source: 'auto', target: targetLang, format: 'text' }),
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+        'x-tenant': tenantSlug
+      },
+      body: JSON.stringify({ 
+        text: text, 
+        targetLang: targetLang,
+        sourceLang: 'tr' // Türkçe'den çevir
+      }),
     });
-    if (!res.ok) return null;
+    
+    if (!res.ok) {
+      console.error('DeepL translation failed:', res.status, res.statusText);
+      return null;
+    }
+    
     const data = await res.json();
     const translated = (data?.translatedText || '').trim();
     return translated || null;
-  } catch {
+  } catch (error) {
+    console.error('Translation error:', error);
     return null;
   }
 }
