@@ -44,6 +44,14 @@ export default function QRKodPage() {
     setGeneratedRooms(newRooms);
     setUseGeneratedRooms(true);
     
+    // localStorage'a kaydet
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('qrKod_generatedRooms', JSON.stringify(newRooms));
+      localStorage.setItem('qrKod_useGeneratedRooms', 'true');
+      localStorage.setItem('qrKod_floorCount', floorCount.toString());
+      localStorage.setItem('qrKod_roomsPerFloor', roomsPerFloor.toString());
+    }
+    
     // İlk odayı seç
     if (newRooms.length > 0) {
       setSelectedRoom(newRooms[0].number);
@@ -54,6 +62,48 @@ export default function QRKodPage() {
   useEffect(() => {
     // Client-side'da baseURL'i ayarla
     setBaseURL(window.location.origin);
+    
+    // localStorage'dan kaydedilmiş odaları yükle
+    if (typeof window !== 'undefined') {
+      const savedGeneratedRooms = localStorage.getItem('qrKod_generatedRooms');
+      const savedUseGeneratedRooms = localStorage.getItem('qrKod_useGeneratedRooms');
+      const savedFloorCount = localStorage.getItem('qrKod_floorCount');
+      const savedRoomsPerFloor = localStorage.getItem('qrKod_roomsPerFloor');
+      const savedCustomRooms = localStorage.getItem('qrKod_customRooms');
+      
+      if (savedGeneratedRooms && savedUseGeneratedRooms === 'true') {
+        try {
+          const parsedRooms = JSON.parse(savedGeneratedRooms);
+          setGeneratedRooms(parsedRooms);
+          setUseGeneratedRooms(true);
+          
+          // İlk odayı seç
+          if (parsedRooms.length > 0) {
+            setSelectedRoom(parsedRooms[0].number);
+            setQRCodeURL(`${window.location.origin}/guest/${parsedRooms[0].number}`);
+          }
+        } catch (error) {
+          console.error('Kaydedilmiş odalar yüklenirken hata:', error);
+        }
+      }
+      
+      if (savedFloorCount) {
+        setFloorCount(parseInt(savedFloorCount) || 4);
+      }
+      
+      if (savedRoomsPerFloor) {
+        setRoomsPerFloor(parseInt(savedRoomsPerFloor) || 5);
+      }
+      
+      if (savedCustomRooms) {
+        try {
+          const parsedCustomRooms = JSON.parse(savedCustomRooms);
+          setCustomRooms(parsedCustomRooms);
+        } catch (error) {
+          console.error('Kaydedilmiş özel odalar yüklenirken hata:', error);
+        }
+      }
+    }
   }, []);
 
   // Veritabanından odaları yükle
@@ -130,18 +180,30 @@ export default function QRKodPage() {
         floor: 'Özel',
         isCustom: true
       };
-      setCustomRooms([...customRooms, newRoom]);
+      const updatedCustomRooms = [...customRooms, newRoom];
+      setCustomRooms(updatedCustomRooms);
       setSelectedCustomRoom(customRoom.trim());
       setQRCodeURL(`${baseURL}/guest/${customRoom.trim()}`);
       setCustomRoom('');
+      
+      // localStorage'a kaydet
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('qrKod_customRooms', JSON.stringify(updatedCustomRooms));
+      }
     }
   };
 
   const handleDeleteCustomRoom = (roomNumber) => {
-    setCustomRooms(customRooms.filter(room => room.number !== roomNumber));
+    const updatedCustomRooms = customRooms.filter(room => room.number !== roomNumber);
+    setCustomRooms(updatedCustomRooms);
     if (selectedCustomRoom === roomNumber) {
       setSelectedCustomRoom('');
       setQRCodeURL('');
+    }
+    
+    // localStorage'a kaydet
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('qrKod_customRooms', JSON.stringify(updatedCustomRooms));
     }
   };
 
@@ -485,7 +547,13 @@ export default function QRKodPage() {
                     min="1"
                     max="20"
                     value={floorCount}
-                    onChange={(e) => setFloorCount(parseInt(e.target.value) || 1)}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      setFloorCount(value);
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('qrKod_floorCount', value.toString());
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -498,7 +566,13 @@ export default function QRKodPage() {
                     min="1"
                     max="50"
                     value={roomsPerFloor}
-                    onChange={(e) => setRoomsPerFloor(parseInt(e.target.value) || 1)}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      setRoomsPerFloor(value);
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('qrKod_roomsPerFloor', value.toString());
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
