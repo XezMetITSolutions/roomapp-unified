@@ -48,9 +48,6 @@ export function MenuTranslator({ menuItem, onTranslated, className = '' }: MenuT
         if (!error) {
           setError('Açıklama çevirisi yapılamadı. Lütfen tekrar deneyin veya çeviriyi manuel olarak düzenleyin.');
         }
-        setTranslatedDesc(translatedDescResult); // Yine de göster, kullanıcı düzenleyebilir
-      } else {
-        setTranslatedDesc(translatedDescResult);
       }
       
       setTranslatedDesc(translatedDescResult);
