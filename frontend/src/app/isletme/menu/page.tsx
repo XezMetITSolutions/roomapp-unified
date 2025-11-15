@@ -135,6 +135,19 @@ export default function MenuManagement() {
     }
   };
 
+  // Demo ürünleri filtreleme fonksiyonu
+  const isDemoProduct = (name: string): boolean => {
+    const normalizedName = name.toLowerCase().trim();
+    const demoProducts = [
+      'karniyarik',
+      'cheeseburger',
+      'cheese burger',
+      'caesar salad',
+      'caesar salata'
+    ];
+    return demoProducts.some(demo => normalizedName === demo || normalizedName.includes(demo));
+  };
+
   // Menü verilerini API'den yükle
   useEffect(() => {
     const loadData = async () => {
@@ -145,19 +158,21 @@ export default function MenuManagement() {
         const response = await fetch('/api/menu');
         if (response.ok) {
           const data = await response.json();
-          const formattedItems = data.menu.map((item: any, index: number) => ({
-            id: item.id || `api-${index}`,
-            name: item.name,
-            description: item.description || '',
-            price: item.price,
-            category: item.category || 'Diğer',
-            isAvailable: item.available !== false,
-            allergens: item.allergens || [],
-            calories: item.calories,
-            image: item.image,
-            preparationTime: item.preparationTime,
-            rating: item.rating,
-          }));
+          const formattedItems = data.menu
+            .filter((item: any) => !isDemoProduct(item.name)) // Demo ürünleri filtrele
+            .map((item: any, index: number) => ({
+              id: item.id || `api-${index}`,
+              name: item.name,
+              description: item.description || '',
+              price: item.price,
+              category: item.category || 'Diğer',
+              isAvailable: item.available !== false,
+              allergens: item.allergens || [],
+              calories: item.calories,
+              image: item.image,
+              preparationTime: item.preparationTime,
+              rating: item.rating,
+            }));
           
           setMenuItems(formattedItems);
         } else {
@@ -182,6 +197,10 @@ export default function MenuManagement() {
   }, [categories]);
 
   const filteredItems = menuItems.filter(item => {
+    // Demo ürünleri filtrele
+    if (isDemoProduct(item.name)) {
+      return false;
+    }
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
