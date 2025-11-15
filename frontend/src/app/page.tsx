@@ -194,7 +194,7 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-3 md:mb-6">Neden RoomXQR?</h2>
             <p className="text-base md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Modern otel yönetimi için ihtiyacınız olan tüm özellikler tek platformda</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
@@ -202,13 +202,13 @@ export default function HomePage() {
                   key={index} 
                   id={`feature-${index}`}
                   data-scroll
-                  className="group p-4 md:p-8 text-center rounded-2xl md:rounded-3xl bg-gradient-to-br from-white to-slate-50 border border-slate-200 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"
+                  className="group p-4 md:p-6 lg:p-8 text-center rounded-xl md:rounded-2xl lg:rounded-3xl bg-gradient-to-br from-white to-slate-50 border border-slate-200 shadow-md md:shadow-lg hover:shadow-xl md:hover:shadow-2xl hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300"
                 >
-                  <div className={`w-14 h-14 md:w-20 md:h-20 ${feature.color} bg-opacity-10 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300` }>
-                    <IconComponent className={`w-7 h-7 md:w-10 md:h-10 ${feature.color}`} />
+                  <div className={`w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 ${feature.color} bg-opacity-10 rounded-xl md:rounded-2xl lg:rounded-3xl flex items-center justify-center mx-auto mb-3 md:mb-4 lg:mb-6 shadow-md md:shadow-lg group-hover:scale-110 transition-transform duration-300` }>
+                    <IconComponent className={`w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 ${feature.color}`} />
                   </div>
-                  <h3 className="text-lg md:text-2xl font-bold text-slate-900 mb-2 md:mb-4 tracking-tight">{feature.title}</h3>
-                  <p className="text-sm md:text-base text-slate-600 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-base md:text-lg lg:text-2xl font-bold text-slate-900 mb-2 md:mb-3 lg:mb-4 tracking-tight">{feature.title}</h3>
+                  <p className="text-xs md:text-sm lg:text-base text-slate-600 leading-relaxed">{feature.description}</p>
                 </div>
               );
             })}
@@ -231,7 +231,7 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-3 md:mb-6 tracking-tight">Nasıl Çalışır?</h2>
             <p className="text-base md:text-xl text-slate-600">3 basit adımda otelinizi dijitalleştirin</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
             {[
               { 
                 step: '1', 
@@ -265,13 +265,13 @@ export default function HomePage() {
                   data-scroll
                   className="text-center group opacity-100 translate-y-0"
                 >
-                  <div className={`w-24 h-24 md:w-32 md:h-32 ${step.bgColor} ${step.borderColor} border-2 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-6 md:mb-8 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                    <div className={`w-14 h-14 md:w-20 md:h-20 text-white rounded-xl md:rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black bg-gradient-to-br ${step.color} shadow-xl`}>
+                  <div className={`w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 ${step.bgColor} ${step.borderColor} border-2 rounded-xl md:rounded-2xl lg:rounded-3xl flex items-center justify-center mx-auto mb-4 md:mb-6 lg:mb-8 group-hover:scale-110 transition-transform duration-300 shadow-md md:shadow-lg`}>
+                    <div className={`w-12 h-12 md:w-14 md:h-14 lg:w-20 lg:h-20 text-white rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center text-2xl md:text-3xl lg:text-4xl font-black bg-gradient-to-br ${step.color} shadow-lg md:shadow-xl`}>
                       {step.step}
                     </div>
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4 tracking-tight">{step.title}</h3>
-                  <p className="text-sm md:text-lg text-slate-600 leading-relaxed">{step.description}</p>
+                  <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900 mb-2 md:mb-3 lg:mb-4 tracking-tight">{step.title}</h3>
+                  <p className="text-sm md:text-base lg:text-lg text-slate-600 leading-relaxed">{step.description}</p>
                 </div>
               );
             })}
@@ -295,40 +295,40 @@ export default function HomePage() {
             <p className="text-sm md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Tek tıkla telefon fotoğraflarınızı profesyonel menü görsellerine dönüştürün</p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center mb-12 md:mb-20">
             <div 
               id="ai-process"
               data-scroll
-              className="opacity-100 translate-x-0"
+              className="opacity-100 translate-x-0 order-2 lg:order-1"
             >
-              <div className="space-y-8">
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Camera className="w-6 h-6 text-white" />
+              <div className="space-y-6 md:space-y-8">
+                <div className="flex items-start space-x-3 md:space-x-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg md:rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Camera className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Fotoğraf Çekin veya Yükleyin</h3>
-                    <p className="text-slate-600">Telefonunuzla çektiğiniz ürün fotoğrafını sisteme yükleyin</p>
+                    <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-1 md:mb-2">Fotoğraf Çekin veya Yükleyin</h3>
+                    <p className="text-sm md:text-base text-slate-600">Telefonunuzla çektiğiniz ürün fotoğrafını sisteme yükleyin</p>
                   </div>
                 </div>
                 
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-6 h-6 text-white" />
+                <div className="flex items-start space-x-3 md:space-x-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg md:rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">AI Otomatik İyileştirme</h3>
-                    <p className="text-slate-600">Arka plan kaldırma, renk düzeltme, gölge ekleme ve profesyonel görünüm</p>
+                    <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-1 md:mb-2">AI Otomatik İyileştirme</h3>
+                    <p className="text-sm md:text-base text-slate-600">Arka plan kaldırma, renk düzeltme, gölge ekleme ve profesyonel görünüm</p>
                   </div>
                 </div>
                 
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-6 h-6 text-white" />
+                <div className="flex items-start space-x-3 md:space-x-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg md:rounded-xl flex items-center justify-center flex-shrink-0">
+                    <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Menünüze Ekleyin</h3>
-                    <p className="text-slate-600">Profesyonel görsel otomatik olarak menünüze eklenir</p>
+                    <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-1 md:mb-2">Menünüze Ekleyin</h3>
+                    <p className="text-sm md:text-base text-slate-600">Profesyonel görsel otomatik olarak menünüze eklenir</p>
                   </div>
                 </div>
               </div>
@@ -337,43 +337,43 @@ export default function HomePage() {
             <div 
               id="ai-demo"
               data-scroll
-              className="opacity-100 translate-x-0"
+              className="opacity-100 translate-x-0 order-1 lg:order-2"
             >
-              <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-slate-200">
-                <div className="grid grid-cols-12 gap-6 items-center">
-                  <div className="col-span-5 text-center">
-                    <div className="text-sm text-slate-500 mb-2">Önce</div>
-                    <div className="bg-white rounded-3xl p-0 h-84 shadow-xl overflow-hidden flex items-end justify-center">
-                      <div className="relative w-full h-[320px]">
+              <div className="relative bg-white rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-2xl border border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-center">
+                  <div className="col-span-12 md:col-span-5 text-center">
+                    <div className="text-xs md:text-sm text-slate-500 mb-2 font-medium">Önce</div>
+                    <div className="bg-gray-100 rounded-2xl md:rounded-3xl p-2 md:p-0 shadow-xl overflow-hidden">
+                      <div className="relative w-full h-[200px] md:h-[280px] lg:h-[320px]">
                         <img 
-                          src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&h=400&fit=crop" 
-                          alt="Telefon ile çekilmiş yemek fotoğrafı" 
-                          className="w-full h-full object-cover rounded-2xl"
+                          src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=600&fit=crop&q=80" 
+                          alt="Telefon ile çekilmiş amatör yemek fotoğrafı" 
+                          className="w-full h-full object-cover rounded-xl md:rounded-2xl"
                         />
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-base py-2 px-3">Telefon Çekimi</div>
-                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-white text-xs md:text-sm py-1.5 md:py-2 px-2 md:px-3 rounded-b-xl md:rounded-b-2xl font-medium">Telefon Çekimi / Amatör</div>
                       </div>
                     </div>
-                  <div className="col-span-2 flex items-center justify-center">
-                    <span className="text-5xl lg:text-7xl font-black text-slate-300">→</span>
                   </div>
-                  <div className="col-span-5 text-center">
-                    <div className="text-sm text-slate-500 mb-2">Sonra</div>
-                    <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-0 h-84 shadow-xl overflow-hidden flex items-end justify-center">
-                      <div className="relative w-full h-[320px]">
+                  <div className="col-span-12 md:col-span-2 flex items-center justify-center py-2 md:py-0">
+                    <span className="text-3xl md:text-5xl lg:text-7xl font-black text-slate-300 rotate-90 md:rotate-0">→</span>
+                  </div>
+                  <div className="col-span-12 md:col-span-5 text-center">
+                    <div className="text-xs md:text-sm text-slate-500 mb-2 font-medium">Sonra</div>
+                    <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl md:rounded-3xl p-2 md:p-0 shadow-xl overflow-hidden">
+                      <div className="relative w-full h-[200px] md:h-[280px] lg:h-[320px]">
                         <img 
-                          src="https://images.unsplash.com/photo-1519864600265-abb23847ef2c?w=500&h=400&fit=crop" 
+                          src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=600&fit=crop&q=80" 
                           alt="AI ile iyileştirilmiş profesyonel yemek fotoğrafı" 
-                          className="w-full h-full object-cover rounded-2xl"
+                          className="w-full h-full object-cover rounded-xl md:rounded-2xl"
                         />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-r from-purple-500/80 to-pink-500/80 text-white text-base py-2 px-3 font-medium">Profesyonel</div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-r from-purple-500/90 to-pink-500/90 text-white text-xs md:text-sm py-1.5 md:py-2 px-2 md:px-3 rounded-b-xl md:rounded-b-2xl font-semibold">Profesyonel Çekim</div>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-6 text-center">
-                  <div className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-600 text-white text-sm font-semibold shadow-lg">
-                    <ArrowRight className="w-5 h-5 mr-2" />
+                <div className="mt-4 md:mt-6 text-center">
+                  <div className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-600 text-white text-xs md:text-sm font-semibold shadow-lg">
+                    <ArrowRight className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                     Tek Tıkla Dönüşüm
                   </div>
                 </div>
@@ -381,7 +381,7 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
             {[
               {
                 icon: DollarSign,
@@ -414,13 +414,13 @@ export default function HomePage() {
                   key={index}
                   id={`ai-benefit-${index}`}
                   data-scroll
-                  className={`${benefit.bgColor} ${benefit.borderColor} border rounded-3xl p-8 transition-all duration-1000 hover:shadow-xl hover:-translate-y-2 opacity-100 translate-y-0`}
+                  className={`${benefit.bgColor} ${benefit.borderColor} border rounded-2xl md:rounded-3xl p-6 md:p-8 transition-all duration-1000 hover:shadow-xl hover:-translate-y-2 opacity-100 translate-y-0`}
                 >
-                  <div className={`w-16 h-16 bg-gradient-to-br ${benefit.color} rounded-2xl flex items-center justify-center mb-6`}>
-                    <IconComponent className="w-8 h-8 text-white" />
+                  <div className={`w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br ${benefit.color} rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6`}>
+                    <IconComponent className="w-6 h-6 md:w-8 md:h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">{benefit.title}</h3>
-                  <p className="text-slate-600 leading-relaxed">{benefit.description}</p>
+                  <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-2 md:mb-4">{benefit.title}</h3>
+                  <p className="text-sm md:text-base text-slate-600 leading-relaxed">{benefit.description}</p>
                 </div>
               );
             })}
@@ -451,7 +451,7 @@ export default function HomePage() {
               <p className="text-base md:text-lg text-slate-600">Misafirlerinizin deneyimini dönüştüren özellikler</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
               {[
                 {
                   icon: Globe,
@@ -508,13 +508,13 @@ export default function HomePage() {
                     key={index}
                     id={`customer-benefit-${index}`}
                     data-scroll
-                    className={`${benefit.bgColor} ${benefit.borderColor} border rounded-3xl p-6 transition-all duration-1000 hover:shadow-xl hover:-translate-y-2 opacity-100 translate-y-0`}
+                    className={`${benefit.bgColor} ${benefit.borderColor} border rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all duration-1000 hover:shadow-lg md:hover:shadow-xl hover:-translate-y-1 md:hover:-translate-y-2 opacity-100 translate-y-0`}
                   >
-                    <div className={`w-12 h-12 bg-gradient-to-br ${benefit.color} rounded-xl flex items-center justify-center mb-4`}>
-                      <IconComponent className="w-6 h-6 text-white" />
+                    <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${benefit.color} rounded-lg md:rounded-xl flex items-center justify-center mb-3 md:mb-4`}>
+                      <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
-                    <h4 className="text-lg font-bold text-slate-900 mb-2">{benefit.title}</h4>
-                    <p className="text-slate-600 text-sm leading-relaxed">{benefit.description}</p>
+                    <h4 className="text-base md:text-lg font-bold text-slate-900 mb-1 md:mb-2">{benefit.title}</h4>
+                    <p className="text-xs md:text-sm text-slate-600 leading-relaxed">{benefit.description}</p>
                   </div>
                 );
               })}
@@ -528,7 +528,7 @@ export default function HomePage() {
               <p className="text-base md:text-lg text-slate-600">İşletmenizi büyüten ve verimliliği artıran faydalar</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
               {[
                 {
                   icon: TrendingUp,
@@ -585,13 +585,13 @@ export default function HomePage() {
                     key={index}
                     id={`business-benefit-${index}`}
                     data-scroll
-                    className={`${benefit.bgColor} ${benefit.borderColor} border rounded-3xl p-6 transition-all duration-1000 hover:shadow-xl hover:-translate-y-2 opacity-100 translate-y-0`}
+                    className={`${benefit.bgColor} ${benefit.borderColor} border rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all duration-1000 hover:shadow-lg md:hover:shadow-xl hover:-translate-y-1 md:hover:-translate-y-2 opacity-100 translate-y-0`}
                   >
-                    <div className={`w-12 h-12 bg-gradient-to-br ${benefit.color} rounded-xl flex items-center justify-center mb-4`}>
-                      <IconComponent className="w-6 h-6 text-white" />
+                    <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${benefit.color} rounded-lg md:rounded-xl flex items-center justify-center mb-3 md:mb-4`}>
+                      <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
-                    <h4 className="text-lg font-bold text-slate-900 mb-2">{benefit.title}</h4>
-                    <p className="text-slate-600 text-sm leading-relaxed">{benefit.description}</p>
+                    <h4 className="text-base md:text-lg font-bold text-slate-900 mb-1 md:mb-2">{benefit.title}</h4>
+                    <p className="text-xs md:text-sm text-slate-600 leading-relaxed">{benefit.description}</p>
                   </div>
                 );
               })}
@@ -614,40 +614,40 @@ export default function HomePage() {
             <p className="text-sm md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">Anket sistemi ile sosyal medya hesaplarınıza organik trafik çekin</p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center mb-12 md:mb-20">
             <div 
               id="social-process"
               data-scroll
-              className="opacity-100 translate-x-0"
+              className="opacity-100 translate-x-0 order-2 lg:order-1"
             >
-              <div className="space-y-8">
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <MessageCircle className="w-6 h-6 text-white" />
+              <div className="space-y-6 md:space-y-8">
+                <div className="flex items-start space-x-3 md:space-x-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg md:rounded-xl flex items-center justify-center flex-shrink-0">
+                    <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Misafir Anketleri</h3>
-                    <p className="text-slate-600">Konaklama sonrası memnuniyet anketleri gönderin</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Instagram className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Sosyal Medya Yönlendirme</h3>
-                    <p className="text-slate-600">Memnun misafirleri Instagram, Facebook ve Google'a yönlendirin</p>
+                    <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-1 md:mb-2">Misafir Anketleri</h3>
+                    <p className="text-sm md:text-base text-slate-600">Konaklama sonrası memnuniyet anketleri gönderin</p>
                   </div>
                 </div>
                 
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <TrendingUp className="w-6 h-6 text-white" />
+                <div className="flex items-start space-x-3 md:space-x-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg md:rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Instagram className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Organik Büyüme</h3>
-                    <p className="text-slate-600">Gerçek müşteri yorumları ile organik takipçi artışı</p>
+                    <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-1 md:mb-2">Sosyal Medya Yönlendirme</h3>
+                    <p className="text-sm md:text-base text-slate-600">Memnun misafirleri Instagram, Facebook ve Google'a yönlendirin</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3 md:space-x-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg md:rounded-xl flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-1 md:mb-2">Organik Büyüme</h3>
+                    <p className="text-sm md:text-base text-slate-600">Gerçek müşteri yorumları ile organik takipçi artışı</p>
                   </div>
                 </div>
               </div>
@@ -656,49 +656,49 @@ export default function HomePage() {
             <div 
               id="social-demo"
               data-scroll
-              className="opacity-100 translate-x-0"
+              className="opacity-100 translate-x-0 order-1 lg:order-2"
             >
-              <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-slate-200">
-                <div className="space-y-6">
-                  <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-2xl p-6">
-                    <div className="flex items-center space-x-3 mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-                        <MessageCircle className="w-4 h-4 text-white" />
+              <div className="relative bg-white rounded-2xl md:rounded-3xl p-4 md:p-6 lg:p-8 shadow-xl md:shadow-2xl border border-slate-200">
+                <div className="space-y-4 md:space-y-6">
+                  <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-xl md:rounded-2xl p-4 md:p-6">
+                    <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+                      <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                        <MessageCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
                 </div>
-                      <span className="font-semibold text-slate-900">Memnuniyet Anketi</span>
+                      <span className="font-semibold text-sm md:text-base text-slate-900">Memnuniyet Anketi</span>
               </div>
-                    <p className="text-slate-600 text-sm mb-4">Konaklamanız nasıldı?</p>
-                    <div className="flex space-x-2">
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
+                    <p className="text-slate-600 text-xs md:text-sm mb-3 md:mb-4">Konaklamanız nasıldı?</p>
+                    <div className="flex space-x-1.5 md:space-x-2">
+                      <div className="w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      <div className="w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      <div className="w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      <div className="w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      <div className="w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-2xl p-6">
-                    <div className="flex items-center space-x-3 mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                        <Instagram className="w-4 h-4 text-white" />
+                  <div className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl md:rounded-2xl p-4 md:p-6">
+                    <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+                      <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <Instagram className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
                       </div>
-                      <span className="font-semibold text-slate-900">Sosyal Medya</span>
+                      <span className="font-semibold text-sm md:text-base text-slate-900">Sosyal Medya</span>
                     </div>
-                    <p className="text-slate-600 text-sm mb-4">Bizi takip edin ve deneyiminizi paylaşın!</p>
-                    <div className="flex space-x-2">
-                      <div className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">Instagram</div>
-                      <div className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full">Facebook</div>
-                      <div className="px-3 py-1 bg-red-500 text-white text-xs rounded-full">Google</div>
+                    <p className="text-slate-600 text-xs md:text-sm mb-3 md:mb-4">Bizi takip edin ve deneyiminizi paylaşın!</p>
+                    <div className="flex flex-wrap gap-1.5 md:gap-2">
+                      <div className="px-2 md:px-3 py-1 bg-blue-500 text-white text-xs rounded-full">Instagram</div>
+                      <div className="px-2 md:px-3 py-1 bg-blue-600 text-white text-xs rounded-full">Facebook</div>
+                      <div className="px-2 md:px-3 py-1 bg-red-500 text-white text-xs rounded-full">Google</div>
                     </div>
                   </div>
                 </div>
@@ -706,7 +706,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
             {[
               {
                 icon: Instagram,
@@ -739,13 +739,13 @@ export default function HomePage() {
                   key={index}
                   id={`social-benefit-${index}`}
                   data-scroll
-                  className={`${benefit.bgColor} ${benefit.borderColor} border rounded-3xl p-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300`}
+                  className={`${benefit.bgColor} ${benefit.borderColor} border rounded-2xl md:rounded-3xl p-6 md:p-8 hover:shadow-lg md:hover:shadow-xl hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300`}
                 >
-                  <div className={`w-16 h-16 bg-gradient-to-br ${benefit.color} rounded-2xl flex items-center justify-center mb-6`}>
-                    <IconComponent className="w-8 h-8 text-white" />
+                  <div className={`w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br ${benefit.color} rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6`}>
+                    <IconComponent className="w-6 h-6 md:w-8 md:h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">{benefit.title}</h3>
-                  <p className="text-slate-600 leading-relaxed">{benefit.description}</p>
+                  <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-2 md:mb-4">{benefit.title}</h3>
+                  <p className="text-sm md:text-base text-slate-600 leading-relaxed">{benefit.description}</p>
                 </div>
               );
             })}
