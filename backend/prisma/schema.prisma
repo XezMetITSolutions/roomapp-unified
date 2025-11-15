@@ -171,6 +171,7 @@ model MenuItem {
   calories    Int?
   isAvailable Boolean  @default(true)
   isActive    Boolean  @default(true)
+  translations Json?   // Çeviriler: { en: { name: "...", description: "..." }, de: {...}, ... }
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

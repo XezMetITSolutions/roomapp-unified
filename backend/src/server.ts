@@ -1753,7 +1753,7 @@ app.put('/api/menu/:id', tenantMiddleware, authMiddleware, async (req: Request, 
   try {
     const tenantId = getTenantId(req)
     const { id } = req.params
-    const { name, description, price, category, image, allergens, calories, isAvailable } = req.body
+    const { name, description, price, category, image, allergens, calories, isAvailable, translations } = req.body
 
     const menuItem = await prisma.menuItem.updateMany({
       where: { 
@@ -1768,7 +1768,8 @@ app.put('/api/menu/:id', tenantMiddleware, authMiddleware, async (req: Request, 
         ...(image !== undefined && { image }),
         ...(allergens !== undefined && { allergens }),
         ...(calories !== undefined && { calories: calories ? parseInt(calories) : null }),
-        ...(isAvailable !== undefined && { isAvailable })
+        ...(isAvailable !== undefined && { isAvailable }),
+        ...(translations !== undefined && { translations })
       }
     })
 

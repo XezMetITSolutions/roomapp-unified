@@ -196,10 +196,15 @@ export default function QRMenuPage() {
               defaultImage = 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=80';
             }
             
+            // Dil seçimine göre çeviriyi al
+            const translations = item.translations || {};
+            const currentLang = currentLanguage || 'tr';
+            const translation = translations[currentLang];
+            
             return {
               id: item.id || `api-${index}`,
-              name: item.name,
-              description: item.description || '',
+              name: translation?.name || item.name,
+              description: translation?.description || item.description || '',
               price: item.price,
               preparationTime: item.preparationTime || 15, // API'den gelen veya varsayılan hazırlık süresi
               rating: item.rating || 4, // API'den gelen rating veya varsayılan 4
@@ -209,6 +214,7 @@ export default function QRMenuPage() {
               allergens: item.allergens || [],
               service: '',
               available: item.available !== false,
+              translations: translations, // Çevirileri de sakla
             };
           });
           // Sadece API'den gelen gerçek ürünleri kullan, demo ürünleri ekleme
@@ -227,7 +233,24 @@ export default function QRMenuPage() {
     };
 
     loadMenuData();
-  }, []);
+  }, [currentLanguage]); // currentLanguage değiştiğinde menüyü yeniden yükle
+  
+  // Dil değiştiğinde menu item'larının çevirilerini güncelle
+  useEffect(() => {
+    if (menuData.length > 0 && currentLanguage) {
+      const updatedMenu = menuData.map((item: any) => {
+        const translations = item.translations || {};
+        const translation = translations[currentLanguage];
+        
+        return {
+          ...item,
+          name: translation?.name || item.name,
+          description: translation?.description || item.description || '',
+        };
+      });
+      setMenuData(updatedMenu);
+    }
+  }, [currentLanguage]);
   
   // Duyurular state
   const [announcements, setAnnouncements] = useState<any[]>([]);

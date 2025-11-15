@@ -36,6 +36,12 @@ interface MenuItem {
   calories?: number;
   preparationTime?: number;
   rating?: number;
+  translations?: {
+    [lang: string]: {
+      name: string;
+      description: string;
+    };
+  };
 }
 
 interface Category {
@@ -1388,14 +1394,44 @@ export default function MenuManagement() {
                       <p className="text-gray-600 text-sm mb-4">{item.description}</p>
                       <MenuTranslator
                         menuItem={item}
-                        onTranslated={(translated) => {
+                        onTranslated={async (translations) => {
+                          // Menu item'ı güncelle
                           setMenuItems(items => 
                             items.map(menuItem => 
                               menuItem.id === item.id 
-                                ? { ...menuItem, ...translated }
+                                ? { ...menuItem, translations }
                                 : menuItem
                             )
                           );
+                          
+                          // Backend'e kaydet
+                          try {
+                            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+                            const token = localStorage.getItem('token');
+                            
+                            let tenantSlug = 'demo';
+                            if (typeof window !== 'undefined') {
+                              const hostname = window.location.hostname;
+                              const subdomain = hostname.split('.')[0];
+                              if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+                                tenantSlug = subdomain;
+                              }
+                            }
+                            
+                            await fetch(`${API_BASE_URL}/api/menu/${item.id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`,
+                                'x-tenant': tenantSlug
+                              },
+                              body: JSON.stringify({
+                                translations: translations
+                              })
+                            });
+                          } catch (error) {
+                            console.error('Çeviriler kaydedilirken hata:', error);
+                          }
                         }}
                         className="text-sm"
                       />
