@@ -219,29 +219,12 @@ function saveToCache(text: string, targetLang: string, translated: string) {
 }
 
 async function onlineTranslate(text: string, targetLang: string): Promise<string | null> {
-  // DeepL API kullan
+  // Next.js API route'unu kullan (DeepL API key zaten orada tanımlı)
   try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
-    
-    // URL'den tenant slug'ını al
-    let tenantSlug = 'demo';
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      const subdomain = hostname.split('.')[0];
-      if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
-        tenantSlug = subdomain;
-      }
-    }
-
-    // Token'ı localStorage'dan al
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-    const res = await fetch(`${API_BASE_URL}/api/translate`, {
+    const res = await fetch('/api/translate', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
-        'x-tenant': tenantSlug
       },
       body: JSON.stringify({ 
         text: text, 
@@ -251,13 +234,20 @@ async function onlineTranslate(text: string, targetLang: string): Promise<string
     });
     
     if (!res.ok) {
-      console.error('DeepL translation failed:', res.status, res.statusText);
+      const errorData = await res.json().catch(() => ({ error: res.statusText }));
+      console.error('DeepL translation failed:', res.status, errorData);
       return null;
     }
     
     const data = await res.json();
     const translated = (data?.translatedText || '').trim();
-    return translated || null;
+    
+    if (!translated || translated === text) {
+      console.warn('Çeviri sonucu geçersiz veya orijinal metinle aynı:', { original: text, translated });
+      return null;
+    }
+    
+    return translated;
   } catch (error) {
     console.error('Translation error:', error);
     return null;

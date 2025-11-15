@@ -31,12 +31,13 @@ export function MenuTranslator({ menuItem, onTranslated, className = '' }: MenuT
       
       // Eğer çeviri başarısız olduysa (aynı metin döndüyse), hata göster
       if (translatedNameResult === menuItem.name && selectedLang !== 'tr') {
-        setError('Çeviri yapılamadı. Lütfen DeepL API key\'in kontrol edildiğinden emin olun.');
+        setError('Çeviri yapılamadı. Lütfen tekrar deneyin veya çeviriyi manuel olarak düzenleyin.');
+        setTranslatedName(translatedNameResult); // Yine de göster, kullanıcı düzenleyebilir
         setLoading(false);
-        return;
+        // Devam et, açıklama çevirisini de dene
+      } else {
+        setTranslatedName(translatedNameResult);
       }
-      
-      setTranslatedName(translatedNameResult);
       
       // Açıklama çevirisi
       const translatedDescResult = await translateText(menuItem.description, selectedLang);
@@ -44,9 +45,12 @@ export function MenuTranslator({ menuItem, onTranslated, className = '' }: MenuT
       
       // Eğer çeviri başarısız olduysa (aynı metin döndüyse), hata göster
       if (translatedDescResult === menuItem.description && selectedLang !== 'tr') {
-        setError('Açıklama çevirisi yapılamadı. Lütfen DeepL API key\'in kontrol edildiğinden emin olun.');
-        setLoading(false);
-        return;
+        if (!error) {
+          setError('Açıklama çevirisi yapılamadı. Lütfen tekrar deneyin veya çeviriyi manuel olarak düzenleyin.');
+        }
+        setTranslatedDesc(translatedDescResult); // Yine de göster, kullanıcı düzenleyebilir
+      } else {
+        setTranslatedDesc(translatedDescResult);
       }
       
       setTranslatedDesc(translatedDescResult);
