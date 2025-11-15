@@ -111,27 +111,33 @@ export default function MenuManagement() {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4000);
   };
 
-  // Kategorileri yükle
+  // Tenant slug'ını al
+  const getTenantSlug = (): string => {
+    if (typeof window === 'undefined') return 'default';
+    const hostname = window.location.hostname;
+    const subdomain = hostname.split('.')[0];
+    if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+      return subdomain;
+    }
+    return 'default';
+  };
+
+  // Kategorileri yükle (tenant-specific, varsayılan kategoriler yok)
   const loadCategories = async () => {
     try {
-      const stored = localStorage.getItem('menuCategories');
+      const tenantSlug = getTenantSlug();
+      const storageKey = `menuCategories_${tenantSlug}`;
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         setCategories(parsed);
       } else {
-        // Varsayılan kategoriler
-        const defaultCategories: Category[] = [
-          { id: '1', name: 'Pizza' },
-          { id: '2', name: 'Burger' },
-          { id: '3', name: 'Salata' },
-          { id: '4', name: 'İçecek' },
-          { id: '5', name: 'Tatlı' },
-        ];
-        setCategories(defaultCategories);
-        localStorage.setItem('menuCategories', JSON.stringify(defaultCategories));
+        // Yeni işletme için boş kategori listesi - varsayılan kategoriler yok
+        setCategories([]);
       }
     } catch (error) {
       console.error('Kategori yükleme hatası:', error);
+      setCategories([]);
     }
   };
 
@@ -189,11 +195,11 @@ export default function MenuManagement() {
     loadData();
   }, []);
 
-  // Kategori listesini güncelle
+  // Kategori listesini güncelle (tenant-specific)
   useEffect(() => {
-    if (categories.length > 0) {
-      localStorage.setItem('menuCategories', JSON.stringify(categories));
-    }
+    const tenantSlug = getTenantSlug();
+    const storageKey = `menuCategories_${tenantSlug}`;
+    localStorage.setItem(storageKey, JSON.stringify(categories));
   }, [categories]);
 
   const filteredItems = menuItems.filter(item => {
