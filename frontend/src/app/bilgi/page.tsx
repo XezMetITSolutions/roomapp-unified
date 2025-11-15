@@ -160,7 +160,7 @@ export default function BilgiPage() {
                   className="text-gray-600"
                 />
                 <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
-                  {hotelInfo?.wifi?.networkName || 'HotelLuxury_Guest'}
+                  {hotelInfo?.wifi?.networkName || '-'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -170,7 +170,7 @@ export default function BilgiPage() {
                   className="text-gray-600"
                 />
                 <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
-                  {hotelInfo?.wifi?.password || 'Luxury2024!'}
+                  {hotelInfo?.wifi?.password || '-'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -180,7 +180,7 @@ export default function BilgiPage() {
                   className="text-gray-600"
                 />
                 <span className="text-green-600 font-medium">
-                  {hotelInfo?.wifi?.speed || '100 Mbps'}
+                  {hotelInfo?.wifi?.speed || '-'}
                 </span>
               </div>
             </div>
@@ -195,7 +195,7 @@ export default function BilgiPage() {
               <li>• <SimpleTranslator text="Sınırsız internet erişimi" targetLang={currentLanguage as any} /></li>
               <li>• <SimpleTranslator text="Tüm odalar WiFi kapsamında" targetLang={currentLanguage as any} /></li>
               <li>• <SimpleTranslator text="Lobi ve ortak alanlarda ücretsiz WiFi" targetLang={currentLanguage as any} /></li>
-              <li>• <SimpleTranslator text="Teknik destek:" targetLang={currentLanguage as any} /> {hotelInfo?.wifi?.supportPhone || '+90 212 555 0199'}</li>
+              <li>• <SimpleTranslator text="Teknik destek:" targetLang={currentLanguage as any} /> {hotelInfo?.wifi?.supportPhone || '-'}</li>
             </ul>
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-medium">{hotelInfo?.hours?.reception || '24 Saat'}</span>
+                <span className="font-medium">{hotelInfo?.hours?.reception || '-'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <SimpleTranslator
@@ -230,7 +230,7 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-medium">{hotelInfo?.hours?.restaurant || '06:00 - 23:00'}</span>
+                <span className="font-medium">{hotelInfo?.hours?.restaurant || '-'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <SimpleTranslator
@@ -238,7 +238,7 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-medium">{hotelInfo?.hours?.bar || '18:00 - 02:00'}</span>
+                <span className="font-medium">{hotelInfo?.hours?.bar || '-'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <SimpleTranslator
@@ -246,7 +246,7 @@ export default function BilgiPage() {
                   targetLang={currentLanguage as any}
                   className="text-gray-600"
                 />
-                <span className="font-medium">{hotelInfo?.hours?.spa || '08:00 - 22:00'}</span>
+                <span className="font-medium">{hotelInfo?.hours?.spa || '-'}</span>
               </div>
             </div>
           </div>
@@ -302,19 +302,19 @@ export default function BilgiPage() {
               className="font-semibold text-gray-900 mb-3"
             />
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>• <SimpleTranslator text="Kahvaltı Buffet" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.breakfast || '06:00-10:00'})</li>
-              <li>• <SimpleTranslator text="Öğle Yemeği" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.lunch || '12:00-15:00'})</li>
-              <li>• <SimpleTranslator text="Akşam Yemeği" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.dinner || '18:00-22:00'})</li>
-              <li>• <SimpleTranslator text="Room Service" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.roomService || '24 saat'})</li>
-              <li>• <SimpleTranslator text="Havlu değişimi" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.towelChange || 'günlük'})</li>
-              <li>• <SimpleTranslator text="Teknik destek" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.techSupport || '24 saat'})</li>
+              <li>• <SimpleTranslator text="Kahvaltı Buffet" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.breakfast || '-'})</li>
+              <li>• <SimpleTranslator text="Öğle Yemeği" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.lunch || '-'})</li>
+              <li>• <SimpleTranslator text="Akşam Yemeği" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.dinner || '-'})</li>
+              <li>• <SimpleTranslator text="Room Service" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.roomService || '-'})</li>
+              <li>• <SimpleTranslator text="Havlu değişimi" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.towelChange || '-'})</li>
+              <li>• <SimpleTranslator text="Teknik destek" targetLang={currentLanguage as any} /> ({hotelInfo?.dining?.techSupport || '-'})</li>
             </ul>
           </div>
         </div>
       )
     }
     ];
-  }, [currentLanguage, isHydrated]);
+  }, [currentLanguage, isHydrated, hotelInfo]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
@@ -435,12 +435,18 @@ export default function BilgiPage() {
                       />
                     </span>
                   </div>
-                  <button
-                    onClick={() => window.open(`tel:${hotelInfo?.contacts?.reception?.replace(/\s/g, '') || '+902125550100'}`)}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
-                  >
-                    {hotelInfo?.contacts?.reception || '+90 212 555 0100'}
-                  </button>
+                  {hotelInfo?.contacts?.reception ? (
+                    <button
+                      onClick={() => window.open(`tel:${hotelInfo.contacts.reception.replace(/\s/g, '')}`)}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
+                    >
+                      {hotelInfo.contacts.reception}
+                    </button>
+                  ) : (
+                    <div className="w-full bg-gray-300 text-gray-600 py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base text-center">
+                      -
+                    </div>
+                  )}
                 </div>
 
                 {/* Güvenlik */}
@@ -454,12 +460,18 @@ export default function BilgiPage() {
                       />
                     </span>
                   </div>
-                  <button
-                    onClick={() => window.open(`tel:${hotelInfo?.contacts?.security?.replace(/\s/g, '') || '+902125550101'}`)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
-                  >
-                    {hotelInfo?.contacts?.security || '+90 212 555 0101'}
-                  </button>
+                  {hotelInfo?.contacts?.security ? (
+                    <button
+                      onClick={() => window.open(`tel:${hotelInfo.contacts.security.replace(/\s/g, '')}`)}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
+                    >
+                      {hotelInfo.contacts.security}
+                    </button>
+                  ) : (
+                    <div className="w-full bg-gray-300 text-gray-600 py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base text-center">
+                      -
+                    </div>
+                  )}
                 </div>
 
                 {/* Concierge */}
@@ -473,12 +485,18 @@ export default function BilgiPage() {
                       />
                     </span>
                   </div>
-                  <button
-                    onClick={() => window.open(`tel:${hotelInfo?.contacts?.concierge?.replace(/\s/g, '') || '+902125550102'}`)}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
-                  >
-                    {hotelInfo?.contacts?.concierge || '+90 212 555 0102'}
-                  </button>
+                  {hotelInfo?.contacts?.concierge ? (
+                    <button
+                      onClick={() => window.open(`tel:${hotelInfo.contacts.concierge.replace(/\s/g, '')}`)}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-colors"
+                    >
+                      {hotelInfo.contacts.concierge}
+                    </button>
+                  ) : (
+                    <div className="w-full bg-gray-300 text-gray-600 py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base text-center">
+                      -
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
