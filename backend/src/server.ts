@@ -2819,6 +2819,9 @@ app.get('/api/hotel/info', tenantMiddleware, async (req: Request, res: Response)
     
     // Get hotel info from settings or return empty defaults
     const settings = hotel.settings as any || {}
+    
+    console.log('GET /api/hotel/info - Hotel settings:', JSON.stringify(settings, null, 2));
+    
     const hotelInfo = {
       name: tenant?.name || '', // Tenant name'i otel adı olarak kullan
       wifi: settings.wifi || {
@@ -2849,6 +2852,8 @@ app.get('/api/hotel/info', tenantMiddleware, async (req: Request, res: Response)
       }
     }
     
+    console.log('GET /api/hotel/info - Returning hotelInfo:', JSON.stringify(hotelInfo, null, 2));
+    
     res.json(hotelInfo); return;
   } catch (error) {
     console.error('Get hotel info error:', error);
@@ -2861,6 +2866,8 @@ app.put('/api/hotel/info', tenantMiddleware, authMiddleware, async (req: Request
     const tenantId = getTenantId(req)
     const { wifi, hours, dining, amenities, contacts } = req.body
     
+    console.log('PUT /api/hotel/info - Request body:', JSON.stringify(req.body, null, 2));
+    
     // Get hotel from tenant
     const hotel = await prisma.hotel.findFirst({
       where: { tenantId }
@@ -2870,16 +2877,30 @@ app.put('/api/hotel/info', tenantMiddleware, authMiddleware, async (req: Request
       res.status(404).json({ message: 'Hotel not found' }); return;
     }
     
-    // Update hotel settings
+    // Update hotel settings - frontend'den gelen veriyi direkt kaydet
     const currentSettings = (hotel.settings as any) || {}
-    const updatedSettings = {
-      ...currentSettings,
-      ...(wifi !== undefined && { wifi }),
-      ...(hours !== undefined && { hours }),
-      ...(dining !== undefined && { dining }),
-      ...(amenities !== undefined && { amenities }),
-      ...(contacts !== undefined && { contacts })
+    const updatedSettings: any = {
+      ...currentSettings
     }
+    
+    // Frontend'den gelen verileri kaydet (undefined değilse)
+    if (wifi !== undefined) {
+      updatedSettings.wifi = wifi
+    }
+    if (hours !== undefined) {
+      updatedSettings.hours = hours
+    }
+    if (dining !== undefined) {
+      updatedSettings.dining = dining
+    }
+    if (amenities !== undefined) {
+      updatedSettings.amenities = amenities
+    }
+    if (contacts !== undefined) {
+      updatedSettings.contacts = contacts
+    }
+    
+    console.log('PUT /api/hotel/info - Updated settings:', JSON.stringify(updatedSettings, null, 2));
     
     await prisma.hotel.update({
       where: { id: hotel.id },
@@ -2887,6 +2908,13 @@ app.put('/api/hotel/info', tenantMiddleware, authMiddleware, async (req: Request
         settings: updatedSettings
       }
     })
+    
+    // Güncellenmiş hotel'i tekrar oku
+    const updatedHotel = await prisma.hotel.findFirst({
+      where: { id: hotel.id }
+    })
+    
+    console.log('PUT /api/hotel/info - Saved settings:', JSON.stringify(updatedHotel?.settings, null, 2));
     
     res.json({ message: 'Hotel info updated successfully', hotelInfo: updatedSettings }); return;
   } catch (error) {
