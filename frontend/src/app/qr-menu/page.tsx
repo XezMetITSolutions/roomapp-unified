@@ -279,20 +279,22 @@ export default function QRMenuPage() {
               }); // Debug için
               
               // Sadece aktif duyuruları göster (tüm kategoriler)
-              if (!isActive) {
+              if (isActive === false) {
                 console.log('Duyuru aktif değil:', a.id);
                 return null;
               }
               
-              // Tarih kontrolü
+              // Tarih kontrolü (opsiyonel - eğer tarih yoksa göster)
               const now = new Date().toISOString().split('T')[0];
-              const startDate = metadata.startDate || (a.createdAt ? new Date(a.createdAt).toISOString().split('T')[0] : now);
+              const startDate = metadata.startDate || (a.createdAt ? new Date(a.createdAt).toISOString().split('T')[0] : null);
               const endDate = metadata.endDate;
               
-              if (startDate > now) {
+              // StartDate varsa ve gelecekteyse gösterme
+              if (startDate && startDate > now) {
                 console.log('Başlangıç tarihi gelecekte:', startDate, '>', now);
                 return null;
               }
+              // EndDate varsa ve geçmişse gösterme
               if (endDate && endDate < now) {
                 console.log('Bitiş tarihi geçmiş:', endDate, '<', now);
                 return null;
