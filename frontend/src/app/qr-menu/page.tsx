@@ -683,11 +683,27 @@ export default function QRMenuPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-center" style={{ color: theme.textColor }}>
               {getTranslation('menu.title')}
             </h1>
-            {roomId && (
-              <p className="text-center mt-2 text-sm" style={{ color: theme.textColor, opacity: 0.7 }}>
-                Oda {roomId}
-              </p>
-            )}
+            {roomId && (() => {
+              // Oda numarasını temizle: "room-room-room-room-101" -> "101"
+              // Tüm "room-" ve "room" prefix'lerini kaldır
+              let cleanRoomNumber = roomId;
+              // Önce tüm "room-" prefix'lerini kaldır
+              while (cleanRoomNumber.toLowerCase().startsWith('room-')) {
+                cleanRoomNumber = cleanRoomNumber.substring(5);
+              }
+              // Sonra başta kalan "room" varsa kaldır
+              if (cleanRoomNumber.toLowerCase().startsWith('room')) {
+                cleanRoomNumber = cleanRoomNumber.substring(4);
+              }
+              // Başta kalan tireleri temizle
+              cleanRoomNumber = cleanRoomNumber.replace(/^-+/, '');
+              
+              return (
+                <p className="text-center mt-2 text-sm" style={{ color: theme.textColor, opacity: 0.7 }}>
+                  {cleanRoomNumber} numaralı oda
+                </p>
+              );
+            })()}
           </div>
           
           {/* Duyurular */}

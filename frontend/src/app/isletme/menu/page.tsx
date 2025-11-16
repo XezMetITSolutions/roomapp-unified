@@ -161,7 +161,12 @@ export default function MenuManagement() {
         setLoading(true);
         await loadCategories();
         
-        const response = await fetch('/api/menu');
+        const tenantSlug = getTenantSlug();
+        const response = await fetch('/api/menu', {
+          headers: {
+            'x-tenant': tenantSlug
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           const formattedItems = data.menu
