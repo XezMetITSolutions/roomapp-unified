@@ -34,13 +34,8 @@ interface GuestInterfaceClientProps {
 export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientProps) {
   const router = useRouter();
   const [showSurvey, setShowSurvey] = useState(false);
-  const [showSurnameModal, setShowSurnameModal] = useState(false);
-  const [surnameInput, setSurnameInput] = useState('');
-  const [guestInfo, setGuestInfo] = useState<{
-    name: string;
-    surname: string;
-  } | null>(null);
-  const [savedSurname, setSavedSurname] = useState<string | null>(null);
+  // Guest info artık kullanılmıyor - soyisim sorusu kaldırıldı
+  const [hotelName, setHotelName] = useState<string>('');
   const { addNotification } = useNotifications();
 
   // Dil store'u
@@ -60,21 +55,47 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
     }
   };
 
-  // Hydration kontrolü ve soyisim kontrolü
+  // Otel adını yükle
+  useEffect(() => {
+    const loadHotelName = async () => {
+      try {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
+        
+        // URL'den tenant slug'ını al
+        let tenantSlug = 'demo';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          if (subdomain && subdomain !== 'www' && subdomain !== 'roomxqr' && subdomain !== 'roomxqr-backend') {
+            tenantSlug = subdomain;
+          }
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/hotel/info`, {
+          headers: {
+            'x-tenant': tenantSlug
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.name) {
+            setHotelName(data.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading hotel name:', error);
+      }
+    };
+
+    loadHotelName();
+  }, []);
+
+  // Hydration kontrolü
   useEffect(() => {
     setIsHydrated(true);
     // RoomId'yi localStorage'a kaydet (geri dönüş için)
     localStorage.setItem('currentRoomId', roomId);
-    
-    // Bu oda için kaydedilmiş soyisim var mı kontrol et
-    const surnameKey = `guest_surname_${roomId}`;
-    const saved = localStorage.getItem(surnameKey);
-    if (saved) {
-      setSavedSurname(saved);
-    } else {
-      // İlk açılışta soyisim sor
-      setShowSurnameModal(true);
-    }
   }, [roomId]);
 
   // Dil seçici dropdown'ı dışına tıklandığında kapat
@@ -99,70 +120,77 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
 
 
 
-  // Misafir bilgilerini yükle
-  useEffect(() => {
-    const loadGuestInfo = async () => {
-      try {
-        const fullRoomId = roomId; // roomId zaten 'room-102' formatında geliyor
-        const guestData = await ApiService.getGuestFromCRM(fullRoomId);
-        if (guestData) {
-          setGuestInfo({
-            name: guestData.name,
-            surname: guestData.surname
-          });
-        }
-      } catch (error) {
-        console.error('Error loading guest info:', error);
-      }
-    };
+  // Misafir bilgileri artık yüklenmiyor - soyisim sorusu kaldırıldı
 
-    loadGuestInfo();
-  }, [roomId]);
+  // Otel adına göre hoş geldiniz mesajı formatla (Türkçe dilbilgisi: e/a ekleme)
+  const formatWelcomeMessage = (name: string): string => {
+    if (!name) return 'Hoş Geldiniz';
+    
+    const trimmedName = name.trim();
+    const lastChar = trimmedName.slice(-1).toLowerCase();
+    const vowels = ['a', 'e', 'ı', 'i', 'o', 'ö', 'u', 'ü'];
+    
+    // Son harf sesli ise "ye" veya "ya" ekle
+    if (vowels.includes(lastChar)) {
+      // Kalın sesliler: a, ı, o, u -> "ya"
+      // İnce sesliler: e, i, ö, ü -> "ye"
+      if (lastChar === 'a' || lastChar === 'ı' || lastChar === 'o' || lastChar === 'u') {
+        return `${trimmedName}'ya Hoş Geldiniz`;
+      } else {
+        return `${trimmedName}'ye Hoş Geldiniz`;
+      }
+    } else {
+      // Sessiz harf ise, kelimedeki son sesli harfe göre "e" veya "a" ekle
+      const nameLower = trimmedName.toLowerCase();
+      let lastVowel = null;
+      for (let i = nameLower.length - 1; i >= 0; i--) {
+        if (vowels.includes(nameLower[i])) {
+          lastVowel = nameLower[i];
+          break;
+        }
+      }
+      
+      // Son sesli harf kalın ise "a", ince ise "e"
+      if (lastVowel === 'a' || lastVowel === 'ı' || lastVowel === 'o' || lastVowel === 'u') {
+        return `${trimmedName}'a Hoş Geldiniz`;
+      } else {
+        return `${trimmedName}'e Hoş Geldiniz`;
+      }
+    }
+  };
 
   // Hoş geldiniz bildirimi - sadece ilk kez
   useEffect(() => {
-    const fullRoomId = roomId; // roomId zaten 'room-102' formatında geliyor
+    const fullRoomId = roomId;
     const welcomeKey = `welcome_shown_${fullRoomId}`;
     
     // Bu oda için hoş geldiniz bildirimi daha önce gösterildi mi?
     const hasShownWelcome = localStorage.getItem(welcomeKey);
     
-    // Soyisim kaydedildikten sonra hoş geldiniz mesajını göster
-    if (!hasShownWelcome && savedSurname) {
+    // Otel adı yüklendikten sonra hoş geldiniz mesajını göster
+    if (!hasShownWelcome && hotelName) {
       const timer = setTimeout(() => {
-        const welcomeMessage = `Hoş Geldiniz sayın ${savedSurname}`;
+        const welcomeMessage = formatWelcomeMessage(hotelName);
         
-        addNotification('info', welcomeMessage, 'Resepsiyon ekibimiz 7/24 hizmetinizdedir. İsteklerinizi buradan gönderebilirsiniz.', false, true, 5000); // Ses çalma, 5 saniye
+        addNotification('info', welcomeMessage, 'Resepsiyon ekibimiz 7/24 hizmetinizdedir. İsteklerinizi buradan gönderebilirsiniz.', false, true, 5000);
         
         // Bu oda için hoş geldiniz bildirimi gösterildi olarak işaretle
         localStorage.setItem(welcomeKey, 'true');
-      }, 2000); // 2 saniye
+      }, 2000);
       
       return () => clearTimeout(timer);
     }
-  }, [savedSurname, roomId, addNotification]);
+  }, [hotelName, roomId, addNotification]);
 
-  // Sayfa başlığını müşteri soyismi ile güncelle
+  // Sayfa başlığını otel adı ile güncelle
   useEffect(() => {
-    if (savedSurname) {
-      const title = `Hoş Geldiniz sayın ${savedSurname}`;
+    if (hotelName) {
+      const title = formatWelcomeMessage(hotelName);
       document.title = title;
-    } else if (guestInfo) {
-      const title = `Hoş Geldiniz ${guestInfo.name}`;
-      document.title = title;
+    } else {
+      document.title = 'Hoş Geldiniz';
     }
-  }, [guestInfo, savedSurname, roomId]);
-
-  // Soyisim kaydetme fonksiyonu
-  const handleSaveSurname = () => {
-    if (surnameInput.trim()) {
-      const surnameKey = `guest_surname_${roomId}`;
-      localStorage.setItem(surnameKey, surnameInput.trim());
-      setSavedSurname(surnameInput.trim());
-      setShowSurnameModal(false);
-      setSurnameInput('');
-    }
-  };
+  }, [hotelName]);
 
 
   if (showSurvey) {
@@ -175,11 +203,9 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
       <div className="min-h-screen flex flex-col items-center py-8 relative" style={{ background: theme.backgroundColor }}>
         <div className="w-full max-w-md px-4 mb-4 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold flex-1" style={{ color: theme.textColor }}>
-            {savedSurname 
-              ? `Hoş Geldiniz sayın ${savedSurname}`
-              : guestInfo 
-                ? `Hoş Geldiniz ${guestInfo.name}`
-                : `Hoş Geldiniz`
+            {hotelName 
+              ? formatWelcomeMessage(hotelName)
+              : safeGetTranslation('room.welcome', 'Hoş Geldiniz')
             }
           </h1>
           <div className="flex items-center gap-2">
@@ -231,60 +257,12 @@ export default function GuestInterfaceClient({ roomId }: GuestInterfaceClientPro
   return (
     <div className="min-h-screen flex flex-col items-center py-8 relative" style={{ background: theme.backgroundColor }}>
 
-      {/* Soyisim Modal */}
-      {showSurnameModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" style={{ background: theme.cardBackground }}>
-            <h2 className="text-xl font-bold mb-4" style={{ color: theme.textColor }}>
-              Hoş Geldiniz!
-            </h2>
-            <p className="text-sm mb-4" style={{ color: theme.textColor }}>
-              Size daha iyi hizmet verebilmek için lütfen soyisminizi giriniz.
-            </p>
-            <input
-              type="text"
-              value={surnameInput}
-              onChange={(e) => setSurnameInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && surnameInput.trim()) {
-                  handleSaveSurname();
-                }
-              }}
-              placeholder="Soyisminiz"
-              className="w-full px-4 py-3 rounded-lg mb-4 focus:outline-none focus:ring-2 text-base"
-              style={{ 
-                background: theme.backgroundColor,
-                color: theme.textColor,
-                border: `1px solid ${theme.borderColor}`,
-                boxShadow: 'none'
-              }}
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={handleSaveSurname}
-                disabled={!surnameInput.trim()}
-                className="flex-1 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ 
-                  background: surnameInput.trim() ? theme.primaryColor : theme.borderColor,
-                  color: 'white'
-                }}
-              >
-                Kaydet
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="w-full max-w-md px-4 mb-4 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold flex-1" style={{ color: theme.textColor }}>
-            {savedSurname 
-              ? `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')} sayın ${savedSurname}`
-              : guestInfo 
-                ? `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')} ${guestInfo.name}`
-                : `${safeGetTranslation('room.welcome', 'Hoş Geldiniz')}`
+            {hotelName 
+              ? formatWelcomeMessage(hotelName)
+              : safeGetTranslation('room.welcome', 'Hoş Geldiniz')
             }
           </h1>
         
