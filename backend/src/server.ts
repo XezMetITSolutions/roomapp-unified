@@ -971,22 +971,36 @@ app.get('/api/menu', tenantMiddleware, async (req: Request, res: Response) => {
     })
     
     // Translations'ı parse et (JSON olarak saklanıyor olabilir)
-    const formattedMenu = menuItems.map(item => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || '',
-      price: parseFloat(item.price.toString()),
-      category: item.category,
-      image: item.image || '',
-      allergens: item.allergens || [],
-      calories: item.calories,
-      isAvailable: item.isAvailable,
-      preparationTime: 15, // Varsayılan
-      rating: 4.0, // Varsayılan
-      translations: typeof item.translations === 'string' 
-        ? JSON.parse(item.translations) 
-        : item.translations || {}
-    }))
+    const formattedMenu = menuItems.map(item => {
+      let translations = {};
+      try {
+        if (item.translations) {
+          if (typeof item.translations === 'string') {
+            translations = JSON.parse(item.translations);
+          } else if (typeof item.translations === 'object') {
+            translations = item.translations;
+          }
+        }
+      } catch (parseError) {
+        console.warn(`Translation parse error for item ${item.id}:`, parseError);
+        translations = {};
+      }
+      
+      return {
+        id: item.id,
+        name: item.name,
+        description: item.description || '',
+        price: parseFloat(item.price.toString()),
+        category: item.category,
+        image: item.image || '',
+        allergens: item.allergens || [],
+        calories: item.calories,
+        isAvailable: item.isAvailable,
+        preparationTime: 15, // Varsayılan
+        rating: 4.0, // Varsayılan
+        translations
+      };
+    })
     
     // Hem menuItems hem de menu formatında döndür (uyumluluk için)
     res.json({ 
