@@ -961,6 +961,8 @@ app.delete('/api/users/:id', tenantMiddleware, authMiddleware, requirePermission
 app.get('/api/menu', tenantMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantId(req)
+    console.log('GET /api/menu - Tenant ID:', tenantId);
+    
     const menuItems = await prisma.menuItem.findMany({
       where: { 
         tenantId,
@@ -969,6 +971,8 @@ app.get('/api/menu', tenantMiddleware, async (req: Request, res: Response) => {
       },
       orderBy: { name: 'asc' }
     })
+    
+    console.log('GET /api/menu - Found items:', menuItems.length);
     
     // Translations'ı parse et (JSON olarak saklanıyor olabilir)
     const formattedMenu = menuItems.map(item => {
@@ -1008,11 +1012,13 @@ app.get('/api/menu', tenantMiddleware, async (req: Request, res: Response) => {
       menu: formattedMenu 
     }); return;
   } catch (error) {
-    console.error('Menu error:', error)
+    console.error('Menu error:', error);
+    console.error('Menu error stack:', error instanceof Error ? error.stack : 'No stack trace');
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production'
     res.status(500).json({ 
       message: 'Database error',
-      error: isDevelopment ? (error instanceof Error ? error.message : String(error)) : undefined
+      error: isDevelopment ? (error instanceof Error ? error.message : String(error)) : undefined,
+      stack: isDevelopment && error instanceof Error ? error.stack : undefined
     })
     return;
   }
