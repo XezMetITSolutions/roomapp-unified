@@ -964,21 +964,35 @@ app.get('/api/menu', tenantMiddleware, async (req: Request, res: Response) => {
     const menuItems = await prisma.menuItem.findMany({
       where: { 
         tenantId,
-        isActive: true, 
-        isAvailable: true 
+        isActive: true
+        // isAvailable filtresi kaldırıldı - tüm ürünler gösterilsin (mevcut olmayanlar da dahil)
       },
       orderBy: { name: 'asc' }
     })
     
     // Translations'ı parse et (JSON olarak saklanıyor olabilir)
     const formattedMenu = menuItems.map(item => ({
-      ...item,
+      id: item.id,
+      name: item.name,
+      description: item.description || '',
+      price: parseFloat(item.price.toString()),
+      category: item.category,
+      image: item.image || '',
+      allergens: item.allergens || [],
+      calories: item.calories,
+      isAvailable: item.isAvailable,
+      preparationTime: 15, // Varsayılan
+      rating: 4.0, // Varsayılan
       translations: typeof item.translations === 'string' 
         ? JSON.parse(item.translations) 
         : item.translations || {}
     }))
     
-    res.json({ menu: formattedMenu }); return;
+    // Hem menuItems hem de menu formatında döndür (uyumluluk için)
+    res.json({ 
+      menuItems: formattedMenu,
+      menu: formattedMenu 
+    }); return;
   } catch (error) {
     console.error('Menu error:', error)
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production'

@@ -65,6 +65,9 @@ export default function DebugMenuPage() {
       
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomxqr-backend.onrender.com';
       
+      // Backend URL'yi düzelt (roomxqr.onrender.com -> roomxqr-backend.onrender.com)
+      const backendUrl = API_BASE_URL.replace('roomxqr.onrender.com', 'roomxqr-backend.onrender.com');
+      
       // URL'den tenant slug'ını al
       let tenantSlug = 'demo';
       if (typeof window !== 'undefined') {
@@ -75,7 +78,7 @@ export default function DebugMenuPage() {
         }
       }
 
-      const backendApiUrl = `${API_BASE_URL}/api/menu`;
+      const backendApiUrl = `${backendUrl}/api/menu`;
       const frontendApiUrl = '/api/menu';
       
       // Backend API'den direkt veri çek
@@ -144,8 +147,10 @@ export default function DebugMenuPage() {
 
       // Backend'den gelen menü öğelerini formatla
       let backendMenuItems: MenuItem[] = [];
-      if (backendData?.menuItems) {
-        backendMenuItems = backendData.menuItems.map((item: any, index: number) => ({
+      // Backend hem menuItems hem de menu döndürebilir
+      const backendMenuData = backendData?.menuItems || backendData?.menu || [];
+      if (backendMenuData && Array.isArray(backendMenuData) && backendMenuData.length > 0) {
+        backendMenuItems = backendMenuData.map((item: any, index: number) => ({
           id: item.id || `backend-${index}`,
           name: item.name,
           description: item.description || '',
