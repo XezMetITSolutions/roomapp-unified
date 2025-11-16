@@ -38,7 +38,8 @@ export async function GET(request: Request) {
       if (backendResponse.ok) {
         const backendData = await backendResponse.json();
         // Backend'den gelen formatı frontend formatına çevir
-        const menuItems = backendData.menuItems || [];
+        // Backend hem menuItems hem de menu döndürebilir
+        const menuItems = backendData.menuItems || backendData.menu || [];
         const menu = menuItems.map((item: any) => ({
           id: item.id,
           name: item.name,
